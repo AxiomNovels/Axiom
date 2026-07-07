@@ -4,8 +4,9 @@ A hybrid recommendation system that recommends philosophical fiction based on us
 
 ## Features
 
-- Content-based filtering
-- Semantic embeddings
-- Philosophy ontology
-- Collaborative filtering
-- Explainable recommendations
+* Content-based filtering
+* Semantic embeddings
+* Philosophy ontology
+* Collaborative filtering
+* Explainable recommendations
+
