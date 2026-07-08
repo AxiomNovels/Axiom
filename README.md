@@ -10,3 +10,14 @@ A hybrid recommendation system that recommends philosophical fiction based on us
 * Collaborative filtering
 * Explainable recommendations
 
+## Local frontend
+
+The basic login page lives in `frontend/`.
+
+```bash
+cd frontend
+npm.cmd run dev
+```
+
+Then open http://localhost:3000.
+
