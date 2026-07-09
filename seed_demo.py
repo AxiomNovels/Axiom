@@ -9,9 +9,9 @@ approved. Safe to re-run (wipes and rebuilds the DB each time).
 
 import os
 
-from database import DB_PATH, get_session, init_db
-from models import ContributionType, ReadingStatus, UserRole
-import crud
+from database.users.database import DB_PATH, get_session, init_db
+from database.users.models import ContributionType, ReadingStatus, UserRole
+import database.users.crud as crud
 
 
 def main():
@@ -43,7 +43,7 @@ def main():
         crud.set_reading_status(session, alice.id, novel_id=7, status=ReadingStatus.completed)
         crud.set_reading_status(session, alice.id, novel_id=12, status=ReadingStatus.reading)
         reading_now = crud.get_reading_list(session, alice.id, status=ReadingStatus.reading)
-        print(f"Alice is currently reading: {[e.novel_id for e in reading_now]}, aka {[e.novel_]}\n")
+        print(f"Alice is currently reading: {[e.novel_id for e in reading_now]}\n")
 
         # -- Alice saves a discovery filter --
         sf = crud.save_filter(
@@ -69,7 +69,7 @@ def main():
             bob.id,
             contribution_type=ContributionType.new_novel,
             payload={
-                "title": "The Ashen Throne",
+                "title": "The Dark Throne",
                 "synopsis": "A deposed strategist claws back power through pure political calculation.",
                 "traits": {"strategic_thinking": 96, "ruthlessness": 89, "compassion": 8},
             },

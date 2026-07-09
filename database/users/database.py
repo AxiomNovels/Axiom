@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from models import Base
+from .models import Base
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "axiom_users.db")
 DATABASE_URL = f"sqlite:///{DB_PATH}"
