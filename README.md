@@ -7,7 +7,5 @@ strategic, and philosophically unique novels.
 ## Features
 
 * Content-based filtering
-* Semantic embeddings
-* Philosophy ontology
-* Collaborative filtering
-* Explainable recommendations
+* Recommendations based on user history
+* Numerical scales for protagonist, philosophy, and storyline
