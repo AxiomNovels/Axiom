@@ -3,62 +3,125 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Axiom Login</title>
+    <title>Axiom</title>
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
-    <main class="login-shell">
-      <section class="intro-panel" aria-labelledby="brand-title">
-        <p class="eyebrow">Axiom</p>
-        <h1 id="brand-title">Find the next story that thinks with you.</h1>
-        <p class="intro-copy">
-          Sign in to explore philosophical fiction recommendations shaped by theme,
-          character, and the ideas you want to follow.
-        </p>
-      </section>
+    <header class="site-header home-header">
+      <a class="brand" href="/" aria-label="Axiom home">
+        <img src="/assets/axiom-mark.png" alt="" class="brand-logo">
+        <img src="/assets/axiom-wordmark.png" alt="" class="brand-wordmark">
+      </a>
+      <nav class="nav-links reader-nav" aria-label="Primary navigation">
+        <a href="#browse">Browse</a>
+        <a href="#popular">Popular</a>
+        <a href="#popular">Recommendations</a>
+      </nav>
+      <form class="top-search-form search-form" action="#" method="get" aria-label="Search novels">
+        <label for="novel-search">Search novels</label>
+        <div class="search-row">
+          <input
+            id="novel-search"
+            name="q"
+            type="search"
+            placeholder="Search novels, themes, moods..."
+          >
+          <button type="submit" aria-label="Search">Search</button>
+        </div>
+      </form>
+      <nav class="nav-links account-nav" aria-label="Account navigation">
+        <a href="/login.html">Log in</a>
+        <a class="nav-cta" href="/signup.html">Sign up</a>
+      </nav>
+    </header>
 
-      <section class="login-panel" aria-labelledby="login-title">
-        <div class="login-header">
-          <p class="eyebrow">Welcome back</p>
-          <h2 id="login-title">Log in to Axiom</h2>
+    <main class="reader-home">
+      <section class="reader-hero" aria-labelledby="home-title">
+        <div>
+          <p class="eyebrow">Philosophical fiction recommender</p>
+          <h1 id="home-title">Find novels by the questions they ask.</h1>
+          <p class="hero-copy">
+            Search stories by title, character, theme, or philosophical mood.
+            Axiom is built for readers who want recommendations with meaning.
+          </p>
         </div>
 
-        <form class="login-form" action="#" method="post">
-          <label for="email">Email</label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autocomplete="email"
-            placeholder="you@example.com"
-            required
-          >
-
-          <label for="password">Password</label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autocomplete="current-password"
-            placeholder="Enter your password"
-            required
-          >
-
-          <div class="form-row">
-            <label class="checkbox-label">
-              <input type="checkbox" name="remember">
-              <span>Remember me</span>
-            </label>
-            <a href="#">Forgot password?</a>
-          </div>
-
-          <button type="submit">Log in</button>
-        </form>
-
-        <p class="signup-copy">
-          New to Axiom? <a href="#">Create an account</a>
-        </p>
+        <div class="quick-actions" id="browse" aria-label="Browse shortcuts">
+          <a href="#popular">Popular novels</a>
+        </div>
       </section>
+
+      <section class="home-grid">
+        <article class="featured-novel" aria-labelledby="featured-title">
+          <div class="book-cover featured-cover">
+            <span>The Stranger</span>
+          </div>
+          <div class="featured-copy">
+            <p class="eyebrow">Featured inquiry</p>
+            <h2 id="featured-title">What does freedom cost when meaning disappears?</h2>
+            <p>
+              Placeholder recommendation inspired by existential fiction,
+              moral ambiguity, alienation, and protagonists who refuse easy answers.
+            </p>
+            <div class="meta-row">
+              <span>Existentialism</span>
+              <span>Modern classic</span>
+              <span>Bleak clarity</span>
+            </div>
+          </div>
+        </article>
+
+        <aside class="updates-panel" aria-labelledby="updates-title">
+          <h2 id="updates-title">Meet Axiom</h2>
+          <a href="#popular">
+            <strong>Recommendation engine preview</strong>
+            <span>Popular and personalized picks will appear here soon.</span>
+          </a>
+          <a href="#popular">
+            <strong>Reader taste profiles</strong>
+            <span>Personalized discovery will connect to saved preferences soon.</span>
+          </a>
+        </aside>
+      </section>
+
+      <section class="section-block" id="popular" aria-labelledby="popular-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Popular recommendations</p>
+            <h2 id="popular-title">Trending novels</h2>
+          </div>
+          <a href="#popular">Refresh list</a>
+        </div>
+
+        <div class="book-row">
+          <article class="book-card">
+            <div class="book-cover cover-one"><span>Crime and Punishment</span></div>
+            <h3>Crime and Punishment</h3>
+            <p>Guilt, conscience, and redemption.</p>
+          </article>
+          <article class="book-card">
+            <div class="book-cover cover-two"><span>Siddhartha</span></div>
+            <h3>Siddhartha</h3>
+            <p>Selfhood, desire, and awakening.</p>
+          </article>
+          <article class="book-card">
+            <div class="book-cover cover-three"><span>The Trial</span></div>
+            <h3>The Trial</h3>
+            <p>Absurd systems and private dread.</p>
+          </article>
+          <article class="book-card">
+            <div class="book-cover cover-four"><span>Invisible Man</span></div>
+            <h3>Invisible Man</h3>
+            <p>Identity, power, and recognition.</p>
+          </article>
+          <article class="book-card">
+            <div class="book-cover cover-five"><span>The Dispossessed</span></div>
+            <h3>The Dispossessed</h3>
+            <p>Utopia, duty, and social freedom.</p>
+          </article>
+        </div>
+      </section>
+
     </main>
 
     <script src="/script.js"></script>

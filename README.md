@@ -12,7 +12,7 @@ A hybrid recommendation system that recommends philosophical fiction based on us
 
 ## Local frontend
 
-The basic login page lives in `frontend/`.
+The basic frontend lives in `frontend/`.
 
 ```bash
 cd frontend
@@ -20,4 +20,10 @@ npm.cmd run dev
 ```
 
 Then open http://localhost:3000.
+
+Available pages:
+
+* Home: http://localhost:3000/
+* Login: http://localhost:3000/login.html
+* Sign up: http://localhost:3000/signup.html
 

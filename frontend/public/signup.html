@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sign up | Axiom</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Axiom home">
+        <img src="/assets/axiom-mark.png" alt="" class="brand-logo">
+        <img src="/assets/axiom-wordmark.png" alt="" class="brand-wordmark">
+      </a>
+      <nav class="nav-links" aria-label="Primary navigation">
+        <a href="/">Home</a>
+        <a class="nav-cta" href="/login.html">Log in</a>
+      </nav>
+    </header>
+
+    <main class="auth-shell">
+      <section class="auth-intro" aria-labelledby="signup-brand-title">
+        <img src="/assets/axiom-logo.png" alt="" class="auth-mark">
+        <p class="eyebrow">Begin the inquiry</p>
+        <h1 id="signup-brand-title">Build a reading path around your questions.</h1>
+        <p>
+          Create a profile so Axiom can learn the ideas, narrative shapes, and
+          philosophical traditions that keep calling you back.
+        </p>
+      </section>
+
+      <section class="auth-panel" aria-labelledby="signup-title">
+        <div class="auth-header">
+          <p class="eyebrow">Create account</p>
+          <h2 id="signup-title">Sign up for Axiom</h2>
+        </div>
+
+        <form class="auth-form" action="#" method="post" data-demo-message="Local demo only: signup is not connected yet.">
+          <label for="email">Email</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            placeholder="you@example.com"
+            required
+          >
+
+          <label for="password">Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="new-password"
+            placeholder="Create a password"
+            required
+          >
+
+          <label for="confirm-password">Confirm password</label>
+          <input
+            id="confirm-password"
+            name="confirm-password"
+            type="password"
+            autocomplete="new-password"
+            placeholder="Confirm your password"
+            required
+          >
+
+          <button type="submit">Create account</button>
+        </form>
+
+        <p class="auth-switch">
+          Already have an account? <a href="/login.html">Log in</a>
+        </p>
+      </section>
+    </main>
+
+    <script src="/script.js"></script>
+  </body>
+</html>
