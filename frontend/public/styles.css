@@ -425,6 +425,30 @@ button:hover,
   justify-content: flex-end;
 }
 
+.guest-actions,
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-actions.is-hidden,
+.guest-actions.is-hidden {
+  display: none;
+}
+
+.user-greeting {
+  color: var(--ink);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.account-nav .logout-button {
+  width: auto;
+  min-height: 42px;
+  padding: 0 14px;
+}
+
 .reader-home {
   position: relative;
   z-index: 1;
@@ -801,6 +825,12 @@ button:hover,
   }
 
   .nav-links {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .guest-actions,
+  .user-actions {
     width: 100%;
     justify-content: space-between;
   }

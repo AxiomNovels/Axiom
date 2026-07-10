@@ -1,6 +1,8 @@
 # Philosophy Book Recommender
 
-A hybrid recommendation system that recommends philosophical fiction based on users' protagonist, philosophical, and storytelling interests.
+Our objective is to create a platform for discovering novels based on protagonist psychology,
+philosophy, and storytelling style. This app is for readers who enjoy psychologically deep,
+strategic, and philosophically unique novels.
 
 ## Features
 
@@ -9,21 +11,3 @@ A hybrid recommendation system that recommends philosophical fiction based on us
 * Philosophy ontology
 * Collaborative filtering
 * Explainable recommendations
-
-## Local frontend
-
-The basic frontend lives in `frontend/`.
-
-```bash
-cd frontend
-npm.cmd run dev
-```
-
-Then open http://localhost:3000.
-
-Available pages:
-
-* Home: http://localhost:3000/
-* Login: http://localhost:3000/login.html
-* Sign up: http://localhost:3000/signup.html
-

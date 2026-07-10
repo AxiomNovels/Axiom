@@ -30,8 +30,14 @@
         </div>
       </form>
       <nav class="nav-links account-nav" aria-label="Account navigation">
-        <a href="/login.html">Log in</a>
-        <a class="nav-cta" href="/signup.html">Sign up</a>
+        <div class="guest-actions" data-guest-actions>
+          <a href="/login.html">Log in</a>
+          <a class="nav-cta" href="/signup.html">Sign up</a>
+        </div>
+        <div class="user-actions is-hidden" data-user-actions>
+          <span class="user-greeting" data-user-greeting></span>
+          <button class="logout-button" type="button" data-logout-button>Log out</button>
+        </div>
       </nav>
     </header>
 
