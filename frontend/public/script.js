@@ -1,4 +1,5 @@
 const API_BASE = "http://localhost:8000";
+const COVER_CLASSES = ["cover-one", "cover-two", "cover-three", "cover-four", "cover-five"];
 
 function getStoredUser() {
   try {
@@ -115,3 +116,60 @@ document.querySelectorAll(".search-form").forEach((form) => {
     alert(message);
   });
 });
+
+function createNovelCard(novel, index) {
+  const link = document.createElement("a");
+  link.href = `/novel.html?id=${novel.id}`;
+  link.className = "book-card-link";
+
+  const article = document.createElement("article");
+  article.className = "book-card";
+
+  const cover = document.createElement("div");
+  cover.className = `book-cover ${COVER_CLASSES[index % COVER_CLASSES.length]}`;
+  if (novel.cover_image_url) {
+    cover.style.backgroundImage = `url(${novel.cover_image_url})`;
+  } else {
+    const coverSpan = document.createElement("span");
+    coverSpan.textContent = novel.title;
+    cover.appendChild(coverSpan);
+  }
+
+  const title = document.createElement("h3");
+  title.textContent = novel.title;
+
+  const blurb = document.createElement("p");
+  const synopsis = novel.synopsis || "";
+  blurb.textContent = synopsis.length > 90 ? `${synopsis.slice(0, 90)}...` : synopsis;
+
+  article.appendChild(cover);
+  article.appendChild(title);
+  article.appendChild(blurb);
+  link.appendChild(article);
+
+  return link;
+}
+
+async function loadTrendingNovels() {
+  const grid = document.querySelector("[data-novel-grid]");
+  if (!grid) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/api/novels`);
+    if (!response.ok) {
+      throw new Error("Failed to load novels");
+    }
+    const novels = await response.json();
+
+    grid.innerHTML = "";
+    novels.forEach((novel, index) => {
+      grid.appendChild(createNovelCard(novel, index));
+    });
+  } catch (error) {
+    grid.innerHTML = "<p>Couldn't load novels. Make sure the backend is running on port 8000.</p>";
+  }
+}
+
+loadTrendingNovels();

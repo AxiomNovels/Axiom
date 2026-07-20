@@ -83,3 +83,52 @@ def login(payload: AuthRequest):
         raise HTTPException(status_code=401, detail=str(error))
 
     return auth_response_payload(response)
+
+
+# Novels
+
+# Fields used for the home page grid -- deliberately lighter than the full
+# detail payload (no profile scores needed just to render a card).
+NOVEL_LIST_COLUMNS = "id, title, author, cover_image_url, synopsis, status, genres"
+
+# The three profile tables are embedded via their novel_id foreign key.
+# Each has a UNIQUE(novel_id) constraint, so PostgREST embeds them as a
+# single object per novel rather than an array.
+NOVEL_DETAIL_COLUMNS = (
+    "*, "
+    "protagonist_profiles(*), "
+    "philosophy_profiles(*), "
+    "storytelling_style_profiles(*)"
+)
+
+
+@app.get("/api/novels")
+def list_novels():
+    try:
+        response = (
+            supabase.table("novels")
+            .select(NOVEL_LIST_COLUMNS)
+            .order("title")
+            .execute()
+        )
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    return response.data
+
+
+@app.get("/api/novels/{novel_id}")
+def get_novel(novel_id: int):
+    try:
+        response = (
+            supabase.table("novels")
+            .select(NOVEL_DETAIL_COLUMNS)
+            .eq("id", novel_id)
+            .single()
+            .execute()
+        )
+    except Exception as error:
+        # supabase-py raises when .single() finds zero (or >1) rows
+        raise HTTPException(status_code=404, detail="Novel not found")
+
+    return response.data

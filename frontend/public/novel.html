@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Novel | Axiom</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/novel.css">
+  </head>
+  <body>
+    <header class="site-header home-header">
+      <a class="brand" href="/" aria-label="Axiom home">
+        <img src="/assets/axiom-mark.png" alt="" class="brand-logo">
+        <img src="/assets/axiom-wordmark.png" alt="" class="brand-wordmark">
+      </a>
+      <nav class="nav-links reader-nav" aria-label="Primary navigation">
+        <a href="/#browse">Browse</a>
+        <a href="/#popular">Popular</a>
+        <a href="/#popular">Recommendations</a>
+      </nav>
+      <form class="top-search-form search-form" action="#" method="get" aria-label="Search novels">
+        <label for="novel-search">Search novels</label>
+        <div class="search-row">
+          <input
+            id="novel-search"
+            name="q"
+            type="search"
+            placeholder="Search novels, themes, moods..."
+          >
+          <button type="submit" aria-label="Search">Search</button>
+        </div>
+      </form>
+      <nav class="nav-links account-nav" aria-label="Account navigation">
+        <div class="guest-actions" data-guest-actions>
+          <a href="/login.html">Log in</a>
+          <a class="nav-cta" href="/signup.html">Sign up</a>
+        </div>
+        <div class="user-actions is-hidden" data-user-actions>
+          <span class="user-greeting" data-user-greeting></span>
+          <button class="logout-button" type="button" data-logout-button>Log out</button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="novel-detail">
+      <a class="novel-back-link" href="/">&larr; Back to all novels</a>
+
+      <section class="novel-hero">
+        <div class="novel-cover" id="novel-cover" aria-hidden="true"></div>
+        <div class="novel-heading">
+          <h1 id="novel-title">Loading...</h1>
+          <p class="novel-author" id="novel-author"></p>
+          <span class="novel-status-badge" id="novel-status"></span>
+          <div class="novel-genres" id="novel-genres"></div>
+          <div class="novel-reading-links" id="novel-reading-links"></div>
+        </div>
+      </section>
+
+      <section aria-labelledby="synopsis-heading">
+        <h2 id="synopsis-heading">Synopsis</h2>
+        <p class="novel-synopsis" id="novel-synopsis"></p>
+      </section>
+
+      <section class="profile-section" aria-labelledby="protagonist-heading">
+        <h2 id="protagonist-heading">Protagonist Profile</h2>
+        <p class="profile-section-description">
+          The protagonist's psychology, scored 0-100 across ten fixed traits.
+        </p>
+        <div id="protagonist-profile"></div>
+      </section>
+
+      <section class="profile-section" aria-labelledby="philosophy-heading">
+        <h2 id="philosophy-heading">Philosophy Profile</h2>
+        <p class="profile-section-description">
+          The major ideas and themes this story explores.
+        </p>
+        <div id="philosophy-profile"></div>
+      </section>
+
+      <section class="profile-section" aria-labelledby="style-heading">
+        <h2 id="style-heading">Storytelling Style</h2>
+        <p class="profile-section-description">
+          How this story feels to read.
+        </p>
+        <div id="storytelling-profile"></div>
+      </section>
+    </main>
+
+    <script src="/script.js"></script>
+    <script src="/novel.js"></script>
+  </body>
+</html>
