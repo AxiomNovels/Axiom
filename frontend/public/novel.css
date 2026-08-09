@@ -115,7 +115,7 @@
 
 .trait-row {
   display: grid;
-  grid-template-columns: 160px 1fr 2.5rem;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(180px, 2fr) 2.5rem;
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 0.6rem;
@@ -145,8 +145,85 @@
   opacity: 0.8;
 }
 
+.trait-composite {
+  margin: 0.25rem 0 0.75rem;
+  border-radius: 0.5rem;
+}
+
+.trait-composite-summary {
+  position: relative;
+  cursor: pointer;
+  list-style: none;
+  padding-left: 1.5rem;
+}
+
+.trait-composite-summary::-webkit-details-marker {
+  display: none;
+}
+
+.trait-composite-summary::before {
+  position: absolute;
+  top: 0.15rem;
+  left: 0.1rem;
+  content: "\25B6";
+  font-size: 0.75rem;
+  opacity: 0.7;
+  transition: transform 140ms ease;
+}
+
+.trait-composite[open] > .trait-composite-summary::before {
+  transform: rotate(90deg);
+}
+
+.trait-composite-summary .trait-row {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.trait-composite-summary:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}
+
+.trait-subfactors {
+  margin: 0.75rem 0 1rem 1.5rem;
+  padding: 0.7rem 0 0.1rem 1.5rem;
+  border-left: 2px solid rgba(127, 127, 127, 0.25);
+}
+
+.trait-subfactors .trait-label {
+  opacity: 0.85;
+}
+
+.trait-with-poles {
+  margin-bottom: 0.9rem;
+}
+
+.trait-with-poles .trait-row {
+  margin-bottom: 0.2rem;
+}
+
+.trait-poles {
+  display: flex;
+  justify-content: space-between;
+  margin-left: max(220px, 26.7%);
+  padding: 0 3.25rem 0 0.75rem;
+  font-size: 0.72rem;
+  opacity: 0.65;
+}
+
 @media (max-width: 520px) {
   .trait-row {
-    grid-template-columns: 110px 1fr 2rem;
+    grid-template-columns: minmax(125px, 1fr) minmax(100px, 1.4fr) 2rem;
+  }
+
+  .trait-poles {
+    margin-left: 125px;
+    padding-right: 2.75rem;
+  }
+
+  .trait-subfactors {
+    margin-left: 0.75rem;
+    padding-left: 0.75rem;
   }
 }
