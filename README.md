@@ -1,11 +1,32 @@
 # Philosophy Book Recommender
 
-Our objective is to create a platform for discovering novels based on protagonist psychology,
-philosophy, and storytelling style. This app is for readers who enjoy psychologically deep,
-strategic, and philosophically unique novels.
+A hybrid recommendation system that recommends philosophical fiction based on users' protagonist, philosophical, and storytelling interests.
 
 ## Features
 
 * Content-based filtering
-* Recommendations based on user history
-* Numerical scales for protagonist, philosophy, and storyline
+* Semantic embeddings
+* Philosophy ontology
+* Collaborative filtering
+* Explainable recommendations
+
+## Local frontend
+
+The basic login page lives in `frontend/`.
+
+```bash
+cd frontend
+npm.cmd run dev
+```
+
+Then open http://localhost:3000.
+
+## Local backend
+
+The backend lives in `backend/`.
+
+```bash
+cd backend
+uvicorn main:app --port 8000
+```
+
