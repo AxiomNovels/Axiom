@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Search | Axiom</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/novel.css">
+  </head>
+  <body>
+    <header class="site-header home-header">
+      <a class="brand" href="/" aria-label="Axiom home">
+        <img src="/assets/axiom-mark.png" alt="" class="brand-logo">
+        <img src="/assets/axiom-wordmark.png" alt="" class="brand-wordmark">
+      </a>
+      <nav class="nav-links reader-nav" aria-label="Primary navigation">
+        <a href="/#browse">Browse</a>
+        <a href="/#popular">Popular</a>
+        <a href="/#popular">Recommendations</a>
+      </nav>
+      <form class="top-search-form search-form" action="/search.html" method="get" aria-label="Search novels">
+        <label for="novel-search">Search novels</label>
+        <div class="search-row">
+          <input id="novel-search" name="q" type="search" placeholder="Search novels, themes, moods...">
+          <button type="submit" aria-label="Search">Search</button>
+        </div>
+      </form>
+      <nav class="nav-links account-nav" aria-label="Account navigation">
+        <div class="guest-actions" data-guest-actions>
+          <a href="/login.html">Log in</a>
+          <a class="nav-cta" href="/signup.html">Sign up</a>
+        </div>
+        <div class="user-actions is-hidden" data-user-actions>
+          <span class="user-greeting" data-user-greeting></span>
+          <button class="logout-button" type="button" data-logout-button>Log out</button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="search-results-page">
+      <section class="search-results-heading" aria-labelledby="results-title">
+        <p class="eyebrow">Novel discovery</p>
+        <h1 id="results-title">Search results</h1>
+        <p data-results-summary aria-live="polite">Finding relevant novels&hellip;</p>
+      </section>
+      <section aria-label="Search results">
+        <div class="search-results-grid" data-search-results>
+          <p>Loading results&hellip;</p>
+        </div>
+      </section>
+    </main>
+
+    <script src="/script.js"></script>
+    <script src="/search.js"></script>
+  </body>
+</html>

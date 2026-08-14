@@ -40,7 +40,7 @@ const TRAIT_LABELS = {
 };
 
 const PROTAGONIST_MEASURES = [
-  { key: "emotional_regulation", poles: ["Hot-blooded", "Deliberate"] },
+  { key: "emotional_regulation" },
   { key: "arrogance_pride" },
   {
     key: "attachment",

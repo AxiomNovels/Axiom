@@ -105,15 +105,12 @@ document.querySelectorAll(".auth-form").forEach((form) => {
 
 document.querySelectorAll(".search-form").forEach((form) => {
   form.addEventListener("submit", (event) => {
-    event.preventDefault();
-
     const input = form.querySelector("input[type='search']");
     const query = input.value.trim();
-    const message = query
-      ? `Local demo only: search for "${query}" is not connected yet.`
-      : "Try searching for a novel, theme, or philosophical mood.";
-
-    alert(message);
+    if (!query) {
+      event.preventDefault();
+      input.focus();
+    }
   });
 });
 

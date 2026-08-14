@@ -145,6 +145,43 @@
   opacity: 0.8;
 }
 
+.search-results-page {
+  position: relative;
+  z-index: 1;
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 48px 0 80px;
+}
+
+.search-results-heading {
+  margin-bottom: 34px;
+}
+
+.search-results-heading h1 {
+  margin-bottom: 16px;
+  font-size: clamp(2.8rem, 6vw, 5rem);
+}
+
+.search-results-heading > p:last-child {
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.search-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 24px;
+}
+
+.search-empty {
+  grid-column: 1 / -1;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  padding: 30px;
+}
+
 .trait-composite {
   margin: 0.25rem 0 0.75rem;
   border-radius: 0.5rem;
