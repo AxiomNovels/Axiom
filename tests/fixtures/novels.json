@@ -1,0 +1,11 @@
+[
+  {
+    "id": 1,
+    "title": "Mother of Learning",
+    "author": "nobody103",
+    "genres": ["Fantasy", "Mystery"],
+    "synopsis": "A student becomes trapped in a repeating time loop.",
+    "status": "completed",
+    "cover_image_url": null
+  }
+]

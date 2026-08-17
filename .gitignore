@@ -1,6 +1,8 @@
 venv/
 .env
 *.example
+!tests/.env.test.example
+tests/.env.test
 __pycache__/
 *.pyc
 .ipynb_checkpoints/
@@ -8,6 +10,8 @@ __pycache__/
 .idea/
 data/raw/
 node_modules/
+test-results/
+playwright-report/
 logo_transparent_symbol.png
 logo_transparent_text.png
 logo_transparent.png
