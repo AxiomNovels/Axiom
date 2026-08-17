@@ -371,6 +371,7 @@ def extract_synopsis(
         )
 
         description = description.split("HIGHEST RANK", 1)[0]
+        description = description.split("All Rights Reserved", 1)[0]
 
         if description:
             return description

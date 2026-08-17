@@ -53,10 +53,10 @@ def normalize_genres(tags: Any) -> list[str]:
     """
     Convert source tags into the genres array expected by Axiom.
 
-    For the first pass, we preserve Royal Road's tags rather than
+    For the first pass, preserve the source tags rather than
     trying to make subjective genre decisions.
 
-    We can introduce explicit tag -> genre mapping later.
+    Explicit tag -> genre mapping can be introduced later.
     """
 
     if not tags:
@@ -64,7 +64,7 @@ def normalize_genres(tags: Any) -> list[str]:
 
     if not isinstance(tags, list):
         raise ValueError(
-            "Expected Royal Road tags to be a list"
+            "Expected source tags to be a list"
         )
 
     genres = []
@@ -96,6 +96,7 @@ def normalize_reading_links(
     platform_map = {
         "royalroad": "Royal Road",
         "wattpad": "Wattpad",
+        "webnovel": "WebNovel",
     }
 
     platform = platform_map.get(
@@ -119,15 +120,23 @@ def transform_royalroad(payload: dict) -> dict:
     This function does NOT write to Supabase.
     """
 
-    title = clean_string(payload.get("title"))
+    title = clean_string(
+        payload.get("title")
+    )
 
     if not title:
         raise ValueError(
             "Cannot transform Royal Road novel without a title"
         )
 
-    author = clean_string(payload.get("author"))
-    synopsis = clean_string(payload.get("synopsis"))
+    author = clean_string(
+        payload.get("author")
+    )
+
+    synopsis = clean_string(
+        payload.get("synopsis")
+    )
+
     cover_image_url = clean_string(
         payload.get("cover_image_url")
     )
@@ -157,6 +166,7 @@ def transform_royalroad(payload: dict) -> dict:
         "reading_links": reading_links,
     }
 
+
 def transform_wattpad(payload: dict) -> dict:
     """
     Transform one Wattpad raw payload into the Axiom novels
@@ -172,6 +182,61 @@ def transform_wattpad(payload: dict) -> dict:
     if not title:
         raise ValueError(
             "Cannot transform Wattpad novel without a title"
+        )
+
+    author = clean_string(
+        payload.get("author")
+    )
+
+    synopsis = clean_string(
+        payload.get("synopsis")
+    )
+
+    cover_image_url = clean_string(
+        payload.get("cover_image_url")
+    )
+
+    status = normalize_status(
+        payload.get("status")
+    )
+
+    genres = normalize_genres(
+        payload.get("tags")
+    )
+
+    reading_links = normalize_reading_links(
+        source=payload.get("source"),
+        reading_url=clean_string(
+            payload.get("reading_url")
+        ),
+    )
+
+    return {
+        "title": title,
+        "author": author,
+        "cover_image_url": cover_image_url,
+        "synopsis": synopsis,
+        "status": status,
+        "genres": genres,
+        "reading_links": reading_links,
+    }
+
+
+def transform_webnovel(payload: dict) -> dict:
+    """
+    Transform one WebNovel raw payload into the Axiom novels
+    schema.
+
+    This function does NOT write to Supabase.
+    """
+
+    title = clean_string(
+        payload.get("title")
+    )
+
+    if not title:
+        raise ValueError(
+            "Cannot transform WebNovel novel without a title"
         )
 
     author = clean_string(
@@ -246,6 +311,11 @@ def transform_staged_record(
 
     if source.lower() == "wattpad":
         return transform_wattpad(
+            raw_payload
+        )
+
+    if source.lower() == "webnovel":
+        return transform_webnovel(
             raw_payload
         )
 
