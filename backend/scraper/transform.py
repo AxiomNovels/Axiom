@@ -95,6 +95,7 @@ def normalize_reading_links(
 
     platform_map = {
         "royalroad": "Royal Road",
+        "wattpad": "Wattpad",
     }
 
     platform = platform_map.get(
@@ -156,6 +157,60 @@ def transform_royalroad(payload: dict) -> dict:
         "reading_links": reading_links,
     }
 
+def transform_wattpad(payload: dict) -> dict:
+    """
+    Transform one Wattpad raw payload into the Axiom novels
+    schema.
+
+    This function does NOT write to Supabase.
+    """
+
+    title = clean_string(
+        payload.get("title")
+    )
+
+    if not title:
+        raise ValueError(
+            "Cannot transform Wattpad novel without a title"
+        )
+
+    author = clean_string(
+        payload.get("author")
+    )
+
+    synopsis = clean_string(
+        payload.get("synopsis")
+    )
+
+    cover_image_url = clean_string(
+        payload.get("cover_image_url")
+    )
+
+    status = normalize_status(
+        payload.get("status")
+    )
+
+    genres = normalize_genres(
+        payload.get("tags")
+    )
+
+    reading_links = normalize_reading_links(
+        source=payload.get("source"),
+        reading_url=clean_string(
+            payload.get("reading_url")
+        ),
+    )
+
+    return {
+        "title": title,
+        "author": author,
+        "cover_image_url": cover_image_url,
+        "synopsis": synopsis,
+        "status": status,
+        "genres": genres,
+        "reading_links": reading_links,
+    }
+
 
 def transform_staged_record(
     staged_record: dict,
@@ -186,6 +241,11 @@ def transform_staged_record(
 
     if source.lower() == "royalroad":
         return transform_royalroad(
+            raw_payload
+        )
+
+    if source.lower() == "wattpad":
+        return transform_wattpad(
             raw_payload
         )
 
