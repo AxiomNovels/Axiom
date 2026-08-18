@@ -703,6 +703,15 @@ button:hover,
   padding: 16px;
 }
 
+.book-cover-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .book-cover::before {
   position: absolute;
   inset: 16px 18px auto auto;

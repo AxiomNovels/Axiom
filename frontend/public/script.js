@@ -125,7 +125,20 @@ function createNovelCard(novel, index) {
   const cover = document.createElement("div");
   cover.className = `book-cover ${COVER_CLASSES[index % COVER_CLASSES.length]}`;
   if (novel.cover_image_url) {
-    cover.style.backgroundImage = `url(${novel.cover_image_url})`;
+    const coverImage = document.createElement("img");
+    coverImage.className = "book-cover-image";
+    coverImage.src = novel.cover_image_url;
+    coverImage.alt = `${novel.title} cover`;
+    // Some book CDNs reject hotlinks when the requesting page is sent as the
+    // Referer. An <img> lets us suppress it and detect failed image loads.
+    coverImage.referrerPolicy = "no-referrer";
+    coverImage.addEventListener("error", () => {
+      coverImage.remove();
+      const coverSpan = document.createElement("span");
+      coverSpan.textContent = novel.title;
+      cover.appendChild(coverSpan);
+    }, { once: true });
+    cover.appendChild(coverImage);
   } else {
     const coverSpan = document.createElement("span");
     coverSpan.textContent = novel.title;

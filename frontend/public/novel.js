@@ -249,8 +249,16 @@ function renderNovel(novel) {
 
   if (coverEl) {
     if (novel.cover_image_url) {
-      coverEl.style.backgroundImage = `url(${novel.cover_image_url})`;
-      coverEl.textContent = "";
+      const coverImage = document.createElement("img");
+      coverImage.className = "novel-cover-image";
+      coverImage.src = novel.cover_image_url;
+      coverImage.alt = `${novel.title} cover`;
+      coverImage.referrerPolicy = "no-referrer";
+      coverImage.addEventListener("error", () => {
+        coverImage.remove();
+        coverEl.textContent = novel.title;
+      }, { once: true });
+      coverEl.replaceChildren(coverImage);
     } else {
       coverEl.textContent = novel.title;
     }
