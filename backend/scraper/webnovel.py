@@ -115,6 +115,41 @@ def clean_text(
 
     return text.strip() or None
 
+def clean_synopsis(
+    text: str | None,
+) -> str | None:
+    """
+    Clean synopsis text while preserving paragraph breaks.
+
+    Each non-empty line is treated as a paragraph.
+    Whitespace inside a paragraph is normalized, but paragraphs
+    remain separated by a blank line.
+    """
+
+    if not text:
+        return None
+
+    paragraphs = []
+
+    for paragraph in re.split(
+        r"\n+",
+        text,
+    ):
+        paragraph = re.sub(
+            r"\s+",
+            " ",
+            paragraph,
+        ).strip()
+
+        if paragraph:
+            paragraphs.append(
+                paragraph
+            )
+
+    return "\n\n".join(
+        paragraphs
+    ) or None
+
 
 def fetch(
     url: str,
@@ -560,7 +595,8 @@ def extract_synopsis(
     soup: BeautifulSoup,
 ) -> str | None:
     """
-    Extract the full WebNovel synopsis from the page.
+    Extract the full WebNovel synopsis from the page while
+    preserving paragraph breaks.
 
     WebNovel's meta description can be truncated, so it should
     NOT be our primary source.
@@ -593,12 +629,16 @@ def extract_synopsis(
     candidates = []
 
     for selector in selectors:
-        nodes = soup.select(selector)
+
+        nodes = soup.select(
+            selector
+        )
 
         for node in nodes:
-            text = clean_text(
+
+            text = clean_synopsis(
                 node.get_text(
-                    " ",
+                    "\n",
                     strip=True,
                 )
             )
@@ -615,11 +655,8 @@ def extract_synopsis(
             )
 
     # Prefer the longest candidate.
-    #
-    # This is useful because WebNovel may contain a short
-    # description in one element and the full synopsis in
-    # another.
     if candidates:
+
         candidates.sort(
             key=len,
             reverse=True,
@@ -638,6 +675,7 @@ def extract_synopsis(
             re.IGNORECASE,
         )
     ):
+
         heading = node.parent
 
         if heading is None:
@@ -647,21 +685,23 @@ def extract_synopsis(
         parent = heading.parent
 
         if parent is not None:
-            text = clean_text(
+
+            text = clean_synopsis(
                 parent.get_text(
-                    " ",
+                    "\n",
                     strip=True,
                 )
             )
 
             if text:
-                # Remove the heading itself.
+
+                # Remove the Synopsis heading.
                 text = re.sub(
-                    r"^\s*Synopsis\s*",
+                    r"^\s*Synopsis\s*\n*",
                     "",
                     text,
                     flags=re.IGNORECASE,
-                )
+                ).strip()
 
                 if len(text) >= 40:
                     return text
@@ -670,9 +710,10 @@ def extract_synopsis(
         sibling = heading.find_next_sibling()
 
         if sibling is not None:
-            text = clean_text(
+
+            text = clean_synopsis(
                 sibling.get_text(
-                    " ",
+                    "\n",
                     strip=True,
                 )
             )
@@ -682,6 +723,9 @@ def extract_synopsis(
 
     # ---------------------------------------------------------
     # 3. Look for JSON-LD description.
+    #
+    # JSON-LD may contain embedded newlines, so use
+    # clean_synopsis rather than clean_text.
     # ---------------------------------------------------------
 
     for script in soup.find_all(
@@ -690,25 +734,34 @@ def extract_synopsis(
             "type": "application/ld+json"
         },
     ):
+
         try:
+
             data = json.loads(
-                script.string or
-                script.get_text()
+                script.string
+                or script.get_text()
             )
+
         except (
             json.JSONDecodeError,
             TypeError,
         ):
             continue
 
-        if not isinstance(data, dict):
+        if not isinstance(
+            data,
+            dict,
+        ):
             continue
 
-        description = clean_text(
+        description = clean_synopsis(
             data.get("description")
         )
 
-        if description and len(description) >= 40:
+        if (
+            description
+            and len(description) >= 40
+        ):
             return description
 
     # ---------------------------------------------------------
@@ -725,7 +778,8 @@ def extract_synopsis(
     )
 
     if node:
-        description = clean_text(
+
+        description = clean_synopsis(
             node.get("content")
         )
 
@@ -746,7 +800,8 @@ def extract_synopsis(
     )
 
     if node:
-        description = clean_text(
+
+        description = clean_synopsis(
             node.get("content")
         )
 

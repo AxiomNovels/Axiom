@@ -79,6 +79,45 @@ def clean_text(node) -> str | None:
 
     return text.strip() or None
 
+def clean_synopsis(
+    node: HTMLParser,
+) -> str | None:
+    """
+    Clean synopsis text while preserving paragraph breaks.
+
+    Whitespace inside each paragraph is normalized, while
+    separate paragraphs remain separated by a blank line.
+    """
+
+    text = node.text(
+        separator="\n",
+        strip=True,
+    )
+
+    if not text:
+        return None
+
+    paragraphs = []
+
+    for paragraph in re.split(
+        r"\n+",
+        text,
+    ):
+        paragraph = re.sub(
+            r"\s+",
+            " ",
+            paragraph,
+        ).strip()
+
+        if paragraph:
+            paragraphs.append(
+                paragraph
+            )
+
+    return "\n\n".join(
+        paragraphs
+    ) or None
+
 def extract_remix_context(
     tree: HTMLParser,
 ) -> dict | None:
@@ -340,7 +379,8 @@ def extract_synopsis(
     tree: HTMLParser,
 ) -> str | None:
     """
-    Extract the full Wattpad story synopsis.
+    Extract the full Wattpad story synopsis while preserving
+    paragraph breaks.
 
     Wattpad visually truncates the description with CSS,
     but the full text is still present in the HTML.
@@ -349,7 +389,10 @@ def extract_synopsis(
     # Find the description container by looking for
     # the "Read more" button that belongs to it.
     for button in tree.css("button"):
-        button_text = clean_text(button)
+
+        button_text = clean_text(
+            button
+        )
 
         if button_text != "Read more":
             continue
@@ -366,33 +409,69 @@ def extract_synopsis(
         if description_node is None:
             continue
 
-        description = clean_text(
+        description = clean_synopsis(
             description_node
         )
 
-        description = description.split("HIGHEST RANK", 1)[0]
-        description = description.split("All Rights Reserved", 1)[0]
+        if not description:
+            continue
+
+        # Remove text that appears after the actual synopsis.
+        description = description.split(
+            "HIGHEST RANK",
+            1,
+        )[0]
+
+        description = description.split(
+            "All Rights Reserved",
+            1,
+        )[0]
+
+        description = description.strip()
 
         if description:
             return description
 
-    # Fallback to the meta description if the full
-    # description cannot be found.
+    # ---------------------------------------------------------
+    # Fallback to the meta description.
+    #
+    # Meta descriptions usually do not preserve paragraph
+    # structure, but preserve newlines if they happen to exist.
+    # ---------------------------------------------------------
+
     meta = tree.css_first(
         "meta[name='description']"
     )
 
     if meta:
+
         description = (
-            meta.attributes.get("content") or ""
+            meta.attributes.get("content")
+            or ""
         ).strip()
 
         if description:
-            return re.sub(
-                r"\s+",
-                " ",
+
+            paragraphs = []
+
+            for paragraph in re.split(
+                r"\n+",
                 description,
-            )
+            ):
+                paragraph = re.sub(
+                    r"\s+",
+                    " ",
+                    paragraph,
+                ).strip()
+
+                if paragraph:
+                    paragraphs.append(
+                        paragraph
+                    )
+
+            return "\n\n".join(
+                paragraphs
+            ) or None
 
     return None
 
@@ -700,6 +779,7 @@ if __name__ == "__main__":
     for novel in novels:
         print()
         print("-" * 70)
-        print(f"Title:  {novel['title']}")
-        print(f"Author: {novel['author']}")
-        print(f"ID:     {novel['story_id']}")
+        print(f"Title:    {novel['title']}")
+        print(f"Author:   {novel['author']}")
+        print(f"ID:       {novel['story_id']}")
+        print(f"Synopsis: {novel['synopsis']}")
