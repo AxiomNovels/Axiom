@@ -109,6 +109,7 @@
 
 .novel-synopsis {
   line-height: 1.6;
+  white-space: pre-line;
 }
 
 .profile-section h2 {
