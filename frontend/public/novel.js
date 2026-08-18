@@ -231,13 +231,49 @@ function renderProfileSection(containerId, keys, profile) {
   });
 }
 
+function setupSynopsis(synopsis) {
+  const wrapper = document.getElementById("novel-synopsis-wrapper");
+  const synopsisEl = document.getElementById("novel-synopsis");
+  const readMoreButton = document.getElementById("novel-read-more");
+
+  if (!wrapper || !synopsisEl || !readMoreButton) return;
+
+  synopsisEl.textContent = synopsis || "No synopsis yet.";
+
+  // If the synopsis fits within 10 lines, there is nothing to expand.
+  // Wait until the browser has rendered the text so we can measure it.
+  requestAnimationFrame(() => {
+    const lineHeight = parseFloat(getComputedStyle(synopsisEl).lineHeight);
+    const maxHeight = lineHeight * 10;
+
+    const needsExpansion = synopsisEl.scrollHeight > maxHeight + 1;
+
+    if (!needsExpansion) {
+      readMoreButton.remove();
+      wrapper.querySelector(".novel-synopsis-fade")?.remove();
+      return;
+    }
+
+    synopsisEl.classList.add("is-collapsed");
+
+    readMoreButton.addEventListener("click", () => {
+      const expanded = wrapper.classList.toggle("is-expanded");
+
+      synopsisEl.classList.toggle("is-collapsed", !expanded);
+
+      readMoreButton.setAttribute("aria-expanded", String(expanded));
+      readMoreButton.textContent = expanded ? "Read Less" : "Read More";
+    });
+  });
+}
+
 function renderNovel(novel) {
   document.title = `${novel.title} | Axiom`;
 
   const titleEl = document.getElementById("novel-title");
   const authorEl = document.getElementById("novel-author");
   const statusEl = document.getElementById("novel-status");
-  const synopsisEl = document.getElementById("novel-synopsis");
+  // const synopsisEl = document.getElementById("novel-synopsis");
   const coverEl = document.getElementById("novel-cover");
   const genresEl = document.getElementById("novel-genres");
   const linksEl = document.getElementById("novel-reading-links");
@@ -245,7 +281,7 @@ function renderNovel(novel) {
   if (titleEl) titleEl.textContent = novel.title;
   if (authorEl) authorEl.textContent = novel.author ? `by ${novel.author}` : "";
   if (statusEl) statusEl.textContent = novel.status;
-  if (synopsisEl) synopsisEl.textContent = novel.synopsis || "No synopsis yet.";
+  setupSynopsis(novel.synopsis);
 
   if (coverEl) {
     if (novel.cover_image_url) {
