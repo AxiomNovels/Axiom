@@ -3,23 +3,12 @@
 // without depending on that endpoint existing yet.
 const TRAIT_LABELS = {
   // Protagonist Profile
-  emotional_regulation: "Emotional Regulation",
-  arrogance_pride: "Arrogance / Pride",
-  attachment: "Attachment",
-  family_friend_bonds: "Family / Friend Bonds",
-  partner_attachment: "Partner Attachment (Romance)",
-  lustful_desire: "Lustful Desire",
-  intelligence: "Intelligence",
-  family_dynamics: "Family Dynamics",
-  individualism: "Individualist",
-  collectivism: "Collectivist",
-  identity_change_growth: "Identity Change / Growth",
-  alienation_from_society: "Alienation From Society",
-  mental_health: "Mental Health Challenges",
-  anxiety: "Anxiety",
-  depression: "Depression",
-  toxic_relationships: "Toxic Relationships",
-  emotional_repression: "Emotional Repression",
+  impulsivity: "Impulsivity",
+  arrogance_pride: "Arrogance and Pride",
+  kinship_friendship: "Kinship and Friendship",
+  romantic_attachment: "Romantic Attachment",
+  sexual_desire: "Sexual Desire",
+  selflessness: "Selflessness",
   // Philosophy Profile
   freedom: "Freedom",
   survival: "Survival",
@@ -40,23 +29,12 @@ const TRAIT_LABELS = {
 };
 
 const PROTAGONIST_MEASURES = [
-  { key: "emotional_regulation" },
+  { key: "impulsivity" },
   { key: "arrogance_pride" },
-  {
-    key: "attachment",
-    children: ["family_friend_bonds", "partner_attachment", "lustful_desire"],
-    alwaysAverage: true,
-  },
-  { key: "intelligence" },
-  { key: "family_dynamics" },
-  { key: "individualism" },
-  { key: "collectivism" },
-  { key: "identity_change_growth" },
-  { key: "alienation_from_society" },
-  {
-    key: "mental_health",
-    children: ["anxiety", "depression", "toxic_relationships", "emotional_repression"],
-  },
+  { key: "kinship_friendship" },
+  { key: "romantic_attachment" },
+  { key: "sexual_desire" },
+  { key: "selflessness" },
 ];
 const PHILOSOPHY_KEYS = [
   "freedom", "survival", "existentialism", "moral_ambiguity",
@@ -101,82 +79,6 @@ function normalizedScore(value) {
   return Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : 0;
 }
 
-function averageScores(profile, keys) {
-  const total = keys.reduce((sum, key) => sum + normalizedScore(profile[key]), 0);
-  return Math.round(total / keys.length);
-}
-
-function averageValues(...values) {
-  return Math.round(values.reduce((sum, value) => sum + normalizedScore(value), 0) / values.length);
-}
-
-// Populate the revised measures from the original profile while the five demo
-// novels are being rescored by hand. Explicit new scores always win.
-function withDerivedProtagonistMeasures(profile) {
-  if (!profile) return profile;
-  const value = (key, fallback) => profile[key] ?? fallback;
-  const emotionalAttachment = normalizedScore(profile.emotional_attachment);
-
-  return {
-    ...profile,
-    emotional_regulation: value(
-      "emotional_regulation",
-      averageValues(profile.internal_consistency, profile.adaptability),
-    ),
-    arrogance_pride: value("arrogance_pride", averageValues(profile.ambition, profile.ruthlessness)),
-    family_friend_bonds: value("family_friend_bonds", emotionalAttachment),
-    partner_attachment: value("partner_attachment", emotionalAttachment),
-    lustful_desire: value(
-      "lustful_desire",
-      averageValues(100 - normalizedScore(profile.internal_consistency), profile.ambition),
-    ),
-    intelligence: value(
-      "intelligence",
-      averageValues(profile.strategic_thinking, profile.long_term_planning, profile.curiosity),
-    ),
-    family_dynamics: value("family_dynamics", averageValues(emotionalAttachment, profile.compassion)),
-    individualism: value(
-      "individualism",
-      averageValues(profile.ambition, profile.curiosity, 100 - emotionalAttachment),
-    ),
-    collectivism: value("collectivism", averageValues(profile.compassion, emotionalAttachment)),
-    identity_change_growth: value("identity_change_growth", profile.adaptability),
-    alienation_from_society: value(
-      "alienation_from_society",
-      averageValues(profile.manipulation, profile.ruthlessness, 100 - normalizedScore(profile.compassion)),
-    ),
-    anxiety: value("anxiety", 100 - normalizedScore(profile.internal_consistency)),
-    depression: value("depression", 100 - normalizedScore(profile.ambition)),
-    toxic_relationships: value(
-      "toxic_relationships",
-      averageValues(profile.manipulation, profile.ruthlessness),
-    ),
-    emotional_repression: value("emotional_repression", 100 - emotionalAttachment),
-  };
-}
-
-function renderCompositeMeasure(measure, profile) {
-  const details = document.createElement("details");
-  details.className = "trait-composite";
-
-  const summary = document.createElement("summary");
-  summary.className = "trait-composite-summary";
-  const score = measure.alwaysAverage || profile[measure.key] == null
-    ? averageScores(profile, measure.children)
-    : normalizedScore(profile[measure.key]);
-  summary.appendChild(renderTraitRow(measure.key, score));
-
-  const children = document.createElement("div");
-  children.className = "trait-subfactors";
-  measure.children.forEach((key) => {
-    children.appendChild(renderTraitRow(key, normalizedScore(profile[key])));
-  });
-
-  details.appendChild(summary);
-  details.appendChild(children);
-  return details;
-}
-
 function renderProtagonistProfile(profile) {
   const container = document.getElementById("protagonist-profile");
   if (!container) return;
@@ -187,12 +89,9 @@ function renderProtagonistProfile(profile) {
     return;
   }
 
-  profile = withDerivedProtagonistMeasures(profile);
-
   PROTAGONIST_MEASURES.forEach((measure) => {
-    const element = measure.children
-      ? renderCompositeMeasure(measure, profile)
-      : renderTraitRow(measure.key, normalizedScore(profile[measure.key]));
+    const score = normalizedScore(profile[measure.key]);
+    const element = renderTraitRow(measure.key, score);
 
     if (!measure.poles) {
       container.appendChild(element);
@@ -278,7 +177,12 @@ function renderNovel(novel) {
   const genresEl = document.getElementById("novel-genres");
   const linksEl = document.getElementById("novel-reading-links");
 
-  if (titleEl) titleEl.textContent = novel.title;
+  if (titleEl) {
+    const title = novel.title || "Untitled";
+    titleEl.textContent = title;
+    titleEl.classList.toggle("is-long-title", title.length > 24 && title.length <= 42);
+    titleEl.classList.toggle("is-very-long-title", title.length > 42);
+  }
   if (authorEl) authorEl.textContent = novel.author ? `by ${novel.author}` : "";
   if (statusEl) statusEl.textContent = novel.status;
   setupSynopsis(novel.synopsis);

@@ -45,60 +45,72 @@
     <main class="novel-detail">
       <a class="novel-back-link" href="/">&larr; Back to all novels</a>
 
-      <section class="novel-hero">
-        <div class="novel-cover" id="novel-cover" aria-hidden="true"></div>
-        <div class="novel-heading">
-          <h1 id="novel-title">Loading...</h1>
-          <p class="novel-author" id="novel-author"></p>
-          <span class="novel-status-badge" id="novel-status"></span>
-          <div class="novel-genres" id="novel-genres"></div>
-          <div class="novel-reading-links" id="novel-reading-links"></div>
+      <div class="novel-layout">
+        <div class="novel-primary">
+          <section class="novel-hero">
+            <div class="novel-cover" id="novel-cover" aria-hidden="true"></div>
+            <div class="novel-heading">
+              <h1 id="novel-title">Loading...</h1>
+              <p class="novel-author" id="novel-author"></p>
+
+              <div class="novel-meta-actions">
+                <div class="novel-metadata">
+                  <span class="novel-status-badge" id="novel-status"></span>
+                  <div class="novel-genres" id="novel-genres"></div>
+                </div>
+
+                <div class="novel-reading-links" id="novel-reading-links"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="novel-synopsis-section" aria-labelledby="synopsis-heading">
+            <h2 id="synopsis-heading">Synopsis</h2>
+
+            <div class="novel-synopsis-wrapper" id="novel-synopsis-wrapper">
+              <div class="novel-synopsis-container">
+                <p class="novel-synopsis" id="novel-synopsis"></p>
+                <div class="novel-synopsis-fade" aria-hidden="true"></div>
+              </div>
+
+              <button
+                class="novel-read-more"
+                id="novel-read-more"
+                type="button"
+                aria-expanded="false"
+              >
+                Read More
+              </button>
+            </div>
+          </section>
         </div>
-      </section>
 
-      <section aria-labelledby="synopsis-heading">
-        <h2 id="synopsis-heading">Synopsis</h2>
+        <aside class="novel-analysis" aria-label="Novel analysis">
+          <section class="profile-section" aria-labelledby="protagonist-heading">
+            <h2 id="protagonist-heading">Protagonist Profile</h2>
+            <p class="profile-section-description">
+              The protagonist's psychology, scored 0-100.
+            </p>
+            <div id="protagonist-profile"></div>
+          </section>
 
-        <div class="novel-synopsis-wrapper" id="novel-synopsis-wrapper">
-          <div class="novel-synopsis-container">
-            <p class="novel-synopsis" id="novel-synopsis"></p>
-            <div class="novel-synopsis-fade" aria-hidden="true"></div>
-          </div>
+          <section class="profile-section" aria-labelledby="philosophy-heading">
+            <h2 id="philosophy-heading">Philosophy Profile</h2>
+            <p class="profile-section-description">
+              The major ideas and themes this story explores.
+            </p>
+            <div id="philosophy-profile"></div>
+          </section>
 
-          <button
-            class="novel-read-more"
-            id="novel-read-more"
-            type="button"
-            aria-expanded="false"
-          >
-            Read More
-          </button>
-        </div>
-      </section>
-
-      <section class="profile-section" aria-labelledby="protagonist-heading">
-        <h2 id="protagonist-heading">Protagonist Profile</h2>
-        <p class="profile-section-description">
-          The protagonist's psychology, scored 0-100.
-        </p>
-        <div id="protagonist-profile"></div>
-      </section>
-
-      <section class="profile-section" aria-labelledby="philosophy-heading">
-        <h2 id="philosophy-heading">Philosophy Profile</h2>
-        <p class="profile-section-description">
-          The major ideas and themes this story explores.
-        </p>
-        <div id="philosophy-profile"></div>
-      </section>
-
-      <section class="profile-section" aria-labelledby="style-heading">
-        <h2 id="style-heading">Storytelling Style</h2>
-        <p class="profile-section-description">
-          How this story feels to read.
-        </p>
-        <div id="storytelling-profile"></div>
-      </section>
+          <section class="profile-section" aria-labelledby="style-heading">
+            <h2 id="style-heading">Storytelling Style</h2>
+            <p class="profile-section-description">
+              How this story feels to read.
+            </p>
+            <div id="storytelling-profile"></div>
+          </section>
+        </aside>
+      </div>
     </main>
 
     <script src="/script.js"></script>

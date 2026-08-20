@@ -1,51 +1,86 @@
--- Run in the Supabase SQL editor to add the revised protagonist measures.
--- Existing columns remain in place so this change can be deployed safely.
+-- Run this migration in the Supabase SQL editor.
+-- It makes the protagonist profile schema match the six measures rendered by
+-- frontend/public/novel.js, then creates only Fang Yuan's profile.
+
+begin;
+
 alter table public.protagonist_profiles
-  add column if not exists emotional_regulation smallint check (emotional_regulation between 0 and 100),
+  add column if not exists impulsivity smallint check (impulsivity between 0 and 100),
   add column if not exists arrogance_pride smallint check (arrogance_pride between 0 and 100),
-  add column if not exists family_friend_bonds smallint check (family_friend_bonds between 0 and 100),
-  add column if not exists partner_attachment smallint check (partner_attachment between 0 and 100),
-  add column if not exists lustful_desire smallint check (lustful_desire between 0 and 100),
-  add column if not exists intelligence smallint check (intelligence between 0 and 100),
-  add column if not exists family_dynamics smallint check (family_dynamics between 0 and 100),
-  add column if not exists individualism smallint check (individualism between 0 and 100),
-  add column if not exists collectivism smallint check (collectivism between 0 and 100),
-  add column if not exists identity_change_growth smallint check (identity_change_growth between 0 and 100),
-  add column if not exists alienation_from_society smallint check (alienation_from_society between 0 and 100),
-  add column if not exists mental_health smallint check (mental_health between 0 and 100),
-  add column if not exists anxiety smallint check (anxiety between 0 and 100),
-  add column if not exists depression smallint check (depression between 0 and 100),
-  add column if not exists toxic_relationships smallint check (toxic_relationships between 0 and 100),
-  add column if not exists emotional_repression smallint check (emotional_repression between 0 and 100);
+  add column if not exists kinship_friendship smallint check (kinship_friendship between 0 and 100),
+  add column if not exists romantic_attachment smallint check (romantic_attachment between 0 and 100),
+  add column if not exists sexual_desire smallint check (sexual_desire between 0 and 100),
+  add column if not exists selflessness smallint check (selflessness between 0 and 100);
 
-comment on column public.protagonist_profiles.emotional_regulation is
-  '0 = hot-blooded, 100 = deliberate';
+comment on column public.protagonist_profiles.impulsivity is
+  '0 = fully deliberate, 100 = acts without forethought';
+comment on column public.protagonist_profiles.arrogance_pride is
+  '0 = humble, 100 = extremely arrogant or prideful';
+comment on column public.protagonist_profiles.kinship_friendship is
+  'Strength of bonds with family and friends';
+comment on column public.protagonist_profiles.romantic_attachment is
+  'Strength of romantic attachment';
+comment on column public.protagonist_profiles.sexual_desire is
+  'Prominence of sexual desire in the protagonist';
+comment on column public.protagonist_profiles.selflessness is
+  '0 = entirely self-interested, 100 = consistently self-sacrificing';
 
--- Give existing demo profiles useful starting values by translating their
--- original measures. These are editorial starting points, not final ratings;
--- any values already entered in the new columns are preserved.
-update public.protagonist_profiles
-set
-  emotional_regulation = coalesce(emotional_regulation, (internal_consistency + adaptability) / 2),
-  arrogance_pride = coalesce(arrogance_pride, (ambition + ruthlessness) / 2),
-  family_friend_bonds = coalesce(family_friend_bonds, emotional_attachment),
-  partner_attachment = coalesce(partner_attachment, emotional_attachment),
-  lustful_desire = coalesce(lustful_desire, ((100 - internal_consistency) + ambition) / 2),
-  intelligence = coalesce(intelligence, (strategic_thinking + long_term_planning + curiosity) / 3),
-  family_dynamics = coalesce(family_dynamics, (emotional_attachment + compassion) / 2),
-  individualism = coalesce(individualism, (ambition + curiosity + (100 - emotional_attachment)) / 3),
-  collectivism = coalesce(collectivism, (compassion + emotional_attachment) / 2),
-  identity_change_growth = coalesce(identity_change_growth, adaptability),
-  alienation_from_society = coalesce(
-    alienation_from_society,
-    (manipulation + ruthlessness + (100 - compassion)) / 3
-  ),
-  anxiety = coalesce(anxiety, 100 - internal_consistency),
-  depression = coalesce(depression, 100 - ambition),
-  toxic_relationships = coalesce(toxic_relationships, (manipulation + ruthlessness) / 2),
-  emotional_repression = coalesce(emotional_repression, 100 - emotional_attachment),
-  mental_health = coalesce(
-    mental_health,
-    ((100 - internal_consistency) + (100 - ambition) +
-      ((manipulation + ruthlessness) / 2) + (100 - emotional_attachment)) / 4
-  );
+insert into public.protagonist_profiles (
+  novel_id,
+  protagonist_name,
+  impulsivity,
+  arrogance_pride,
+  kinship_friendship,
+  romantic_attachment,
+  sexual_desire,
+  selflessness
+)
+select
+  id,
+  'Fang Yuan',
+  0,
+  12,
+  2,
+  0,
+  0,
+  1
+from public.novels
+where lower(trim(title)) = 'reverend insanity'
+on conflict (novel_id) do update set
+  protagonist_name = excluded.protagonist_name,
+  impulsivity = excluded.impulsivity,
+  arrogance_pride = excluded.arrogance_pride,
+  kinship_friendship = excluded.kinship_friendship,
+  romantic_attachment = excluded.romantic_attachment,
+  sexual_desire = excluded.sexual_desire,
+  selflessness = excluded.selflessness;
+
+-- Remove obsolete profile measures after the canonical values are in place.
+alter table public.protagonist_profiles
+  drop column if exists emotional_regulation,
+  drop column if exists family_friend_bonds,
+  drop column if exists partner_attachment,
+  drop column if exists lustful_desire,
+  drop column if exists intelligence,
+  drop column if exists family_dynamics,
+  drop column if exists individualism,
+  drop column if exists collectivism,
+  drop column if exists identity_change_growth,
+  drop column if exists alienation_from_society,
+  drop column if exists mental_health,
+  drop column if exists anxiety,
+  drop column if exists depression,
+  drop column if exists toxic_relationships,
+  drop column if exists emotional_repression,
+  drop column if exists internal_consistency,
+  drop column if exists adaptability,
+  drop column if exists ambition,
+  drop column if exists ruthlessness,
+  drop column if exists emotional_attachment,
+  drop column if exists strategic_thinking,
+  drop column if exists long_term_planning,
+  drop column if exists curiosity,
+  drop column if exists compassion,
+  drop column if exists manipulation;
+
+commit;
