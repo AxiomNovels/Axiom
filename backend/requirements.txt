@@ -3,3 +3,6 @@ uvicorn[standard]>=0.30.0
 python-dotenv>=1.0.1
 pydantic[email]>=2.7.0
 supabase>=2.6.0
+truststore>=0.10.0
+requests>=2.32.0
+beautifulsoup4>=4.12.0
