@@ -6,8 +6,11 @@ TRAIT_TERMS = {
     "impulsive", "impulsivity", "reckless", "calculated", "patient",
     "arrogant", "arrogance", "pride", "prideful", "humble",
     "family", "friend", "friendship", "loyal", "bond", "kin",
-    "romance", "romantic", "love", "lover", "relationship",
-    "lust", "sexual", "desire", "attracted", "attraction",
+    "romance", "romantic", "love", "lover", "relationship", "partner",
+    "marriage", "married", "marries", "wedding", "spouse", "wife", "husband",
+    "girlfriend", "boyfriend",
+    "lust", "sexual", "desire", "attracted", "attraction", "harem",
+    "child", "children", "offspring", "son", "daughter", "pregnant", "pregnancy",
     "selfless", "selfish", "sacrifice", "compassion", "altruistic",
 }
 

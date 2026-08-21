@@ -4,7 +4,7 @@ import profiler.sources as profile_sources
 
 from profiler.comments import select_comments
 from profiler.gemini import validate_identification, validate_profile
-from profiler.prompt import MEASURES
+from profiler.prompt import MEASURES, build_prompt
 from profiler.resolver import resolve_protagonist_name
 from profiler.sources.webnovel import parse_webnovel_reviews, validate_webnovel_url
 from profiler.sources.royalroad import parse_royalroad_reviews, validate_royalroad_url
@@ -24,6 +24,23 @@ def test_select_comments_deduplicates_and_prioritizes_relevant_text():
     selected = select_comments(comments, "Fang Yuan", limit=2)
     assert selected[0].startswith("Fang Yuan")
     assert len(selected) == 2
+
+
+def test_relationship_evidence_is_prioritized_and_has_score_floors():
+    comments = [
+        "A generic observation about the setting and prose.",
+        "The protagonist eventually marries and has multiple children.",
+    ]
+    selected = select_comments(comments, "Example Hero", limit=1)
+    assert "marries" in selected[0]
+
+    prompt = build_prompt(
+        {"title": "Example", "synopsis": "A journey.", "genres": ["Romance"]},
+        "Example Hero",
+        selected,
+    )
+    assert "slow/minor romance = at least 25" in prompt
+    assert "having children is evidence" in prompt
 
 
 def test_validate_profile_accepts_exact_six_scores():
