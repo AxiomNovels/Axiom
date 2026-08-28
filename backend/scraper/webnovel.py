@@ -187,6 +187,89 @@ def fetch(
 
     return response.text
 
+def fetch_review_statistics(
+    story_id: int,
+) -> dict:
+    """
+    Fetch WebNovel review statistics for a book.
+
+    Returns:
+        {
+            "total_score": float | None,
+            "total_review_num": int | None,
+        }
+
+    This uses WebNovel's public book-review endpoint rather than
+    attempting to extract review statistics from the book HTML.
+    """
+
+    url = (
+        f"{BASE_URL}/go/pcm/bookReview/get-reviews"
+    )
+
+    params = {
+        "bookId": story_id,
+        "pageIndex": 1,
+        "pageSize": 20,
+        "orderBy": 1,
+        "novelType": 0,
+        "needSummary": 1,
+    }
+
+    response = requests.get(
+        url,
+        params=params,
+        headers=HEADERS,
+        timeout=20,
+        allow_redirects=True,
+    )
+
+    response.raise_for_status()
+
+    data = response.json()
+
+    statistics = (
+        data
+        .get("data", {})
+        .get("bookStatisticsInfo", {})
+    )
+
+    total_score = statistics.get(
+        "totalScore"
+    )
+
+    total_review_num = statistics.get(
+        "totalReviewNum"
+    )
+
+    try:
+        if total_score is not None:
+            total_score = float(
+                total_score
+            )
+    except (
+        TypeError,
+        ValueError,
+    ):
+        total_score = None
+
+    try:
+        if total_review_num is not None:
+            total_review_num = int(
+                total_review_num
+            )
+    except (
+        TypeError,
+        ValueError,
+    ):
+        total_review_num = None
+
+    return {
+        "total_score": total_score,
+        "total_review_num": total_review_num,
+    }
+
+
 def extract_js_string(
     text: str,
     key: str,
@@ -1229,11 +1312,23 @@ def parse_webnovel(
         "html.parser",
     )
 
-    # debug_author_and_tags(soup)
 
     story_id = extract_story_id(
         source_url
     )
+
+    review_statistics = fetch_review_statistics(
+        story_id
+    )
+
+    total_score = review_statistics.get(
+        "total_score"
+    )
+
+    total_review_num = review_statistics.get(
+        "total_review_num"
+    )
+
 
     title = extract_title(soup)
     author = extract_author(soup)
@@ -1252,6 +1347,8 @@ def parse_webnovel(
         "source": "webnovel",
         "source_url": source_url,
         "story_id": story_id,
+        "total_score": total_score,
+        "total_review_num": total_review_num,
         "title": title,
         "author": author,
         "status": status,
