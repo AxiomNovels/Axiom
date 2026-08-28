@@ -58,16 +58,17 @@ def _get_owned_list(list_id: str, user_id: str) -> dict:
             .select("id, name, created_at")
             .eq("id", list_id)
             .eq("user_id", user_id)
-            .maybe_single()
+            .limit(1)
             .execute()
         )
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
 
-    if not response.data:
+    rows = response.data or []
+    if not rows:
         raise HTTPException(status_code=404, detail="Reading list not found.")
 
-    return response.data
+    return rows[0]
 
 
 @router.get("")
@@ -129,16 +130,17 @@ def get_novel_membership(novel_id: int, user_id: str = Depends(get_current_user_
             .select("reading_list_id, reading_lists(id, name)")
             .eq("novel_id", novel_id)
             .eq("user_id", user_id)
-            .maybe_single()
+            .limit(1)
             .execute()
         )
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
 
-    if not response.data:
+    rows = response.data or []
+    if not rows:
         return None
 
-    reading_list = response.data.get("reading_lists") or {}
+    reading_list = rows[0].get("reading_lists") or {}
     return {"id": reading_list.get("id"), "name": reading_list.get("name")}
 
 

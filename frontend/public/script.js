@@ -9,6 +9,30 @@ function getStoredUser() {
   }
 }
 
+function getStoredSession() {
+  try {
+    return JSON.parse(localStorage.getItem("axiomSession"));
+  } catch {
+    return null;
+  }
+}
+
+function getAccessToken() {
+  return getStoredSession()?.access_token || null;
+}
+
+// Wrapper around fetch that attaches the logged-in user's Supabase access
+// token, so the backend can tell which account a reading-list request
+// belongs to. Falls back to a plain, unauthenticated fetch when logged out.
+async function authFetch(url, options = {}) {
+  const token = getAccessToken();
+  const headers = { ...(options.headers || {}) };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return fetch(url, { ...options, headers });
+}
+
 function getUserName(user) {
   if (!user) {
     return "";
@@ -33,6 +57,15 @@ function updateAccountNav() {
     guestActions.classList.add("is-hidden");
     userActions.classList.remove("is-hidden");
     userGreeting.textContent = `Hi ${getUserName(user)}`;
+
+    if (!userActions.querySelector("[data-my-lists-link]")) {
+      const myListsLink = document.createElement("a");
+      myListsLink.href = "/lists.html";
+      myListsLink.className = "my-lists-link";
+      myListsLink.textContent = "My Lists";
+      myListsLink.setAttribute("data-my-lists-link", "");
+      userActions.insertBefore(myListsLink, userGreeting);
+    }
   } else {
     guestActions.classList.remove("is-hidden");
     userActions.classList.add("is-hidden");
@@ -92,8 +125,14 @@ document.querySelectorAll(".auth-form").forEach((form) => {
 
       localStorage.setItem("axiomUser", JSON.stringify(result.user));
       localStorage.setItem("axiomSession", JSON.stringify(result.session));
+
+      // Once a session exists the user is properly logged in, so send them
+      // straight to their reading lists. Without a session (e.g. email
+      // confirmation is required after signup) there's nothing to show
+      // there yet, so send them to log in instead.
+      const destination = result.session ? "/lists.html" : "/login.html";
       alert(isSignup ? "Account created." : "Logged in.");
-      window.location.href = "/";
+      window.location.href = destination;
     } catch (error) {
       alert("Could not reach the backend. Make sure it is running on port 8000.");
     } finally {

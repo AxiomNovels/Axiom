@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My Reading Lists | Axiom</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/novel.css">
+  </head>
+  <body>
+    <header class="site-header home-header">
+      <a class="brand" href="/" aria-label="Axiom home">
+        <img src="/assets/axiom-mark.png" alt="" class="brand-logo">
+        <img src="/assets/axiom-wordmark.png" alt="" class="brand-wordmark">
+      </a>
+      <nav class="nav-links reader-nav" aria-label="Primary navigation">
+        <a href="/#browse">Browse</a>
+        <a href="/#popular">Popular</a>
+        <a href="/#popular">Recommendations</a>
+      </nav>
+      <form class="top-search-form search-form" action="/search.html" method="get" aria-label="Search novels">
+        <label for="novel-search">Search novels</label>
+        <div class="search-row">
+          <input id="novel-search" name="q" type="search" placeholder="Search novels, themes, moods...">
+          <button type="submit" aria-label="Search">Search</button>
+        </div>
+      </form>
+      <nav class="nav-links account-nav" aria-label="Account navigation">
+        <div class="guest-actions" data-guest-actions>
+          <a href="/login.html">Log in</a>
+          <a class="nav-cta" href="/signup.html">Sign up</a>
+        </div>
+        <div class="user-actions is-hidden" data-user-actions>
+          <span class="user-greeting" data-user-greeting></span>
+          <button class="logout-button" type="button" data-logout-button>Log out</button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="reading-lists-page">
+      <section class="search-results-heading" aria-labelledby="lists-title">
+        <p class="eyebrow">Your library</p>
+        <h1 id="lists-title">My reading lists</h1>
+        <p class="reading-lists-summary" data-lists-summary aria-live="polite">Loading your reading lists&hellip;</p>
+      </section>
+
+      <section class="reading-lists-toolbar" aria-labelledby="new-list-heading">
+        <h2 id="new-list-heading" class="is-visually-hidden">Create a new list</h2>
+        <form class="new-list-form" data-new-list-form>
+          <label for="new-list-name">New list name</label>
+          <div class="search-row">
+            <input id="new-list-name" name="name" type="text" placeholder="e.g. Currently reading" maxlength="80" required>
+            <button type="submit">Create list</button>
+          </div>
+        </form>
+      </section>
+
+      <section aria-label="Your reading lists">
+        <div class="reading-lists-grid" data-lists-grid>
+          <p>Loading lists&hellip;</p>
+        </div>
+      </section>
+    </main>
+
+    <div class="modal-overlay is-hidden" data-modal-overlay>
+      <div class="modal-card" role="alertdialog" aria-modal="true" aria-labelledby="modal-message">
+        <p id="modal-message" data-modal-message></p>
+        <div class="modal-actions">
+          <button class="ghost-link" type="button" data-modal-cancel>No</button>
+          <button class="button-link" type="button" data-modal-confirm>Yes</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="/script.js"></script>
+    <script src="/lists.js"></script>
+  </body>
+</html>

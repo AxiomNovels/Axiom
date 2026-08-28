@@ -175,6 +175,65 @@
   color: inherit;
 }
 
+.novel-reading-list {
+  width: 100%;
+}
+
+.reading-list-controls {
+  width: 100%;
+}
+
+.reading-list-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(168, 85, 247, 0.08);
+  padding: 0.7rem 1rem;
+}
+
+.reading-list-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.reading-list-status a {
+  color: var(--focus);
+}
+
+.reading-list-login-prompt {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.reading-list-select {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(3, 1, 8, 0.72);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0 10px;
+}
+
+.reading-list-select:focus {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.2);
+  outline: none;
+}
+
+.reading-list-remove-button {
+  width: auto;
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 0.85rem;
+}
+
 .novel-synopsis-wrapper {
   margin-top: 0.5rem;
 }
@@ -454,6 +513,175 @@
     max-width: 11ch;
     font-size: clamp(2.75rem, 15vw, 4.5rem);
   }
+}
+
+.is-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* My Lists nav link (added next to the greeting when logged in) */
+.my-lists-link {
+  color: var(--ink);
+  font-weight: 750;
+}
+
+/* Reading lists overview page (lists.html) */
+.reading-lists-page {
+  position: relative;
+  z-index: 1;
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 48px 0 80px;
+}
+
+.reading-lists-summary {
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.reading-lists-toolbar {
+  margin-bottom: 34px;
+}
+
+.new-list-form {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  max-width: 480px;
+  padding: 18px;
+}
+
+.new-list-form label {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--focus);
+  font-size: 0.82rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.reading-lists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.reading-list-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(12, 6, 22, 0.74);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.26);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.reading-list-card-link {
+  color: inherit;
+  text-decoration: none;
+  display: block;
+}
+
+.reading-list-card-link:hover h3 {
+  color: var(--focus);
+}
+
+.reading-list-card-link h3 {
+  margin: 0 0 6px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.4rem;
+}
+
+.reading-list-card-link p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.reading-list-card-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.reading-list-action {
+  width: auto;
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 0.85rem;
+}
+
+/* Single reading list page (list.html) */
+.reading-list-heading {
+  margin-bottom: 34px;
+}
+
+.list-novel-item {
+  position: relative;
+}
+
+.list-novel-remove {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  width: auto;
+  min-height: 32px;
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  border-radius: 999px;
+  background: rgba(5, 2, 10, 0.72);
+}
+
+/* Shared yes/no confirmation modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 1, 8, 0.72);
+  backdrop-filter: blur(4px);
+  padding: 20px;
+}
+
+.modal-overlay.is-hidden {
+  display: none;
+}
+
+.modal-card {
+  width: min(100%, 420px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.5);
+  padding: 26px;
+}
+
+.modal-card p {
+  margin: 0 0 22px;
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.modal-actions button {
+  width: auto;
+  min-height: 42px;
+  padding: 0 20px;
 }
 
 @media (max-width: 520px) {

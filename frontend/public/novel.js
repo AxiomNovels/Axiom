@@ -237,6 +237,157 @@ function renderNovel(novel) {
   renderProfileSection("storytelling-profile", STYLE_KEYS, unwrap(novel.storytelling_style_profiles));
 }
 
+async function fetchReadingLists() {
+  const response = await authFetch(`${API_BASE}/api/reading-lists`);
+  if (!response.ok) throw new Error("Failed to load reading lists");
+  return response.json();
+}
+
+async function fetchNovelMembership(novelId) {
+  const response = await authFetch(`${API_BASE}/api/reading-lists/novel/${novelId}`);
+  if (!response.ok) throw new Error("Failed to load reading list status");
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
+}
+
+function buildReadingListLoginPrompt() {
+  const wrapper = document.createElement("p");
+  wrapper.className = "reading-list-status";
+  wrapper.append("Log in to ");
+  const link = document.createElement("a");
+  link.href = "/login.html";
+  link.textContent = "save this novel";
+  wrapper.appendChild(link);
+  wrapper.append(" to a reading list.");
+  return wrapper;
+}
+
+function buildReadingListControls(novelId, membership, lists) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "reading-list-controls";
+
+  const statusText = document.createElement("p");
+  statusText.className = "reading-list-status";
+
+  const select = document.createElement("select");
+  select.className = "reading-list-select";
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.disabled = true;
+  placeholder.selected = true;
+  select.appendChild(placeholder);
+
+  let removeButton = null;
+
+  if (membership) {
+    statusText.append("Currently in ");
+    const link = document.createElement("a");
+    link.href = `/list.html?id=${membership.id}`;
+    link.textContent = membership.name;
+    statusText.appendChild(link);
+    statusText.append(" list.");
+
+    select.setAttribute("aria-label", "Move to a different reading list");
+    placeholder.textContent = "Move to...";
+
+    lists
+      .filter((list) => list.id !== membership.id)
+      .forEach((list) => {
+        const option = document.createElement("option");
+        option.value = list.id;
+        option.textContent = list.name;
+        select.appendChild(option);
+      });
+
+    removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "ghost-link reading-list-remove-button";
+    removeButton.textContent = "Remove";
+    removeButton.addEventListener("click", async () => {
+      removeButton.disabled = true;
+      try {
+        const response = await authFetch(
+          `${API_BASE}/api/reading-lists/${membership.id}/novels/${novelId}`,
+          { method: "DELETE" }
+        );
+        if (!response.ok) throw new Error("Remove failed");
+        await refreshReadingListControls(novelId);
+      } catch (error) {
+        alert("Couldn't remove this novel from the list. Please try again.");
+        removeButton.disabled = false;
+      }
+    });
+  } else {
+    statusText.textContent = "Add series to...";
+    select.setAttribute("aria-label", "Add to a reading list");
+    placeholder.textContent = "Choose a list";
+
+    lists.forEach((list) => {
+      const option = document.createElement("option");
+      option.value = list.id;
+      option.textContent = list.name;
+      select.appendChild(option);
+    });
+  }
+
+  select.addEventListener("change", async () => {
+    const targetListId = select.value;
+    if (!targetListId) return;
+
+    select.disabled = true;
+    try {
+      const response = await authFetch(`${API_BASE}/api/reading-lists/${targetListId}/novels`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ novel_id: Number(novelId) }),
+      });
+      if (!response.ok) throw new Error("Update failed");
+      await refreshReadingListControls(novelId);
+    } catch (error) {
+      alert("Couldn't update this novel's reading list. Please try again.");
+      select.disabled = false;
+      select.value = "";
+    }
+  });
+
+  const row = document.createElement("div");
+  row.className = "reading-list-status-row";
+  row.appendChild(statusText);
+  row.appendChild(select);
+  if (removeButton) row.appendChild(removeButton);
+
+  wrapper.appendChild(row);
+  return wrapper;
+}
+
+async function refreshReadingListControls(novelId) {
+  const container = document.getElementById("novel-reading-list");
+  if (!container) return;
+
+  if (!getAccessToken()) {
+    container.innerHTML = "";
+    container.appendChild(buildReadingListLoginPrompt());
+    return;
+  }
+
+  try {
+    const [lists, membership] = await Promise.all([
+      fetchReadingLists(),
+      fetchNovelMembership(novelId),
+    ]);
+    container.innerHTML = "";
+    container.appendChild(buildReadingListControls(novelId, membership, lists));
+  } catch (error) {
+    console.error("[novel.js] failed to load reading list controls:", error);
+    container.innerHTML = "";
+    const message = document.createElement("p");
+    message.className = "reading-list-status";
+    message.textContent = "Couldn't load your reading lists.";
+    container.appendChild(message);
+  }
+}
+
 async function loadNovel() {
   console.log("[novel.js] loadNovel() starting");
 
@@ -262,6 +413,7 @@ async function loadNovel() {
     const novel = await response.json();
     console.log("[novel.js] novel payload received:", novel);
     renderNovel(novel);
+    refreshReadingListControls(novelId);
     console.log("[novel.js] render complete");
   } catch (error) {
     console.error("[novel.js] failed to load novel:", error);
