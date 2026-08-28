@@ -16,6 +16,20 @@ NOVEL_DETAIL_COLUMNS = (
     "storytelling_style_profiles(*)"
 )
 
+@router.get("/featured")
+def get_featured_novels():
+    try:
+        response = (
+            supabase.rpc(
+                "get_featured_novels",
+                {"result_limit": 10}
+            )
+            .execute()
+        )
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    return response.data
 
 @router.get("")
 def list_novels():

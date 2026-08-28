@@ -160,16 +160,16 @@ function createNovelCard(novel, index) {
   return link;
 }
 
-async function loadTrendingNovels() {
+async function loadFeaturedNovels() {
   const grid = document.querySelector("[data-novel-grid]");
   if (!grid) {
     return;
   }
 
   try {
-    const response = await fetch(`${API_BASE}/api/novels`);
+    const response = await fetch(`${API_BASE}/api/novels/featured`);
     if (!response.ok) {
-      throw new Error("Failed to load novels");
+      throw new Error("Failed to load featured novels");
     }
     const novels = await response.json();
 
@@ -182,4 +182,4 @@ async function loadTrendingNovels() {
   }
 }
 
-loadTrendingNovels();
+loadFeaturedNovels();
