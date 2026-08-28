@@ -5,8 +5,6 @@ python -m scraper.publish
 '''
 
 import os
-import json
-import traceback
 
 from dotenv import load_dotenv
 from supabase import create_client
@@ -63,6 +61,9 @@ def validate_novel(novel: dict) -> None:
     Validate the normalized object immediately before publication.
 
     This is intentionally stricter than the transformer's job.
+
+    Also checks that a novel with the same title AND author
+    does not already exist in the novels table.
     """
 
     required_fields = (
@@ -78,14 +79,40 @@ def validate_novel(novel: dict) -> None:
                 f"Normalized novel missing required field: {field}"
             )
 
+    # --------------------------------------------------
+    # Validate title
+    # --------------------------------------------------
+
     if not isinstance(novel["title"], str):
         raise ValueError("title must be a string")
 
-    if not novel["title"].strip():
+    title = novel["title"].strip()
+
+    if not title:
         raise ValueError("title cannot be empty")
+
+    # --------------------------------------------------
+    # Validate author
+    # --------------------------------------------------
+
+    author = novel.get("author")
+
+    if author is not None and not isinstance(author, str):
+        raise ValueError("author must be a string or None")
+
+    if isinstance(author, str):
+        author = author.strip()
+
+    # --------------------------------------------------
+    # Validate genres
+    # --------------------------------------------------
 
     if not isinstance(novel["genres"], list):
         raise ValueError("genres must be a list")
+
+    # --------------------------------------------------
+    # Validate reading links
+    # --------------------------------------------------
 
     if not isinstance(novel["reading_links"], list):
         raise ValueError(
@@ -107,6 +134,45 @@ def validate_novel(novel: dict) -> None:
             raise ValueError(
                 "Reading link is missing url"
             )
+
+    # --------------------------------------------------
+    # Check for an existing novel with the same
+    # title AND author
+    # --------------------------------------------------
+
+    duplicate_query = (
+        supabase
+        .table("novels")
+        .select("id, title, author")
+        .eq("title", title)
+    )
+
+    # Because author is nullable, handle NULL separately.
+    if author is None or author == "":
+        duplicate_query = duplicate_query.is_(
+            "author",
+            "null",
+        )
+    else:
+        duplicate_query = duplicate_query.eq(
+            "author",
+            author,
+        )
+
+    duplicate_response = duplicate_query.limit(1).execute()
+
+    existing_rows = duplicate_response.data or []
+
+    if existing_rows:
+        existing_novel = existing_rows[0]
+        existing_novel_id = existing_novel["id"]
+
+        raise ValueError(
+            "Duplicate novel already exists: "
+            f"title={title!r}, "
+            f"author={author!r}, "
+            f"existing novel id={existing_novel_id}"
+        )
 
 
 def mark_transformed(
@@ -191,6 +257,8 @@ def publish_staged_record(
 
     # --------------------------------------------------
     # Validate
+    #
+    # This includes the duplicate title + author check.
     # --------------------------------------------------
 
     validate_novel(normalized)
