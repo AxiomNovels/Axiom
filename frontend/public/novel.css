@@ -202,7 +202,27 @@
 
 .reading-list-status a {
   color: var(--focus);
+  font-weight: 700;
+  /* text-decoration: underline; */
+  text-decoration-thickness: 1.5px;
+  /* text-underline-offset: 3px; */
+  transition:
+    color 160ms ease,
+    text-decoration-thickness 160ms ease,
+    opacity 160ms ease;
 }
+
+.reading-list-status a:hover {
+  color: var(--ink);
+  text-decoration-thickness: 2px;
+}
+
+.reading-list-status a:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
 
 .reading-list-login-prompt {
   margin: 0;
