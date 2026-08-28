@@ -313,19 +313,22 @@ def extract_cover(
 
 def extract_status(
     tree: HTMLParser,
-) -> str:
+) -> str | None:
     """
     Extract the Royal Road fiction status.
+
+    Status is useful metadata but should not make the entire scrape fail.
+    Royal Road pages may omit the expected status label or present a label
+    not represented in STATUS_MAP.
+
+    Returns a normalized status when recognized, otherwise None.
     """
 
     for node in tree.css(
         "span.label.label-default."
         "label-sm.bg-blue-hoki"
     ):
-
-        text = clean_text(
-            node
-        )
+        text = clean_text(node)
 
         if not text:
             continue
@@ -333,18 +336,13 @@ def extract_status(
         normalized = text.upper()
 
         if normalized in STATUS_MAP:
-            return STATUS_MAP[
-                normalized
-            ]
+            return STATUS_MAP[normalized]
 
-    # Fallback: inspect all labels.
+    # Broader fallback: inspect all label elements.
     for node in tree.css(
         "span.label"
     ):
-
-        text = clean_text(
-            node
-        )
+        text = clean_text(node)
 
         if not text:
             continue
@@ -352,13 +350,10 @@ def extract_status(
         normalized = text.upper()
 
         if normalized in STATUS_MAP:
-            return STATUS_MAP[
-                normalized
-            ]
+            return STATUS_MAP[normalized]
 
-    raise ValueError(
-        "Could not find Royal Road fiction status"
-    )
+    # Status is optional metadata. Do not reject an otherwise valid fiction.
+    return None
 
 
 def extract_tags(
