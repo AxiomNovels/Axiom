@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes.auth import router as auth_router
 from routes.novels import router as novels_router
 from routes.search import router as search_router
+from routes.reading_lists import router as reading_lists_router
 from core.config import FRONTEND_ORIGIN
 
 
@@ -20,6 +21,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(novels_router)
 app.include_router(search_router)
+app.include_router(reading_lists_router)
 
 
 @app.get("/api/health")
