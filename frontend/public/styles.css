@@ -1211,3 +1211,16 @@ button:hover,
   .profile-disclosure > summary { min-height:58px; padding:9px 12px; }
   .profile-disclosure > summary i { display:none; }
 }
+
+/* Keep the first finder fields on the same content rail as tags and profiles. */
+.finder-fields.two-column {
+  width:calc(100% - 56px);
+  margin-left:56px;
+}
+
+@media (max-width:520px) {
+  .finder-fields.two-column {
+    width:100%;
+    margin-left:0;
+  }
+}
