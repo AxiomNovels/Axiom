@@ -90,7 +90,16 @@
 
         <aside class="novel-analysis" aria-label="Novel analysis">
           <section class="profile-section" aria-labelledby="protagonist-heading">
-            <h2 id="protagonist-heading">Protagonist Profile</h2>
+            <div class="profile-heading-row">
+              <h2 id="protagonist-heading">Protagonist Profile</h2>
+              <span class="profile-help">
+                <button type="button" aria-label="About protagonist profile scores" aria-describedby="profile-help-bubble">?</button>
+                <span class="profile-help-bubble" id="profile-help-bubble" role="tooltip">
+                  Scores show how strongly each trait shapes the protagonist, from 0 to 100.
+                  <a href="/protagonist-profile-info.html">Learn how scores work</a>
+                </span>
+              </span>
+            </div>
             <p class="profile-section-description">
               The protagonist's psychology, scored 0-100.
             </p>

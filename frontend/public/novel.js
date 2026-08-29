@@ -4,10 +4,10 @@
 const TRAIT_LABELS = {
   // Protagonist Profile
   impulsivity: "Impulsivity",
-  arrogance_pride: "Arrogance and Pride",
+  arrogance_pride: "Ego",
   kinship_friendship: "Kinship and Friendship",
   romantic_attachment: "Romantic Attachment",
-  sexual_desire: "Sexual Desire",
+  sexual_desire: "Lust",
   selflessness: "Selflessness",
   // Philosophy Profile
   freedom: "Freedom",

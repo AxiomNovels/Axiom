@@ -1,9 +1,9 @@
 const PROFILE_MEASURES = [
   ["impulsivity", "Impulsivity", "Deliberate", "Impulsive"],
-  ["arrogance_pride", "Arrogance & pride", "Humble", "Proud"],
+  ["arrogance_pride", "Ego", "Humble", "Egotistical"],
   ["kinship_friendship", "Kinship & friendship", "Detached", "Devoted"],
   ["romantic_attachment", "Romantic attachment", "Unattached", "Romantic"],
-  ["sexual_desire", "Sexual desire", "Absent", "Prominent"],
+  ["sexual_desire", "Lust", "Absent", "Dominant"],
   ["selflessness", "Selflessness", "Self-interested", "Self-sacrificing"]
 ];
 

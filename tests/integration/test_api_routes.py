@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 import routes.novels as novels_routes
 import routes.search as search_routes
+from routes.auth import auth_error
 from main import app
 
 
@@ -79,6 +80,12 @@ def test_local_numeric_frontend_origin_is_allowed():
         headers={"Origin": "http://127.0.0.1:3000"},
     )
     assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:3000"
+
+
+def test_auth_timeout_is_reported_as_gateway_timeout():
+    error = auth_error(RuntimeError("The read operation timed out"), 401)
+    assert error.status_code == 504
+    assert "Supabase" in error.detail
 
 
 def test_novel_list_endpoint(monkeypatch):

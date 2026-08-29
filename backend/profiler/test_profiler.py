@@ -39,8 +39,23 @@ def test_relationship_evidence_is_prioritized_and_has_score_floors():
         "Example Hero",
         selected,
     )
-    assert "slow/minor romance = at least 25" in prompt
-    assert "having children is evidence" in prompt
+    assert "confirmed slow/minor romance >=25" in prompt
+    assert "pregnancy, or children normally >=25" in prompt
+
+
+def test_profile_prompt_matches_public_scoring_guide():
+    prompt = build_prompt(
+        {"title": "Example", "synopsis": "Little evidence is available.", "genres": []},
+        "Example Hero",
+        [],
+    )
+    assert "0 means explicit, narratively meaningful absence" in prompt
+    assert "20 is the cautious limited-evidence region" in prompt
+    assert "Score and confidence are different" in prompt
+    assert "LUST (database key sexual_desire" in prompt
+    assert "Keep lust separate from romantic love" in prompt
+    for score in range(0, 101, 10):
+        assert f"{score} " in prompt
 
 
 def test_validate_profile_accepts_exact_six_scores():

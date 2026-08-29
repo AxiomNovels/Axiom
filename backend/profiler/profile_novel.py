@@ -74,10 +74,10 @@ def print_preview(
     print(f"Protagonist source:        {name_source} (confidence: {confidence_text})")
     labels = {
         "impulsivity": "Impulsivity",
-        "arrogance_pride": "Arrogance and Pride",
+        "arrogance_pride": "Ego",
         "kinship_friendship": "Kinship and Friendship",
         "romantic_attachment": "Romantic Attachment",
-        "sexual_desire": "Sexual Desire",
+        "sexual_desire": "Lust",
         "selflessness": "Selflessness",
     }
     for measure in MEASURES:

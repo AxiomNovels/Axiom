@@ -1,6 +1,6 @@
 const PROFILE_LABELS = {
-  impulsivity:"Impulsivity", arrogance_pride:"Arrogance & pride", kinship_friendship:"Kinship & friendship",
-  romantic_attachment:"Romantic attachment", sexual_desire:"Sexual desire", selflessness:"Selflessness",
+  impulsivity:"Impulsivity", arrogance_pride:"Ego", kinship_friendship:"Kinship & friendship",
+  romantic_attachment:"Romantic attachment", sexual_desire:"Lust", selflessness:"Selflessness",
   freedom:"Freedom", survival:"Survival", existentialism:"Existentialism", moral_ambiguity:"Moral ambiguity",
   self_improvement:"Self-improvement", determinism:"Determinism", revenge:"Revenge", romance:"Romance",
   political_intrigue:"Political intrigue", psychological_warfare:"Psychological warfare",

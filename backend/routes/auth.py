@@ -7,6 +7,17 @@ from models.auth import AuthRequest
 router = APIRouter(prefix="/api", tags=["authentication"])
 
 
+def auth_error(error: Exception, default_status: int) -> HTTPException:
+    message = str(error) or "Authentication request failed"
+    lowered = message.lower()
+    if "timed out" in lowered or "timeout" in lowered:
+        return HTTPException(
+            status_code=504,
+            detail="Supabase did not respond in time. Check the backend's Supabase URL and network connection.",
+        )
+    return HTTPException(status_code=default_status, detail=message)
+
+
 def to_jsonable(value):
     if value is None:
         return None
@@ -34,7 +45,7 @@ def signup(payload: AuthRequest):
             }
         )
     except Exception as error:
-        raise HTTPException(status_code=400, detail=str(error))
+        raise auth_error(error, 400)
 
     return auth_response_payload(response)
 
@@ -49,6 +60,6 @@ def login(payload: AuthRequest):
             }
         )
     except Exception as error:
-        raise HTTPException(status_code=401, detail=str(error))
+        raise auth_error(error, 401)
 
     return auth_response_payload(response)

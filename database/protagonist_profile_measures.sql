@@ -15,7 +15,7 @@ alter table public.protagonist_profiles
 comment on column public.protagonist_profiles.impulsivity is
   '0 = fully deliberate, 100 = acts without forethought';
 comment on column public.protagonist_profiles.arrogance_pride is
-  '0 = humble, 100 = extremely arrogant or prideful';
+  'Ego: 0 = humble, 100 = extremely egotistical';
 comment on column public.protagonist_profiles.kinship_friendship is
   'Strength of bonds with family and friends';
 comment on column public.protagonist_profiles.romantic_attachment is
