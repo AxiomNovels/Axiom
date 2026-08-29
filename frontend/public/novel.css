@@ -893,8 +893,8 @@
 .profile-help-bubble a { display:block; margin-top:8px; color:var(--focus); }
 .profile-help:hover .profile-help-bubble,.profile-help:focus-within .profile-help-bubble { visibility:visible; opacity:1; transform:translateY(0); }
 .profile-guide-page { position:relative; z-index:1; width:min(1040px,calc(100% - 32px)); margin:0 auto; padding:34px 0 80px; }
-.profile-guide-hero { max-width:820px; margin:28px 0 38px; }
-.profile-guide-hero h1 { max-width:14ch; margin-bottom:20px; font-size:clamp(3rem,7vw,5.5rem); }
+.profile-guide-hero { max-width:880px; margin:28px 0 38px; }
+.profile-guide-hero h1 { max-width:20ch; margin-bottom:20px; font-size:clamp(2.8rem,5vw,4.25rem); line-height:1; text-wrap:balance; }
 .profile-guide-hero > p:last-child { max-width:720px; color:var(--muted); font-size:1.08rem; line-height:1.7; }
 .scoring-principles { border:1px solid var(--line); border-radius:10px; background:rgba(12,6,22,.72); padding:26px; }
 .scoring-principles h2 { margin-bottom:20px; }
@@ -927,5 +927,5 @@
   .profile-help-bubble { right:-8px; width:min(250px,calc(100vw - 48px)); }
   .principle-grid,.trait-scale-list { grid-template-columns:1fr; }
   .trait-scale-list li:last-child { grid-column:auto; }
-  .profile-guide-hero h1 { font-size:clamp(2.7rem,14vw,4.3rem); }
+  .profile-guide-hero h1 { font-size:clamp(2.45rem,11vw,3.5rem); line-height:1.03; }
 }

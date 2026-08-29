@@ -25,7 +25,7 @@ let allTags = [];
 function createProfileFilters(grid, measures) {
   const header = document.createElement("div");
   header.className = "profile-filter-header";
-  header.innerHTML = "<span>Trait</span><span>Minimum</span><span>Maximum</span>";
+  header.innerHTML = "<span>Trait</span><span>Selected range</span>";
   grid.appendChild(header);
   measures.forEach(([key, label, low, high]) => {
     const field = document.createElement("div");
@@ -35,9 +35,44 @@ function createProfileFilters(grid, measures) {
         <strong>${label}</strong>
         <span>${low} <i aria-hidden="true">→</i> ${high}</span>
       </div>
-      <label><span class="profile-input-label">Minimum ${label}</span><input name="${key}_min" type="number" min="0" max="100" placeholder="0"></label>
-      <label><span class="profile-input-label">Maximum ${label}</span><input name="${key}_max" type="number" min="0" max="100" placeholder="100"></label>`;
+      <div class="profile-range" data-profile-range style="--range-min:0%; --range-max:100%">
+        <div class="profile-range-values" aria-hidden="true">
+          <output data-range-min>0</output><span>to</span><output data-range-max>100</output>
+        </div>
+        <div class="profile-range-track" aria-hidden="true"></div>
+        <input class="profile-range-input range-min" type="range" min="0" max="100" value="0" aria-label="Minimum ${label}">
+        <input class="profile-range-input range-max" type="range" min="0" max="100" value="100" aria-label="Maximum ${label}">
+        <input type="hidden" name="${key}_min" data-range-min-field>
+        <input type="hidden" name="${key}_max" data-range-max-field>
+      </div>`;
     grid.appendChild(field);
+
+    const range = field.querySelector("[data-profile-range]");
+    const minSlider = range.querySelector(".range-min");
+    const maxSlider = range.querySelector(".range-max");
+    const minField = range.querySelector("[data-range-min-field]");
+    const maxField = range.querySelector("[data-range-max-field]");
+    const minOutput = range.querySelector("[data-range-min]");
+    const maxOutput = range.querySelector("[data-range-max]");
+
+    function syncRange(changedSlider) {
+      if (Number(minSlider.value) > Number(maxSlider.value)) {
+        if (changedSlider === minSlider) maxSlider.value = minSlider.value;
+        else minSlider.value = maxSlider.value;
+      }
+      const minimum = Number(minSlider.value);
+      const maximum = Number(maxSlider.value);
+      range.style.setProperty("--range-min", `${minimum}%`);
+      range.style.setProperty("--range-max", `${maximum}%`);
+      minOutput.value = minimum;
+      maxOutput.value = maximum;
+      minField.value = minimum === 0 ? "" : minimum;
+      maxField.value = maximum === 100 ? "" : maximum;
+    }
+
+    minSlider.addEventListener("input", () => syncRange(minSlider));
+    maxSlider.addEventListener("input", () => syncRange(maxSlider));
+    syncRange();
   });
 }
 
@@ -149,7 +184,16 @@ finderForm.addEventListener("submit", (event) => {
 finderForm.addEventListener("reset", () => {
   selectedTags.include.clear();
   selectedTags.exclude.clear();
-  setTimeout(() => { renderSelectedTags(); renderSuggestions(); }, 0);
+  setTimeout(() => {
+    renderSelectedTags();
+    renderSuggestions();
+    document.querySelectorAll("[data-profile-range]").forEach((range) => {
+      range.style.setProperty("--range-min", "0%");
+      range.style.setProperty("--range-max", "100%");
+      range.querySelector("[data-range-min]").value = 0;
+      range.querySelector("[data-range-max]").value = 100;
+    });
+  }, 0);
 });
 
 createProfileFilters(document.querySelector('[data-profile-filters="protagonist"]'), PROFILE_MEASURES);
