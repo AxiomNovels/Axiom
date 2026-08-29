@@ -14,6 +14,9 @@ NOVELS = [
         "synopsis": "A student becomes trapped in a repeating time loop.",
         "status": "completed",
         "genres": ["Fantasy", "Mystery"],
+        "protagonist_profiles": [{"romantic_attachment": 25}],
+        "philosophy_profiles": {"freedom": 80},
+        "storytelling_style_profiles": {"mystery": 70},
     },
     {
         "id": 2,
@@ -23,6 +26,9 @@ NOVELS = [
         "synopsis": "A young woman chooses the villain's path.",
         "status": "completed",
         "genres": ["Fantasy"],
+        "protagonist_profiles": [{"romantic_attachment": 70}],
+        "philosophy_profiles": {"freedom": 30},
+        "storytelling_style_profiles": {"mystery": 20},
     },
 ]
 
@@ -67,6 +73,14 @@ def test_health_endpoint():
     assert response.json() == {"status": "ok"}
 
 
+def test_local_numeric_frontend_origin_is_allowed():
+    response = TestClient(app).get(
+        "/api/health",
+        headers={"Origin": "http://127.0.0.1:3000"},
+    )
+    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:3000"
+
+
 def test_novel_list_endpoint(monkeypatch):
     monkeypatch.setattr(novels_routes, "supabase", FakeSupabase())
     response = TestClient(app).get("/api/novels")
@@ -96,3 +110,41 @@ def test_empty_search_returns_no_results(monkeypatch):
     response = TestClient(app).get("/api/search", params={"q": "  "})
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_finder_options_are_derived_from_catalogue(monkeypatch):
+    monkeypatch.setattr(search_routes, "supabase", FakeSupabase())
+    response = TestClient(app).get("/api/search/options")
+    assert response.status_code == 200
+    assert response.json()["tags"] == ["Fantasy", "Mystery"]
+
+
+def test_search_filters_by_tag_and_profile_value(monkeypatch):
+    monkeypatch.setattr(search_routes, "supabase", FakeSupabase())
+    response = TestClient(app).get("/api/search", params={"include_tags": "Fantasy", "romantic_attachment_min": 50})
+    assert response.status_code == 200
+    assert [novel["id"] for novel in response.json()] == [2]
+
+
+def test_search_supports_or_tag_matching(monkeypatch):
+    monkeypatch.setattr(search_routes, "supabase", FakeSupabase())
+    response = TestClient(app).get("/api/search", params={"include_tags": "Mystery,Fantasy", "tag_mode": "or"})
+    assert response.status_code == 200
+    assert [novel["id"] for novel in response.json()] == [2, 1]
+
+
+def test_search_accepts_blank_profile_thresholds_from_finder_form(monkeypatch):
+    monkeypatch.setattr(search_routes, "supabase", FakeSupabase())
+    response = TestClient(app).get(
+        "/api/search",
+        params={"include_tags": "Fantasy", "impulsivity_min": "", "romantic_attachment_max": ""},
+    )
+    assert response.status_code == 200
+    assert len(response.json()) == 2
+
+
+def test_search_filters_philosophy_and_storytelling_ranges(monkeypatch):
+    monkeypatch.setattr(search_routes, "supabase", FakeSupabase())
+    response = TestClient(app).get("/api/search", params={"freedom_min": 60, "mystery_min": 50})
+    assert response.status_code == 200
+    assert [novel["id"] for novel in response.json()] == [1]

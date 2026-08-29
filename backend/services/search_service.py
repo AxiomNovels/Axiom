@@ -68,3 +68,89 @@ def rank_novels(novels, query):
 
     ranked.sort(key=lambda item: (-item[0], item[1].get("title", "").lower()))
     return [novel for _, novel in ranked]
+
+
+PROFILE_MEASURES = (
+    "impulsivity",
+    "arrogance_pride",
+    "kinship_friendship",
+    "romantic_attachment",
+    "sexual_desire",
+    "selflessness",
+)
+
+PHILOSOPHY_MEASURES = (
+    "freedom", "survival", "existentialism", "moral_ambiguity",
+    "self_improvement", "determinism", "revenge", "romance",
+)
+
+STORYTELLING_MEASURES = (
+    "political_intrigue", "psychological_warfare", "kingdom_building",
+    "action", "slice_of_life", "mystery", "worldbuilding",
+)
+
+
+def _profile_for(novel):
+    profiles = novel.get("protagonist_profiles") or []
+    if isinstance(profiles, dict):
+        return profiles
+    return profiles[0] if profiles else {}
+
+
+def _embedded_profile(novel, table):
+    profile = novel.get(table) or []
+    if isinstance(profile, dict):
+        return profile
+    return profile[0] if profile else {}
+
+
+def _matches_ranges(profile, ranges):
+    for measure, bounds in (ranges or {}).items():
+        value = profile.get(measure)
+        if value is None:
+            return False
+        minimum, maximum = bounds
+        if minimum is not None and value < minimum:
+            return False
+        if maximum is not None and value > maximum:
+            return False
+    return True
+
+
+def filter_novels(novels, include_tags=None, exclude_tags=None, status=None, profile_ranges=None, tag_mode="and", philosophy_ranges=None, storytelling_ranges=None):
+    """Apply finder criteria to a catalogue already fetched from Supabase."""
+    included = {tag.strip().lower() for tag in (include_tags or []) if tag.strip()}
+    excluded = {tag.strip().lower() for tag in (exclude_tags or []) if tag.strip()}
+    wanted_status = (status or "").strip().lower()
+    ranges = profile_ranges or {}
+    matches = []
+
+    for novel in novels:
+        tags = {str(tag).strip().lower() for tag in (novel.get("genres") or [])}
+        if included and tag_mode == "or" and not included.intersection(tags):
+            continue
+        if included and tag_mode != "or" and not included.issubset(tags):
+            continue
+        if excluded.intersection(tags):
+            continue
+        if wanted_status and str(novel.get("status") or "").lower() != wanted_status:
+            continue
+
+        if (
+            _matches_ranges(_profile_for(novel), ranges)
+            and _matches_ranges(_embedded_profile(novel, "philosophy_profiles"), philosophy_ranges)
+            and _matches_ranges(_embedded_profile(novel, "storytelling_style_profiles"), storytelling_ranges)
+        ):
+            matches.append(novel)
+
+    return matches
+
+
+def sort_novels(novels, sort="relevance", query=""):
+    if sort == "title_asc":
+        return sorted(novels, key=lambda novel: (novel.get("title") or "").lower())
+    if sort == "title_desc":
+        return sorted(novels, key=lambda novel: (novel.get("title") or "").lower(), reverse=True)
+    if query:
+        return rank_novels(novels, query)
+    return sorted(novels, key=lambda novel: (novel.get("title") or "").lower())

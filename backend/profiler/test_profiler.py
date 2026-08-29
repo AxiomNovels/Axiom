@@ -80,6 +80,23 @@ def test_webnovel_collector_rejects_other_hosts():
         validate_webnovel_url("https://example.com/book/1")
 
 
+def test_webnovel_missing_reviews_falls_back_without_crashing(monkeypatch, capsys):
+    def blocked(_url):
+        raise RuntimeError("WebNovel blocked the public review request (HTTP 403)")
+
+    monkeypatch.setattr(profile_sources, "collect_webnovel_reviews", blocked)
+    comments, sources = profile_sources.collect_public_comments([
+        {
+            "platform": "WebNovel",
+            "url": "https://www.webnovel.com/book/example_12345",
+        }
+    ])
+
+    assert comments == []
+    assert sources == ["WebNovel (reviews unavailable; synopsis/tags only)"]
+    assert "Continuing without WebNovel reviews" in capsys.readouterr().out
+
+
 def test_resolve_protagonist_uses_existing_profile():
     novel = {"protagonist_profiles": [{"protagonist_name": "Fang Yuan"}]}
     assert resolve_protagonist_name(novel, None) == "Fang Yuan"

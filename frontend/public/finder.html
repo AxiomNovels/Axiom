@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Series Finder | Axiom</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/novel.css">
+  </head>
+  <body>
+    <header class="site-header home-header">
+      <a class="brand" href="/" aria-label="Axiom home">
+        <img src="/assets/axiom-mark.png" alt="" class="brand-logo">
+        <img src="/assets/axiom-wordmark.png" alt="" class="brand-wordmark">
+      </a>
+      <nav class="nav-links reader-nav" aria-label="Primary navigation">
+        <a href="/finder.html" aria-current="page">Finder</a>
+        <a href="/#popular">Popular</a>
+      </nav>
+      <form class="top-search-form search-form" action="/search.html" method="get" aria-label="Search novels">
+        <label for="novel-search">Search novels</label>
+        <div class="search-row">
+          <input id="novel-search" name="q" type="search" placeholder="Search titles, authors, themes...">
+          <button type="submit">Search</button>
+        </div>
+      </form>
+      <nav class="nav-links account-nav" aria-label="Account navigation">
+        <div class="guest-actions" data-guest-actions><a href="/login.html">Log in</a><a class="nav-cta" href="/signup.html">Sign up</a></div>
+        <div class="user-actions is-hidden" data-user-actions><span class="user-greeting" data-user-greeting></span><button class="logout-button" type="button" data-logout-button>Log out</button></div>
+      </nav>
+    </header>
+
+    <main class="finder-page">
+      <section class="finder-heading">
+        <p class="eyebrow">Fine-grained discovery</p>
+        <h1>Series Finder</h1>
+        <p>Combine tags, publication status, and protagonist traits to find stories that fit precisely.</p>
+      </section>
+
+      <form class="finder-form" action="/search.html" method="get" data-finder-form>
+        <section class="finder-section">
+          <div class="finder-section-title"><span>01</span><div><h2>Search details</h2><p>Start broad, or leave these fields open and filter below.</p></div></div>
+          <div class="finder-fields two-column">
+            <label>Title, author, or keyword<input name="q" type="search" placeholder="e.g. time loop, Camus, cultivation"></label>
+            <label>Series status<select name="status"><option value="">Any status</option></select></label>
+          </div>
+        </section>
+
+        <section class="finder-section">
+          <div class="finder-section-title"><span>02</span><div><h2>Tags</h2><p>Included tags must all be present. Excluded tags remove a series.</p></div></div>
+          <div class="tag-mode" role="group" aria-label="Tag matching mode">
+            <span>Match included tags</span>
+            <label><input type="radio" name="tag_mode" value="and" checked> All (AND)</label>
+            <label><input type="radio" name="tag_mode" value="or"> Any (OR)</label>
+          </div>
+          <div class="tag-combobox">
+            <label for="tag-search">Add a tag</label>
+            <input id="tag-search" type="search" autocomplete="off" placeholder="Start typing a tag..." aria-autocomplete="list" aria-controls="tag-suggestions" aria-expanded="false">
+            <div class="tag-suggestions" id="tag-suggestions" role="listbox" data-tag-suggestions hidden></div>
+          </div>
+          <div class="selected-tags" data-selected-tags aria-live="polite"><p>No tags added yet.</p></div>
+          <p class="tag-help">Added tags are included by default. Use a tag's menu to exclude it instead.</p>
+          <input type="hidden" name="include_tags" data-included-tags>
+          <input type="hidden" name="exclude_tags" data-excluded-tags>
+        </section>
+
+        <section class="finder-section advanced-filters">
+          <div class="finder-section-title"><span>03</span><div><h2>Advanced profiles</h2><p>Optional 0–100 profile ranges for readers who want precise matches.</p></div></div>
+          <div class="profile-disclosures">
+            <details class="profile-disclosure">
+              <summary><span><strong>Protagonist profile</strong><small>Character traits and relationships</small></span><i>6 traits</i></summary>
+              <div class="profile-filter-grid" data-profile-filters="protagonist"></div>
+            </details>
+            <details class="profile-disclosure">
+              <summary><span><strong>Philosophy profile</strong><small>Themes, values, and central ideas</small></span><i>8 themes</i></summary>
+              <div class="profile-filter-grid" data-profile-filters="philosophy"></div>
+            </details>
+            <details class="profile-disclosure">
+              <summary><span><strong>Storytelling profile</strong><small>Narrative focus and stylistic emphasis</small></span><i>7 traits</i></summary>
+              <div class="profile-filter-grid" data-profile-filters="storytelling"></div>
+            </details>
+          </div>
+        </section>
+
+        <div class="finder-actions">
+          <button class="clear-filters" type="reset">Clear all</button>
+          <button class="finder-submit" type="submit">Find matching series <span aria-hidden="true">→</span></button>
+        </div>
+      </form>
+    </main>
+    <script src="/script.js"></script>
+    <script src="/finder.js"></script>
+  </body>
+</html>

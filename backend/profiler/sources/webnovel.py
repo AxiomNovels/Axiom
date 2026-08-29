@@ -2,6 +2,7 @@ import re
 from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
+from requests import RequestException
 
 from scraper.webnovel import fetch
 
@@ -44,7 +45,28 @@ def parse_webnovel_reviews(html: str, limit: int = 40) -> list[str]:
 
 def collect_webnovel_reviews(url: str, limit: int = 40) -> list[str]:
     validate_webnovel_url(url)
-    reviews = parse_webnovel_reviews(fetch(url), limit=limit)
+    urls_to_try = [url]
+    book_id_match = re.search(r"(?:_|/book/)(\d+)(?:[/?#]|$)", url)
+    if book_id_match:
+        canonical_url = f"https://www.webnovel.com/book/{book_id_match.group(1)}"
+        if canonical_url not in urls_to_try:
+            urls_to_try.append(canonical_url)
+
+    last_error = None
+    reviews = []
+    for candidate_url in urls_to_try:
+        try:
+            reviews = parse_webnovel_reviews(fetch(candidate_url), limit=limit)
+        except RequestException as error:
+            last_error = error
+            continue
+        if reviews:
+            return reviews
+
+    if last_error is not None:
+        status = getattr(last_error.response, "status_code", None)
+        detail = f"HTTP {status}" if status else type(last_error).__name__
+        raise RuntimeError(f"WebNovel blocked or failed the public review request ({detail})") from last_error
     if not reviews:
         raise RuntimeError("No public WebNovel reviews were found on the book page")
     return reviews

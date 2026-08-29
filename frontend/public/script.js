@@ -66,6 +66,24 @@ function updateAccountNav() {
       myListsLink.setAttribute("data-my-lists-link", "");
       userActions.insertBefore(myListsLink, userGreeting);
     }
+
+    if (!userActions.querySelector("[data-account-menu]")) {
+      const accountMenu = document.createElement("details");
+      accountMenu.className = "account-menu";
+      accountMenu.setAttribute("data-account-menu", "");
+
+      const accountTrigger = document.createElement("summary");
+      accountTrigger.className = "account-trigger";
+      accountTrigger.setAttribute("aria-label", "Open account menu");
+      accountTrigger.textContent = getUserName(user).charAt(0).toUpperCase();
+
+      const popover = document.createElement("div");
+      popover.className = "account-popover";
+      userGreeting.textContent = getUserName(user);
+      popover.append(userGreeting, logoutButton);
+      accountMenu.append(accountTrigger, popover);
+      userActions.appendChild(accountMenu);
+    }
   } else {
     guestActions.classList.remove("is-hidden");
     userActions.classList.add("is-hidden");

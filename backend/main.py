@@ -10,9 +10,18 @@ from core.config import FRONTEND_ORIGIN
 
 app = FastAPI(title="Axiom Backend")
 
+# Both addresses refer to the local frontend, but browsers treat them as
+# different origins. Supporting both avoids a confusing CORS failure when the
+# frontend is opened with the numeric loopback address.
+frontend_origins = list(dict.fromkeys([
+    FRONTEND_ORIGIN,
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_ORIGIN],
+    allow_origins=frontend_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

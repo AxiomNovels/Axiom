@@ -21,9 +21,14 @@ def collect_public_comments(reading_links: list[dict]) -> tuple[list[str], list[
             continue
 
         if platform == "webnovel" or "webnovel.com" in url.casefold():
-            reviews = collect_webnovel_reviews(url)
-            comments.extend(reviews)
-            sources.append(f"WebNovel ({len(reviews)} public reviews)")
+            try:
+                reviews = collect_webnovel_reviews(url)
+            except RuntimeError as error:
+                print(f"Warning: {error}. Continuing without WebNovel reviews.")
+                sources.append("WebNovel (reviews unavailable; synopsis/tags only)")
+            else:
+                comments.extend(reviews)
+                sources.append(f"WebNovel ({len(reviews)} public reviews)")
         elif platform == "royal road" or "royalroad.com" in url.casefold():
             reviews = collect_royalroad_reviews(url)
             comments.extend(reviews)

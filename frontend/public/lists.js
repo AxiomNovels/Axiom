@@ -46,6 +46,36 @@ function createListCard(list) {
   link.className = "reading-list-card-link";
   link.href = `/list.html?id=${list.id}`;
 
+  const bookcase = document.createElement("div");
+  bookcase.className = "list-bookcase";
+  bookcase.setAttribute("aria-hidden", "true");
+  const previews = list.preview_novels || [];
+  for (let index = 0; index < 3; index += 1) {
+    const novel = previews[index];
+    const book = document.createElement("div");
+    book.className = novel ? "list-preview-book" : "list-preview-book is-empty";
+    if (novel?.cover_image_url) {
+      const image = document.createElement("img");
+      image.src = novel.cover_image_url;
+      image.alt = "";
+      image.referrerPolicy = "no-referrer";
+      image.addEventListener("error", () => {
+        image.remove();
+        book.classList.add("has-fallback");
+        book.textContent = novel.title || "Axiom";
+      }, { once: true });
+      book.appendChild(image);
+    } else if (novel) {
+      book.classList.add("has-fallback");
+      book.textContent = novel.title || "Axiom";
+    } else {
+      const mark = document.createElement("span");
+      mark.textContent = "A";
+      book.appendChild(mark);
+    }
+    bookcase.appendChild(book);
+  }
+
   const title = document.createElement("h3");
   title.textContent = list.name;
 
@@ -53,6 +83,7 @@ function createListCard(list) {
   const novelWord = list.novel_count === 1 ? "novel" : "novels";
   count.textContent = `${list.novel_count} ${novelWord}`;
 
+  link.appendChild(bookcase);
   link.appendChild(title);
   link.appendChild(count);
 
@@ -133,6 +164,17 @@ async function loadReadingLists() {
     if (!response.ok) throw new Error("Failed to load reading lists");
 
     const lists = await response.json();
+    await Promise.all(lists.map(async (list) => {
+      if (!list.novel_count || list.preview_novels?.length) return;
+      try {
+        const detailResponse = await authFetch(`${API_BASE}/api/reading-lists/${list.id}`);
+        if (!detailResponse.ok) return;
+        const detail = await detailResponse.json();
+        list.preview_novels = (detail.novels || []).slice(0, 3);
+      } catch {
+        list.preview_novels = [];
+      }
+    }));
     grid.innerHTML = "";
 
     if (summary) {

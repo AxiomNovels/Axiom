@@ -181,7 +181,8 @@ function renderNovel(novel) {
     const title = novel.title || "Untitled";
     titleEl.textContent = title;
     titleEl.classList.toggle("is-long-title", title.length > 24 && title.length <= 42);
-    titleEl.classList.toggle("is-very-long-title", title.length > 42);
+    titleEl.classList.toggle("is-very-long-title", title.length > 42 && title.length <= 64);
+    titleEl.classList.toggle("is-ultra-long-title", title.length > 64);
   }
   if (authorEl) authorEl.textContent = novel.author ? `by ${novel.author}` : "";
   if (statusEl) statusEl.textContent = novel.status;
@@ -206,12 +207,27 @@ function renderNovel(novel) {
 
   if (genresEl) {
     genresEl.innerHTML = "";
-    (novel.genres || []).forEach((genre) => {
+    const genres = novel.genres || [];
+    genres.forEach((genre, index) => {
       const tag = document.createElement("span");
       tag.className = "genre-tag";
+      if (index >= 5) tag.classList.add("is-extra-tag");
       tag.textContent = genre;
       genresEl.appendChild(tag);
     });
+    if (genres.length > 5) {
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "genre-toggle";
+      toggle.textContent = `+${genres.length - 5} more`;
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.addEventListener("click", () => {
+        const expanded = genresEl.classList.toggle("is-expanded");
+        toggle.textContent = expanded ? "Show less" : `+${genres.length - 5} more`;
+        toggle.setAttribute("aria-expanded", String(expanded));
+      });
+      genresEl.appendChild(toggle);
+    }
   }
 
   if (linksEl) {
@@ -266,98 +282,73 @@ function buildReadingListControls(novelId, membership, lists) {
   const wrapper = document.createElement("div");
   wrapper.className = "reading-list-controls";
 
-  const statusText = document.createElement("p");
-  statusText.className = "reading-list-status";
+  const picker = document.createElement("details");
+  picker.className = "reading-list-picker";
+  const trigger = document.createElement("summary");
+  trigger.className = "reading-list-trigger";
+  const triggerIcon = document.createElement("span");
+  triggerIcon.setAttribute("aria-hidden", "true");
+  triggerIcon.textContent = membership ? "✓" : "＋";
+  trigger.append(triggerIcon, membership ? ` In ${membership.name}` : " Add to reading list");
+  picker.appendChild(trigger);
 
-  const select = document.createElement("select");
-  select.className = "reading-list-select";
+  const menu = document.createElement("div");
+  menu.className = "reading-list-menu";
+  const heading = document.createElement("strong");
+  heading.textContent = membership ? "Move to another list" : "Choose a list";
+  menu.appendChild(heading);
 
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.disabled = true;
-  placeholder.selected = true;
-  select.appendChild(placeholder);
-
-  let removeButton = null;
-
-  if (membership) {
-    statusText.append("Currently in ");
-    const link = document.createElement("a");
-    link.href = `/list.html?id=${membership.id}`;
-    link.textContent = membership.name;
-    statusText.appendChild(link);
-    statusText.append(" list.");
-
-    select.setAttribute("aria-label", "Move to a different reading list");
-    placeholder.textContent = "Move to...";
-
-    lists
-      .filter((list) => list.id !== membership.id)
-      .forEach((list) => {
-        const option = document.createElement("option");
-        option.value = list.id;
-        option.textContent = list.name;
-        select.appendChild(option);
-      });
-
-    removeButton = document.createElement("button");
-    removeButton.type = "button";
-    removeButton.className = "ghost-link reading-list-remove-button";
-    removeButton.textContent = "Remove";
-    removeButton.addEventListener("click", async () => {
-      removeButton.disabled = true;
+  const availableLists = lists.filter((list) => !membership || list.id !== membership.id);
+  availableLists.forEach((list) => {
+    const option = document.createElement("button");
+    option.type = "button";
+    option.className = "reading-list-option";
+    option.textContent = list.name;
+    option.addEventListener("click", async () => {
+      option.disabled = true;
+      option.textContent = "Saving…";
       try {
-        const response = await authFetch(
-          `${API_BASE}/api/reading-lists/${membership.id}/novels/${novelId}`,
-          { method: "DELETE" }
-        );
-        if (!response.ok) throw new Error("Remove failed");
+        const response = await authFetch(`${API_BASE}/api/reading-lists/${list.id}/novels`, {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ novel_id: Number(novelId) }),
+        });
+        if (!response.ok) throw new Error("Update failed");
         await refreshReadingListControls(novelId);
-      } catch (error) {
-        alert("Couldn't remove this novel from the list. Please try again.");
-        removeButton.disabled = false;
-      }
+      } catch { alert("Couldn't update this novel's reading list. Please try again."); option.disabled = false; option.textContent = list.name; }
     });
-  } else {
-    statusText.textContent = "Add series to...";
-    select.setAttribute("aria-label", "Add to a reading list");
-    placeholder.textContent = "Choose a list";
-
-    lists.forEach((list) => {
-      const option = document.createElement("option");
-      option.value = list.id;
-      option.textContent = list.name;
-      select.appendChild(option);
-    });
-  }
-
-  select.addEventListener("change", async () => {
-    const targetListId = select.value;
-    if (!targetListId) return;
-
-    select.disabled = true;
-    try {
-      const response = await authFetch(`${API_BASE}/api/reading-lists/${targetListId}/novels`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ novel_id: Number(novelId) }),
-      });
-      if (!response.ok) throw new Error("Update failed");
-      await refreshReadingListControls(novelId);
-    } catch (error) {
-      alert("Couldn't update this novel's reading list. Please try again.");
-      select.disabled = false;
-      select.value = "";
-    }
+    menu.appendChild(option);
   });
 
-  const row = document.createElement("div");
-  row.className = "reading-list-status-row";
-  row.appendChild(statusText);
-  row.appendChild(select);
-  if (removeButton) row.appendChild(removeButton);
+  if (!availableLists.length) {
+    const empty = document.createElement("p");
+    empty.className = "reading-list-empty";
+    empty.textContent = lists.length ? "This is your only list." : "You don't have a reading list yet.";
+    menu.appendChild(empty);
+  }
 
-  wrapper.appendChild(row);
+  const manageLink = document.createElement("a");
+  manageLink.className = "reading-list-manage";
+  manageLink.href = "/lists.html";
+  manageLink.textContent = lists.length ? "Manage lists" : "Create a reading list";
+  menu.appendChild(manageLink);
+
+  if (membership) {
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "reading-list-remove-button";
+    removeButton.textContent = "Remove from list";
+    removeButton.addEventListener("click", async () => {
+      removeButton.disabled = true; removeButton.textContent = "Removing…";
+      try {
+        const response = await authFetch(`${API_BASE}/api/reading-lists/${membership.id}/novels/${novelId}`, { method: "DELETE" });
+        if (!response.ok) throw new Error("Remove failed");
+        await refreshReadingListControls(novelId);
+      } catch { alert("Couldn't remove this novel from the list. Please try again."); removeButton.disabled = false; removeButton.textContent = "Remove from list"; }
+    });
+    menu.appendChild(removeButton);
+  }
+
+  picker.appendChild(menu);
+  wrapper.appendChild(picker);
   return wrapper;
 }
 
@@ -428,4 +419,10 @@ async function loadNovel() {
 document.addEventListener("DOMContentLoaded", () => {
   console.log("[novel.js] script loaded and DOM ready");
   loadNovel();
+});
+
+document.addEventListener("click", (event) => {
+  document.querySelectorAll(".reading-list-picker[open]").forEach((picker) => {
+    if (!picker.contains(event.target)) picker.removeAttribute("open");
+  });
 });
