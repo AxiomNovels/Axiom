@@ -27,6 +27,11 @@ The backend lives in `backend/`.
 
 ```bash
 cd backend
+copy .env.example .env
 uvicorn main:app --port 8000
 ```
+
+On first setup, replace the placeholder Supabase values in `backend/.env`.
+Verify the backend with `http://localhost:8000/api/health`, then verify finder
+metadata with `http://localhost:8000/api/search/options`.
 

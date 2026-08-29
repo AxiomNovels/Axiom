@@ -34,7 +34,16 @@ def _fetch_catalogue():
 @router.get("/options")
 def search_options():
     try:
-        novels = _fetch_catalogue()
+        # Finder options only need basic novel metadata. Keeping this query
+        # independent from profile-table embeds lets a fresh clone load tags
+        # even while optional profile migrations are still being applied.
+        novels = (
+            supabase.table("novels")
+            .select("genres, status")
+            .execute()
+            .data
+            or []
+        )
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
     return {
