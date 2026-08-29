@@ -1018,8 +1018,9 @@ button:hover,
 .home-header .top-search-form .search-row input { min-height:42px; border:0; border-radius:0; background:transparent; padding-left:16px; }
 .home-header .top-search-form .search-row input:focus { box-shadow:none; }
 .home-header .top-search-form .search-row:focus-within { border-color:var(--focus); box-shadow:0 0 0 3px rgba(168,85,247,.14); }
-.home-header .top-search-form .search-row button { width:42px; min-height:42px; border:0; border-radius:50%; overflow:hidden; background:transparent; box-shadow:none; color:transparent; padding:0; }
-.home-header .top-search-form .search-row button::before { content:"⌕"; color:var(--focus); font-size:1.55rem; line-height:1; }
+.home-header .top-search-form .search-row button { position:relative; width:42px; min-height:42px; border:0; border-radius:50%; overflow:hidden; background:transparent; box-shadow:none; color:transparent; padding:0; }
+.home-header .top-search-form .search-row button::before { position:absolute; top:12px; left:12px; width:12px; height:12px; border:2px solid var(--focus); border-radius:50%; content:""; }
+.home-header .top-search-form .search-row button::after { position:absolute; top:25px; left:25px; width:8px; height:2px; border-radius:2px; background:var(--focus); content:""; transform:rotate(45deg); transform-origin:left center; }
 .home-header .top-search-form .search-row button:hover { background:var(--accent-soft); }
 .home-header .account-nav { min-width:max-content; }
 .home-header .guest-actions,.home-header .user-actions { gap:8px; }
