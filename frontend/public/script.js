@@ -87,7 +87,14 @@ function updateAccountNav() {
       const popover = document.createElement("div");
       popover.className = "account-popover";
       userGreeting.textContent = getUserName(user);
-      popover.append(userGreeting, logoutButton);
+
+      const uploadNovelLink = document.createElement("a");
+      uploadNovelLink.href = "/upload.html";
+      uploadNovelLink.className = "account-popover-link";
+      uploadNovelLink.setAttribute("data-upload-novel-link", "");
+      uploadNovelLink.textContent = "Upload a novel";
+
+      popover.append(userGreeting, uploadNovelLink, logoutButton);
       accountMenu.append(accountTrigger, popover);
       userActions.appendChild(accountMenu);
     }

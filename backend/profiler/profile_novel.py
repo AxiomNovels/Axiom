@@ -1,7 +1,7 @@
 """Generate a protagonist baseline for one novel.
 
 Run from backend:
-    python -m profiler.profile_novel NOVEL_ID --protagonist "Name"
+    python -m profiler.profile_novel NOVEL_ID --protagonist "Name" -- save
 """
 
 import argparse

@@ -1062,6 +1062,8 @@ button:hover,
   padding:16px;
 }
 .account-popover .user-greeting { overflow:hidden; color:var(--muted); font-size:.82rem; text-overflow:ellipsis; white-space:nowrap; }
+.account-popover-link { display:block; color:var(--muted); font-size:.85rem; padding:8px 2px; border-bottom:1px solid var(--line); }
+.account-popover-link:hover { color:#ffffff; text-decoration:none; }
 .home-header .account-popover .logout-button { width:100%; min-height:40px; }
 
 @media (max-width:980px) {

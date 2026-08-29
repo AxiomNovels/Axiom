@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Upload a Novel | Axiom</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/novel.css">
+  </head>
+  <body>
+    <header class="site-header home-header">
+      <a class="brand" href="/" aria-label="Axiom home">
+        <img src="/assets/axiom-mark.png" alt="" class="brand-logo">
+        <img src="/assets/axiom-wordmark.png" alt="" class="brand-wordmark">
+      </a>
+      <nav class="nav-links reader-nav" aria-label="Primary navigation">
+        <a href="/finder.html">Finder</a>
+        <a href="/#popular">Popular</a>
+      </nav>
+      <form class="top-search-form search-form" action="/search.html" method="get" aria-label="Search novels">
+        <label for="novel-search">Search novels</label>
+        <div class="search-row">
+          <input id="novel-search" name="q" type="search" placeholder="Search novels, themes, moods...">
+          <button type="submit" aria-label="Search">Search</button>
+        </div>
+      </form>
+      <nav class="nav-links account-nav" aria-label="Account navigation">
+        <div class="guest-actions" data-guest-actions>
+          <a href="/login.html">Log in</a>
+          <a class="nav-cta" href="/signup.html">Sign up</a>
+        </div>
+        <div class="user-actions is-hidden" data-user-actions>
+          <span class="user-greeting" data-user-greeting></span>
+          <button class="logout-button" type="button" data-logout-button>Log out</button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="upload-novel-page">
+      <div class="upload-novel-card">
+        <button class="upload-close-button" type="button" aria-label="Close" data-upload-close>&times;</button>
+
+        <p class="eyebrow">Contribute to Axiom</p>
+        <h1>Upload a novel</h1>
+        <p class="upload-novel-intro">
+          Paste a public Royal Road, WebNovel, or Wattpad link and we'll pull in the title,
+          author, status, tags, and synopsis for you to review before it's added.
+        </p>
+
+        <form data-upload-form>
+          <div class="upload-form-row">
+            <label for="novel-url">Novel URL</label>
+            <input id="novel-url" name="url" type="text" placeholder="https://..." required>
+          </div>
+
+          <div class="upload-form-row">
+            <label for="novel-source">Source</label>
+            <select id="novel-source" name="source" required>
+              <option value="" disabled selected>Choose a source</option>
+              <option value="Royal Road">Royal Road</option>
+              <option value="WebNovel">WebNovel</option>
+              <option value="Wattpad">Wattpad</option>
+            </select>
+          </div>
+
+          <p class="upload-form-error is-hidden" data-upload-error role="alert" aria-live="polite"></p>
+
+          <div class="upload-form-actions">
+            <button type="submit" data-upload-search-button>Search</button>
+          </div>
+        </form>
+
+        <section class="upload-preview is-hidden" data-upload-preview aria-labelledby="upload-preview-heading">
+          <h2 id="upload-preview-heading">Review before adding</h2>
+
+          <div class="upload-preview-body">
+            <div class="upload-preview-cover" data-upload-cover aria-hidden="true"></div>
+            <div class="upload-preview-details">
+              <p><strong>Title:</strong> <span data-upload-title></span></p>
+              <p><strong>Author:</strong> <span data-upload-author></span></p>
+              <p><strong>Status:</strong> <span data-upload-status></span></p>
+              <p><strong>Tags:</strong> <span data-upload-tags></span></p>
+              <p class="upload-synopsis-label"><strong>Synopsis</strong></p>
+              <p class="upload-synopsis" data-upload-synopsis></p>
+            </div>
+          </div>
+
+          <p class="upload-form-success is-hidden" data-upload-success role="status" aria-live="polite"></p>
+
+          <div class="upload-form-actions">
+            <button type="button" class="ghost-link" data-upload-edit>Search a different novel</button>
+            <button type="button" data-upload-add-button>Add to Axiom</button>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script src="/script.js"></script>
+    <script src="/upload.js"></script>
+  </body>
+</html>

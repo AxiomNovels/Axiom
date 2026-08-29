@@ -1,6 +1,12 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 
-from core.database import supabase
+from core.auth import get_current_user
+from core.database import create_service_client, supabase
+from scraper.royalroad import scrape_royalroad
+from scraper.transform import transform_royalroad, transform_wattpad, transform_webnovel
+from scraper.wattpad import scrape_wattpad
+from scraper.webnovel import scrape_webnovel
 
 
 router = APIRouter(prefix="/api/novels", tags=["novels"])
@@ -15,6 +21,47 @@ NOVEL_DETAIL_COLUMNS = (
     "philosophy_profiles(*), "
     "storytelling_style_profiles(*)"
 )
+
+# Maps the exact dropdown labels the frontend sends to the scraper/transform
+# pair that already knows how to handle that source.
+SOURCE_HANDLERS = {
+    "Royal Road": (scrape_royalroad, transform_royalroad),
+    "WebNovel": (scrape_webnovel, transform_webnovel),
+    "Wattpad": (scrape_wattpad, transform_wattpad),
+}
+
+INVALID_SOURCE_MESSAGE = "URL is invalid or source is incorrect."
+
+
+class NovelSourceRequest(BaseModel):
+    url: str = Field(min_length=1)
+    source: str
+
+
+def _scrape_and_transform(payload: NovelSourceRequest) -> dict:
+    """Run the matching scraper + transformer for a user-submitted URL.
+
+    Any failure -- an unrecognized source, a URL from the wrong site, a
+    dead link, or a page the parser can't make sense of -- collapses to
+    the same user-facing message, since none of those are meaningfully
+    distinguishable to someone pasting a link into the form.
+    """
+    handler = SOURCE_HANDLERS.get(payload.source)
+    url = payload.url.strip()
+
+    if not handler or not url:
+        raise HTTPException(status_code=422, detail=INVALID_SOURCE_MESSAGE)
+
+    scrape_fn, transform_fn = handler
+
+    try:
+        raw_payload = scrape_fn(url)
+        novel = transform_fn(raw_payload)
+    except Exception:
+        raise HTTPException(status_code=422, detail=INVALID_SOURCE_MESSAGE)
+
+    return novel
+
 
 @router.get("/featured")
 def get_featured_novels():
@@ -60,3 +107,61 @@ def get_novel(novel_id: int):
         raise HTTPException(status_code=404, detail="Novel not found")
 
     return response.data
+
+
+@router.post("/scrape")
+def preview_novel(payload: NovelSourceRequest, auth=Depends(get_current_user)):
+    """Scrape a user-submitted URL and return normalized fields for review.
+
+    This is read-only -- nothing is written to the database here.
+    """
+    return _scrape_and_transform(payload)
+
+
+@router.post("", status_code=201)
+def add_novel(payload: NovelSourceRequest, auth=Depends(get_current_user)):
+    """Scrape, de-duplicate, and publish a novel a user has submitted.
+
+    The URL is re-scraped here rather than trusting whatever the client
+    displayed from /scrape, so the record that gets saved always reflects
+    a fresh, server-verified fetch. Duplicates are rejected using the same
+    title+author check scraper/publish.py uses for the batch pipeline.
+    """
+    novel = _scrape_and_transform(payload)
+
+    title = novel["title"]
+    author = novel.get("author")
+
+    duplicate_query = supabase.table("novels").select("id, title, author").eq("title", title)
+    duplicate_query = (
+        duplicate_query.is_("author", "null")
+        if not author
+        else duplicate_query.eq("author", author)
+    )
+
+    try:
+        duplicate_response = duplicate_query.limit(1).execute()
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    existing_rows = duplicate_response.data or []
+    if existing_rows:
+        existing_novel = existing_rows[0]
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": "Novel already exists",
+                "novel_id": existing_novel["id"],
+                "title": existing_novel["title"],
+            },
+        )
+
+    try:
+        insert_response = create_service_client().table("novels").insert(novel).execute()
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    if not insert_response.data:
+        raise HTTPException(status_code=500, detail="Novel could not be saved.")
+
+    return insert_response.data[0]

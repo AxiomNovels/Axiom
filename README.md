@@ -35,3 +35,6 @@ On first setup, replace the placeholder Supabase values in `backend/.env`.
 Verify the backend with `http://localhost:8000/api/health`, then verify finder
 metadata with `http://localhost:8000/api/search/options`.
 
+To list a tree structure of all files (ignoring those in .gitignore):
+git ls-files -co --exclude-standard
+
