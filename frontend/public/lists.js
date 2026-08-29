@@ -110,6 +110,42 @@ function createListCard(list) {
   return card;
 }
 
+function createGhostListCard() {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "reading-list-card create-list-card";
+  button.setAttribute("aria-label", "Create a new reading list");
+  button.innerHTML = `
+    <span class="create-list-preview" aria-hidden="true">
+      <span class="create-list-ghost-books">
+        <span class="create-list-ghost-book"></span>
+        <span class="create-list-ghost-book"></span>
+        <span class="create-list-ghost-book"></span>
+      </span>
+      <span class="create-list-plus">+</span>
+    </span>
+    <strong>Create a new list</strong>
+    <small>Start another collection</small>`;
+  button.addEventListener("click", openCreateListModal);
+  return button;
+}
+
+function openCreateListModal() {
+  const modal = document.querySelector("[data-create-list-modal]");
+  if (!modal) return;
+  modal.classList.remove("is-hidden");
+  document.body.classList.add("modal-open");
+  requestAnimationFrame(() => document.getElementById("new-list-name")?.focus());
+}
+
+function closeCreateListModal() {
+  const modal = document.querySelector("[data-create-list-modal]");
+  if (!modal) return;
+  modal.classList.add("is-hidden");
+  document.body.classList.remove("modal-open");
+  document.querySelector(".create-list-card")?.focus();
+}
+
 async function renameList(list) {
   const nextName = window.prompt("Rename list", list.name);
   if (nextName === null) return;
@@ -182,12 +218,8 @@ async function loadReadingLists() {
       summary.textContent = `You have ${lists.length} reading ${listWord}.`;
     }
 
-    if (!lists.length) {
-      grid.innerHTML = "<p class=\"search-empty\">You don't have any reading lists yet. Create one above.</p>";
-      return;
-    }
-
     lists.forEach((list) => grid.appendChild(createListCard(list)));
+    grid.appendChild(createGhostListCard());
   } catch (error) {
     grid.innerHTML = "<p class=\"search-empty\">Couldn't load your reading lists. Make sure the backend is running on port 8000.</p>";
   }
@@ -197,13 +229,23 @@ function setupNewListForm() {
   const form = document.querySelector("[data-new-list-form]");
   if (!form) return;
 
+  const modal = document.querySelector("[data-create-list-modal]");
+  document.querySelector("[data-create-list-close]")?.addEventListener("click", closeCreateListModal);
+  document.querySelector("[data-create-list-cancel]")?.addEventListener("click", closeCreateListModal);
+  modal?.addEventListener("click", (event) => {
+    if (event.target === modal) closeCreateListModal();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !modal?.classList.contains("is-hidden")) closeCreateListModal();
+  });
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const input = document.getElementById("new-list-name");
     const name = input.value.trim();
     if (!name) return;
 
-    const button = form.querySelector("button");
+    const button = form.querySelector('button[type="submit"]');
     const originalText = button.textContent;
     button.textContent = "Creating...";
     button.disabled = true;
@@ -219,6 +261,7 @@ function setupNewListForm() {
         throw new Error(result.detail || "Create failed");
       }
       input.value = "";
+      closeCreateListModal();
       await loadReadingLists();
     } catch (error) {
       alert(error.message || "Couldn't create this list. Please try again.");

@@ -1026,8 +1026,10 @@ button:hover,
 .home-header .guest-actions,.home-header .user-actions { gap:8px; }
 .home-header .guest-actions > a:first-child { padding:10px 12px; }
 .home-header .nav-cta { min-height:42px; border-radius:22px; padding:0 17px; }
-.home-header .my-lists-link { min-height:42px; display:inline-flex; align-items:center; gap:7px; color:var(--muted); padding:0 10px; white-space:nowrap; }
-.home-header .my-lists-link::before { content:"▣"; color:var(--focus); }
+.home-header .my-lists-link { min-height:42px; display:inline-flex; align-items:center; gap:8px; color:var(--muted); padding:0 10px; white-space:nowrap; }
+.home-header .my-lists-icon { width:21px; height:21px; flex:0 0 auto; overflow:visible; fill:rgba(168,85,247,.16); stroke:var(--focus); stroke-width:1.45; stroke-linecap:round; stroke-linejoin:round; filter:drop-shadow(0 0 5px rgba(168,85,247,.34)); transition:filter .18s ease,transform .18s ease; }
+.home-header .my-lists-icon .book-detail { fill:none; stroke:rgba(244,234,255,.82); stroke-width:1.15; }
+.home-header .my-lists-link:hover .my-lists-icon { filter:drop-shadow(0 0 8px rgba(192,132,252,.62)); transform:translateY(-1px); }
 .home-header .my-lists-link:hover { color:#fff; }
 .account-menu { position:relative; }
 .account-trigger {
@@ -1075,7 +1077,7 @@ button:hover,
   .home-header .top-search-form { order:4; width:100%; min-width:100%; }
   .home-header .account-nav { margin-left:auto; width:auto; }
   .home-header .my-lists-link { font-size:0; }
-  .home-header .my-lists-link::before { font-size:1rem; }
+  .home-header .my-lists-icon { width:21px; height:21px; }
 }
 
 /* Reusable compact profile-range matrix. */

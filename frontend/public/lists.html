@@ -43,23 +43,26 @@
         <p class="reading-lists-summary" data-lists-summary aria-live="polite">Loading your reading lists&hellip;</p>
       </section>
 
-      <section class="reading-lists-toolbar" aria-labelledby="new-list-heading">
-        <h2 id="new-list-heading" class="is-visually-hidden">Create a new list</h2>
-        <form class="new-list-form" data-new-list-form>
-          <label for="new-list-name">New list name</label>
-          <div class="search-row">
-            <input id="new-list-name" name="name" type="text" placeholder="e.g. Currently reading" maxlength="80" required>
-            <button type="submit">Create list</button>
-          </div>
-        </form>
-      </section>
-
       <section aria-label="Your reading lists">
         <div class="reading-lists-grid" data-lists-grid>
           <p>Loading lists&hellip;</p>
         </div>
       </section>
     </main>
+
+    <div class="modal-overlay is-hidden" data-create-list-modal>
+      <form class="modal-card create-list-modal" data-new-list-form role="dialog" aria-modal="true" aria-labelledby="new-list-heading">
+        <button class="create-list-close" type="button" aria-label="Close" data-create-list-close>&times;</button>
+        <p class="eyebrow">New collection</p>
+        <h2 id="new-list-heading">Create a reading list</h2>
+        <label for="new-list-name">List name</label>
+        <input id="new-list-name" name="name" type="text" placeholder="e.g. Currently reading" maxlength="80" required>
+        <div class="modal-actions">
+          <button class="ghost-link" type="button" data-create-list-cancel>Cancel</button>
+          <button type="submit">Create list</button>
+        </div>
+      </form>
+    </div>
 
     <div class="modal-overlay is-hidden" data-modal-overlay>
       <div class="modal-card" role="alertdialog" aria-modal="true" aria-labelledby="modal-message">

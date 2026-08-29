@@ -62,7 +62,14 @@ function updateAccountNav() {
       const myListsLink = document.createElement("a");
       myListsLink.href = "/lists.html";
       myListsLink.className = "my-lists-link";
-      myListsLink.textContent = "My Lists";
+      myListsLink.innerHTML = `
+        <svg class="my-lists-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3.5 6.5h5v13h-5z" />
+          <path d="M9.5 3.5h5.5v16H9.5z" />
+          <path d="m16 6.2 4.4-1 2.5 13.6-4.4.8z" />
+          <path class="book-detail" d="M5 9h2M11 7h2.5m-2.5 9h2.5m5.9-7.7 1.3-.2M2 21h21" />
+        </svg>
+        <span>My Lists</span>`;
       myListsLink.setAttribute("data-my-lists-link", "");
       userActions.insertBefore(myListsLink, userGreeting);
     }
