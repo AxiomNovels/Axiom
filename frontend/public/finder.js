@@ -27,24 +27,75 @@ function createProfileFilters(grid, measures) {
   header.className = "profile-filter-header";
   header.innerHTML = "<span>Trait</span><span>Selected range</span>";
   grid.appendChild(header);
+
   measures.forEach(([key, label, low, high]) => {
     const field = document.createElement("div");
     field.className = "profile-filter";
+
     field.innerHTML = `
       <div class="profile-filter-name">
-        <strong>${label}</strong>
-        <span>${low} <i aria-hidden="true">→</i> ${high}</span>
+        <label class="profile-filter-toggle">
+          <input
+            type="checkbox"
+            class="profile-filter-checkbox"
+            data-profile-enabled
+            aria-label="Use ${label} as a search filter"
+          >
+          <span class="profile-checkbox-box" aria-hidden="true"></span>
+          <span class="profile-filter-label">
+            <strong>${label}</strong>
+            <small>${low} <i aria-hidden="true">→</i> ${high}</small>
+          </span>
+        </label>
       </div>
-      <div class="profile-range" data-profile-range style="--range-min:0%; --range-max:100%">
+
+      <div
+        class="profile-range is-disabled"
+        data-profile-range
+        style="--range-min:0%; --range-max:100%"
+      >
         <div class="profile-range-values" aria-hidden="true">
-          <output data-range-min>0</output><span>to</span><output data-range-max>100</output>
+          <output data-range-min>0</output>
+          <span>to</span>
+          <output data-range-max>100</output>
         </div>
+
         <div class="profile-range-track" aria-hidden="true"></div>
-        <input class="profile-range-input range-min" type="range" min="0" max="100" value="0" aria-label="Minimum ${label}">
-        <input class="profile-range-input range-max" type="range" min="0" max="100" value="100" aria-label="Maximum ${label}">
-        <input type="hidden" name="${key}_min" data-range-min-field>
-        <input type="hidden" name="${key}_max" data-range-max-field>
-      </div>`;
+
+        <input
+          class="profile-range-input range-min"
+          type="range"
+          min="0"
+          max="100"
+          value="0"
+          aria-label="Minimum ${label}"
+          disabled
+        >
+
+        <input
+          class="profile-range-input range-max"
+          type="range"
+          min="0"
+          max="100"
+          value="100"
+          aria-label="Maximum ${label}"
+          disabled
+        >
+
+        <input
+          type="hidden"
+          name="${key}_min"
+          data-range-min-field
+        >
+
+        <input
+          type="hidden"
+          name="${key}_max"
+          data-range-max-field
+        >
+      </div>
+    `;
+
     grid.appendChild(field);
 
     const range = field.querySelector("[data-profile-range]");
@@ -54,25 +105,56 @@ function createProfileFilters(grid, measures) {
     const maxField = range.querySelector("[data-range-max-field]");
     const minOutput = range.querySelector("[data-range-min]");
     const maxOutput = range.querySelector("[data-range-max]");
+    const checkbox = field.querySelector("[data-profile-enabled]");
 
     function syncRange(changedSlider) {
       if (Number(minSlider.value) > Number(maxSlider.value)) {
-        if (changedSlider === minSlider) maxSlider.value = minSlider.value;
-        else minSlider.value = maxSlider.value;
+        if (changedSlider === minSlider) {
+          maxSlider.value = minSlider.value;
+        } else {
+          minSlider.value = maxSlider.value;
+        }
       }
+
       const minimum = Number(minSlider.value);
       const maximum = Number(maxSlider.value);
+
       range.style.setProperty("--range-min", `${minimum}%`);
       range.style.setProperty("--range-max", `${maximum}%`);
+
       minOutput.value = minimum;
       maxOutput.value = maximum;
-      minField.value = minimum === 0 ? "" : minimum;
-      maxField.value = maximum === 100 ? "" : maximum;
+
+      // Only submit the range when this trait is enabled.
+      // Unlike the previous implementation, 0 and 100 are
+      // intentionally preserved when the trait is checked.
+      if (checkbox.checked) {
+        minField.value = minimum;
+        maxField.value = maximum;
+      } else {
+        minField.value = "";
+        maxField.value = "";
+      }
     }
 
+    function syncEnabledState() {
+      const enabled = checkbox.checked;
+
+      minSlider.disabled = !enabled;
+      maxSlider.disabled = !enabled;
+
+      range.classList.toggle("is-disabled", !enabled);
+      field.classList.toggle("is-enabled", enabled);
+
+      syncRange();
+    }
+
+    checkbox.addEventListener("change", syncEnabledState);
     minSlider.addEventListener("input", () => syncRange(minSlider));
     maxSlider.addEventListener("input", () => syncRange(maxSlider));
-    syncRange();
+
+    // Initial state: trait is not part of the search.
+    syncEnabledState();
   });
 }
 
@@ -184,14 +266,37 @@ finderForm.addEventListener("submit", (event) => {
 finderForm.addEventListener("reset", () => {
   selectedTags.include.clear();
   selectedTags.exclude.clear();
+
   setTimeout(() => {
     renderSelectedTags();
     renderSuggestions();
+
     document.querySelectorAll("[data-profile-range]").forEach((range) => {
+      const field = range.closest(".profile-filter");
+      const checkbox = field.querySelector("[data-profile-enabled]");
+      const minSlider = range.querySelector(".range-min");
+      const maxSlider = range.querySelector(".range-max");
+      const minField = range.querySelector("[data-range-min-field]");
+      const maxField = range.querySelector("[data-range-max-field]");
+
+      checkbox.checked = false;
+
+      minSlider.value = 0;
+      maxSlider.value = 100;
+      minSlider.disabled = true;
+      maxSlider.disabled = true;
+
+      minField.value = "";
+      maxField.value = "";
+
       range.style.setProperty("--range-min", "0%");
       range.style.setProperty("--range-max", "100%");
+
       range.querySelector("[data-range-min]").value = 0;
       range.querySelector("[data-range-max]").value = 100;
+
+      range.classList.add("is-disabled");
+      field.classList.remove("is-enabled");
     });
   }, 0);
 });

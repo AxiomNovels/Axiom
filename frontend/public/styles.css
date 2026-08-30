@@ -1177,6 +1177,165 @@ button:hover,
 .profile-range-input:focus-visible::-webkit-slider-thumb { outline:3px solid rgba(216,180,254,.45); outline-offset:2px; }
 .profile-range-input:focus-visible::-moz-range-thumb { outline:3px solid rgba(216,180,254,.45); outline-offset:2px; }
 
+/* Profile trait opt-in controls */
+.profile-filter-name {
+  min-width: 0;
+}
+
+.profile-filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.profile-filter-checkbox {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.profile-checkbox-box {
+  position: relative;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(216, 180, 254, 0.35);
+  border-radius: 5px;
+  background: rgba(3, 1, 8, 0.72);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.35),
+    0 0 0 0 rgba(168, 85, 247, 0);
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.profile-checkbox-box::after {
+  position: absolute;
+  top: 3px;
+  left: 6px;
+  width: 5px;
+  height: 9px;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  content: "";
+  opacity: 0;
+  transform: rotate(45deg) scale(0.7);
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease;
+}
+
+.profile-filter-toggle:hover .profile-checkbox-box {
+  border-color: rgba(216, 180, 254, 0.7);
+  background: rgba(168, 85, 247, 0.1);
+  transform: translateY(-1px);
+}
+
+.profile-filter-checkbox:focus-visible + .profile-checkbox-box {
+  border-color: var(--focus);
+  box-shadow:
+    0 0 0 3px rgba(168, 85, 247, 0.2),
+    0 0 18px rgba(168, 85, 247, 0.18);
+}
+
+.profile-filter-checkbox:checked + .profile-checkbox-box {
+  border-color: #c084fc;
+  background: linear-gradient(
+    135deg,
+    var(--accent),
+    var(--accent-strong)
+  );
+  box-shadow:
+    0 0 0 3px rgba(168, 85, 247, 0.14),
+    0 0 16px rgba(168, 85, 247, 0.22);
+}
+
+.profile-filter-checkbox:checked + .profile-checkbox-box::after {
+  opacity: 1;
+  transform: rotate(45deg) scale(1);
+}
+
+.profile-filter-label {
+  min-width: 0;
+  display: block;
+}
+
+.profile-filter-label strong {
+  display: block;
+  color: var(--ink);
+  font-size: 0.9rem;
+  line-height: 1.25;
+  transition: color 0.18s ease;
+}
+
+.profile-filter-label small {
+  display: block;
+  margin-top: 3px;
+  color: var(--dim);
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+
+.profile-filter-label i {
+  color: var(--accent);
+  font-style: normal;
+  padding: 0 3px;
+}
+
+.profile-filter.is-enabled .profile-filter-label strong {
+  color: #ffffff;
+}
+
+.profile-filter:not(.is-enabled) .profile-filter-label strong {
+  color: var(--muted);
+}
+
+
+/* Disabled range appearance */
+.profile-range.is-disabled {
+  opacity: 0.42;
+}
+
+.profile-range.is-disabled .profile-range-track {
+  background: rgba(216, 180, 254, 0.12);
+}
+
+.profile-range.is-disabled .profile-range-values output {
+  color: var(--dim);
+}
+
+.profile-range.is-disabled .profile-range-input::-webkit-slider-thumb {
+  border-color: rgba(216, 180, 254, 0.5);
+  background: #4b3a5b;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.profile-range.is-disabled .profile-range-input::-moz-range-thumb {
+  border-color: rgba(216, 180, 254, 0.5);
+  background: #4b3a5b;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+
+/* Slightly stronger visual separation for active profile rows */
+.profile-filter.is-enabled {
+  background: rgba(168, 85, 247, 0.035);
+}
+
+.profile-filter.is-enabled + .profile-filter {
+  border-top-color: rgba(216, 180, 254, 0.16);
+}
+
+
 @media (max-width:620px) {
   .profile-filter-grid { margin-left:0; }
   .profile-filter-header { display:none; }
