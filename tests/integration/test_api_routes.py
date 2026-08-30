@@ -112,11 +112,11 @@ def test_search_endpoint_orders_by_relevance(monkeypatch):
     assert response.json()[0]["id"] == 1
 
 
-def test_empty_search_returns_no_results(monkeypatch):
+def test_empty_search_returns_entire_catalogue(monkeypatch):
     monkeypatch.setattr(search_routes, "supabase", FakeSupabase())
     response = TestClient(app).get("/api/search", params={"q": "  "})
     assert response.status_code == 200
-    assert response.json() == []
+    assert [novel["id"] for novel in response.json()] == [2, 1]
 
 
 def test_finder_options_are_derived_from_catalogue(monkeypatch):

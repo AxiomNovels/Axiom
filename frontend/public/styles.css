@@ -1220,6 +1220,11 @@ button:hover,
   margin-left:56px;
 }
 
+/* A hidden filter sidebar must not leave catalogue results in its 220px column. */
+.active-filters[hidden] + .series-results {
+  grid-column:1 / -1;
+}
+
 @media (max-width:520px) {
   .finder-fields.two-column {
     width:100%;

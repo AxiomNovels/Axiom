@@ -46,11 +46,11 @@ async function loadSearchResults() {
   const params = new URLSearchParams(window.location.search); const query = params.get("q")?.trim() || "";
   const input = document.getElementById("novel-search"); const summary = document.querySelector("[data-results-summary]"); const results = document.querySelector("[data-search-results]");
   if (input) input.value = query; showActiveFilters(params);
-  if (![...params.values()].some((value) => value.trim())) { summary.textContent = "Choose some criteria in the Series Finder to begin."; results.innerHTML = '<p class="search-empty">No search entered yet. <a href="/finder.html">Open the Series Finder</a>.</p>'; return; }
+  const hasFilters = [...params.values()].some((value) => value.trim());
   if (query) document.title = `${query} | Search | Axiom`;
   try {
     const response = await fetch(`${API_BASE}/api/search?${params.toString()}`); if (!response.ok) throw new Error("Search request failed");
-    const novels = await response.json(); summary.textContent = `${novels.length} matching series, ordered by relevance.`; results.innerHTML = "";
+    const novels = await response.json(); summary.textContent = hasFilters ? `${novels.length} matching series, ordered by relevance.` : `${novels.length} series in the Axiom catalogue.`; results.innerHTML = "";
     if (!novels.length) { results.innerHTML = '<p class="search-empty">No series match every filter. Try removing one of your criteria.</p>'; return; }
     novels.forEach((novel, index) => results.appendChild(resultCard(novel, index)));
   } catch { summary.textContent = "Search is temporarily unavailable."; results.innerHTML = "<p class=\"search-empty\">Couldn't load results. Make sure the backend is running on port 8000.</p>"; }

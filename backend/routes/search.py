@@ -100,9 +100,6 @@ def search_novels(
 
     philosophy_ranges = query_ranges(PHILOSOPHY_MEASURES)
     storytelling_ranges = query_ranges(STORYTELLING_MEASURES)
-    if not query and not include_tags and not exclude_tags and not status and not ranges and not philosophy_ranges and not storytelling_ranges:
-        return []
-
     try:
         novels = _fetch_catalogue()
     except Exception as error:
