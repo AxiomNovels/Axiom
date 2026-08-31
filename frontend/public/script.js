@@ -85,13 +85,19 @@ function updateAccountNav() {
       popover.className = "account-popover";
       userGreeting.textContent = getUserName(user);
 
+      const manageProfileLink = document.createElement("a");
+      manageProfileLink.href = "/profile.html";
+      manageProfileLink.className = "account-popover-link";
+      manageProfileLink.setAttribute("data-manage-profile-link", "");
+      manageProfileLink.textContent = "Manage profile";
+
       const uploadNovelLink = document.createElement("a");
       uploadNovelLink.href = "/upload.html";
       uploadNovelLink.className = "account-popover-link";
       uploadNovelLink.setAttribute("data-upload-novel-link", "");
       uploadNovelLink.textContent = "Upload a novel";
 
-      popover.append(userGreeting, uploadNovelLink, logoutButton);
+      popover.append(userGreeting, manageProfileLink, uploadNovelLink, logoutButton);
       accountMenu.append(accountTrigger, popover);
       userActions.appendChild(accountMenu);
     }
@@ -188,7 +194,13 @@ document.querySelectorAll(".auth-form").forEach((form) => {
       // straight to their reading lists. Without a session (e.g. email
       // confirmation is required after signup) there's nothing to show
       // there yet, so send them to log in instead.
-      const destination = result.session ? "/lists.html" : "/login.html";
+      // New accounts land on their profile page first so they can fill in
+      // preferences right away; logging back in later goes straight to
+      // reading lists as before.
+      let destination = "/login.html";
+      if (result.session) {
+        destination = isSignup ? "/profile.html" : "/lists.html";
+      }
       window.location.href = destination;
     } catch (error) {
       showAuthError(form, "Couldn't reach the backend. Make sure it is running on port 8000.");

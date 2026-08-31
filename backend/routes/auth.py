@@ -52,8 +52,13 @@ def auth_response_payload(response):
 
 
 def find_profile_id_by_username(username: str):
+    # Queries the public "username_lookup" view rather than the profiles
+    # table directly, since profiles now holds personal fields (gender,
+    # city, country, about me) that are restricted to their owner. The
+    # view only exposes id + username, which is safe to check before
+    # someone has logged in.
     response = (
-        supabase.table("profiles")
+        supabase.table("username_lookup")
         .select("id")
         .ilike("username", username)
         .limit(1)
