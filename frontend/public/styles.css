@@ -1,14 +1,6 @@
 :root {
   color-scheme: dark;
 
-  /* =========================================================
-     ATMOSPHERE
-     Purple = mystery / imagination / psychology / fantasy
-     Red    = passion / excitement / emotional intensity
-     Dark   = immersion / unknown / escape
-     Ivory  = humanity / literature / warmth
-     ========================================================= */
-
   --background: #07030b;
   --background-soft: #100718;
 
@@ -710,6 +702,26 @@ button {
 
   font: inherit;
   font-weight: 850;
+}
+
+.auth-error {
+  margin: 4px 0;
+
+  border-left: 3px solid var(--passion);
+  border-radius: 4px;
+
+  background: var(--passion-soft);
+
+  color: #f5c4c9;
+
+  font-size: 0.9rem;
+  line-height: 1.5;
+
+  padding: 10px 12px;
+}
+
+.auth-error.is-hidden {
+  display: none;
 }
 
 .auth-switch {

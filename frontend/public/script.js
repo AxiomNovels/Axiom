@@ -21,9 +21,6 @@ function getAccessToken() {
   return getStoredSession()?.access_token || null;
 }
 
-// Wrapper around fetch that attaches the logged-in user's Supabase access
-// token, so the backend can tell which account a reading-list request
-// belongs to. Falls back to a plain, unauthenticated fetch when logged out.
 async function authFetch(url, options = {}) {
   const token = getAccessToken();
   const headers = { ...(options.headers || {}) };
@@ -38,7 +35,7 @@ function getUserName(user) {
     return "";
   }
 
-  return user.user_metadata?.display_name || user.email || "reader";
+  return user.user_metadata?.username || user.email || "reader";
 }
 
 function updateAccountNav() {
@@ -113,16 +110,33 @@ function updateAccountNav() {
 
 updateAccountNav();
 
+function showAuthError(form, message) {
+  const errorEl = form.querySelector("[data-auth-error]");
+  if (!errorEl) {
+    alert(message);
+    return;
+  }
+  errorEl.textContent = message;
+  errorEl.classList.remove("is-hidden");
+}
+
+function clearAuthError(form) {
+  const errorEl = form.querySelector("[data-auth-error]");
+  if (!errorEl) return;
+  errorEl.textContent = "";
+  errorEl.classList.add("is-hidden");
+}
+
 document.querySelectorAll(".auth-form").forEach((form) => {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    clearAuthError(form);
 
-    const email = form.querySelector("#email");
     const password = form.querySelector("#password");
     const confirmPassword = form.querySelector("#confirm-password");
 
     if (password && confirmPassword && password.value !== confirmPassword.value) {
-      alert("Passwords do not match.");
+      showAuthError(form, "Those passwords don't match. Please re-enter them.");
       confirmPassword.focus();
       return;
     }
@@ -131,6 +145,17 @@ document.querySelectorAll(".auth-form").forEach((form) => {
     const originalText = button.textContent;
     const isSignup = window.location.pathname.includes("signup");
     const endpoint = isSignup ? "/api/signup" : "/api/login";
+
+    const payload = isSignup
+      ? {
+          email: form.querySelector("#email").value.trim(),
+          username: form.querySelector("#username").value.trim(),
+          password: password.value
+        }
+      : {
+          identifier: form.querySelector("#identifier").value.trim(),
+          password: password.value
+        };
 
     button.textContent = "Working...";
     button.disabled = true;
@@ -141,17 +166,18 @@ document.querySelectorAll(".auth-form").forEach((form) => {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          email: email.value.trim(),
-          password: password.value
-        })
+        body: JSON.stringify(payload)
       });
 
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        const message = result.error || result.detail || "Something went wrong.";
-        alert(Array.isArray(message) ? message[0]?.msg || "Something went wrong." : message);
+        const message =
+          (typeof result.detail === "string" && result.detail) ||
+          (Array.isArray(result.detail) && result.detail[0]?.msg) ||
+          result.error ||
+          "Something went wrong. Please try again.";
+        showAuthError(form, message);
         return;
       }
 
@@ -163,10 +189,9 @@ document.querySelectorAll(".auth-form").forEach((form) => {
       // confirmation is required after signup) there's nothing to show
       // there yet, so send them to log in instead.
       const destination = result.session ? "/lists.html" : "/login.html";
-      alert(isSignup ? "Account created." : "Logged in.");
       window.location.href = destination;
     } catch (error) {
-      alert("Could not reach the backend. Make sure it is running on port 8000.");
+      showAuthError(form, "Couldn't reach the backend. Make sure it is running on port 8000.");
     } finally {
       button.textContent = originalText;
       button.disabled = false;
@@ -200,8 +225,6 @@ function createNovelCard(novel, index) {
     coverImage.className = "book-cover-image";
     coverImage.src = novel.cover_image_url;
     coverImage.alt = `${novel.title} cover`;
-    // Some book CDNs reject hotlinks when the requesting page is sent as the
-    // Referer. An <img> lets us suppress it and detect failed image loads.
     coverImage.referrerPolicy = "no-referrer";
     coverImage.addEventListener("error", () => {
       coverImage.remove();

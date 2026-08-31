@@ -36,13 +36,13 @@
         </div>
 
         <form class="auth-form" action="#" method="post" data-demo-message="Local demo only: login is not connected yet.">
-          <label for="email">Email</label>
+          <label for="identifier">Email or username</label>
           <input
-            id="email"
-            name="email"
-            type="email"
-            autocomplete="email"
-            placeholder="you@example.com"
+            id="identifier"
+            name="identifier"
+            type="text"
+            autocomplete="username"
+            placeholder="you@example.com or username"
             required
           >
 
@@ -63,6 +63,8 @@
             </label>
             <a href="#">Forgot password?</a>
           </div>
+
+          <p class="auth-error is-hidden" data-auth-error role="alert" aria-live="polite"></p>
 
           <button type="submit">Log in</button>
         </form>

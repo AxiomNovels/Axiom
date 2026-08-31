@@ -46,6 +46,20 @@
             required
           >
 
+          <label for="username">Username</label>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            autocomplete="username"
+            placeholder="Choose a username"
+            minlength="3"
+            maxlength="20"
+            pattern="[A-Za-z0-9_]+"
+            title="3-20 characters: letters, numbers, and underscores only"
+            required
+          >
+
           <label for="password">Password</label>
           <input
             id="password"
@@ -65,6 +79,8 @@
             placeholder="Confirm your password"
             required
           >
+
+          <p class="auth-error is-hidden" data-auth-error role="alert" aria-live="polite"></p>
 
           <button type="submit">Create account</button>
         </form>

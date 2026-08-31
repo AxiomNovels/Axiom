@@ -1,5 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from routes.auth import router as auth_router
 from routes.novels import router as novels_router
@@ -27,6 +29,46 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Field names -> a friendly, human-readable description, used to build
+# specific "please enter X" messages instead of FastAPI's raw, generic
+# validation output (e.g. "field required").
+FIELD_LABELS = {
+    "identifier": "your email or username",
+    "email": "your email",
+    "username": "a username",
+    "password": "your password",
+}
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError):
+    """Turn FastAPI's raw validation error list into one clear sentence.
+
+    Without this, any missing or invalid form field on signup or login
+    surfaces to the user as a cryptic "field required" message with no
+    indication of which field, or which page, it came from.
+    """
+    errors = exc.errors()
+    first_error = errors[0] if errors else {}
+    location = first_error.get("loc", [])
+    field = location[-1] if location else None
+    label = FIELD_LABELS.get(field, "the required information")
+    error_type = first_error.get("type", "")
+
+    if error_type == "missing":
+        message = f"Please enter {label}."
+    elif field == "email":
+        message = "Please enter a valid email address."
+    else:
+        # Our own field validators (e.g. the username format check) raise
+        # ValueError with a specific message; pydantic prefixes it with
+        # "Value error, " which isn't meant for end users, so strip it.
+        message = first_error.get("msg", "Please check the form and try again.")
+        message = message.removeprefix("Value error, ")
+
+    return JSONResponse(status_code=422, content={"detail": message})
+
 
 app.include_router(auth_router)
 app.include_router(novels_router)
