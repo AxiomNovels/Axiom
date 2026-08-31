@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, field_validator
 
 
-GENDER_OPTIONS = ("Female", "Male", "Non-Binary", "Prefer not to say")
+GENDER_OPTIONS = ("♀️Female", "♂️Male", "⚧️Non-Binary", "Prefer not to say")
 
 
 class ProfileUpdate(BaseModel):
