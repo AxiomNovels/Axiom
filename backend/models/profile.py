@@ -17,7 +17,6 @@ class ProfileUpdate(BaseModel):
     @classmethod
     def validate_gender(cls, value: str) -> str:
         if value not in GENDER_OPTIONS:
-            print(value)
             raise ValueError("Please choose a valid gender option.")
         return value
 
@@ -48,3 +47,14 @@ class ProfileUpdate(BaseModel):
             if tag and tag not in cleaned:
                 cleaned.append(tag)
         return cleaned
+
+
+class AvatarUpdate(BaseModel):
+    image_data: str
+
+    @field_validator("image_data")
+    @classmethod
+    def validate_image_data(cls, value: str) -> str:
+        if not value.startswith("data:image/"):
+            raise ValueError("Avatar image data is invalid.")
+        return value

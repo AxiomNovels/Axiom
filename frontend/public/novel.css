@@ -1292,3 +1292,120 @@ body.modal-open { overflow:hidden; }
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Manage profile: avatar upload + circular crop editor */
+.profile-avatar-section {
+  position: relative;
+  width: max-content;
+  margin-bottom: 30px;
+}
+
+.profile-avatar-preview {
+  width: 128px;
+  height: 128px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(145deg, #241031, #5c2782);
+  color: #ffffff;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2.6rem;
+  font-weight: 800;
+}
+
+.profile-avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.profile-avatar-edit-button {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  border-radius: 50%;
+  padding: 0;
+  font-size: 1.1rem;
+  border: 2px solid var(--surface-strong);
+}
+
+.avatar-editor-modal {
+  position: relative;
+  width: min(100%, 380px);
+}
+
+.avatar-editor-modal .eyebrow {
+  margin: 0 0 6px;
+}
+
+.avatar-editor-modal h2 {
+  margin: 0 34px 22px 0;
+  font-size: 1.75rem;
+}
+
+.avatar-editor-stage {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  margin: 0 auto 18px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #050208;
+  touch-action: none;
+  cursor: grab;
+}
+
+.avatar-editor-stage.is-dragging {
+  cursor: grabbing;
+}
+
+.avatar-editor-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.avatar-editor-crop-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 220px;
+  height: 220px;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2000px rgba(3, 1, 8, 0.72);
+  pointer-events: none;
+}
+
+.avatar-zoom-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.avatar-editor-modal input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.avatar-editor-hint {
+  margin: 14px 0 0;
+  color: var(--dim);
+  font-size: 0.8rem;
+  text-align: center;
+}

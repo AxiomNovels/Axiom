@@ -38,6 +38,38 @@ function getUserName(user) {
   return user.user_metadata?.username || user.email || "reader";
 }
 
+function applyAccountAvatar(avatarUrl) {
+  const trigger = document.querySelector(".account-trigger");
+  if (!trigger) return;
+  if (avatarUrl) {
+    trigger.innerHTML = "";
+    const img = document.createElement("img");
+    img.src = avatarUrl;
+    img.alt = "";
+    img.className = "account-avatar-image";
+    trigger.appendChild(img);
+  } else {
+    const user = getStoredUser();
+    trigger.textContent = getUserName(user).charAt(0).toUpperCase();
+  }
+}
+
+// Exposed globally so profile.js can refresh the header avatar immediately
+// after a new one is saved, without needing a full page reload.
+async function refreshAccountAvatar() {
+  if (!getAccessToken()) return;
+  try {
+    const response = await authFetch(`${API_BASE}/api/profile`);
+    if (!response.ok) return;
+    const profile = await response.json();
+    applyAccountAvatar(profile.avatar_url || null);
+  } catch {
+    // The initial-letter fallback stays in place if this fails; not
+    // worth surfacing an error just for the header icon.
+  }
+}
+window.refreshAccountAvatar = refreshAccountAvatar;
+
 function updateAccountNav() {
   const guestActions = document.querySelector("[data-guest-actions]");
   const userActions = document.querySelector("[data-user-actions]");
@@ -101,6 +133,8 @@ function updateAccountNav() {
       accountMenu.append(accountTrigger, popover);
       userActions.appendChild(accountMenu);
     }
+
+    refreshAccountAvatar();
   } else {
     guestActions.classList.remove("is-hidden");
     userActions.classList.add("is-hidden");
@@ -190,10 +224,6 @@ document.querySelectorAll(".auth-form").forEach((form) => {
       localStorage.setItem("axiomUser", JSON.stringify(result.user));
       localStorage.setItem("axiomSession", JSON.stringify(result.session));
 
-      // Once a session exists the user is properly logged in, so send them
-      // straight to their reading lists. Without a session (e.g. email
-      // confirmation is required after signup) there's nothing to show
-      // there yet, so send them to log in instead.
       // New accounts land on their profile page first so they can fill in
       // preferences right away; logging back in later goes straight to
       // reading lists as before.

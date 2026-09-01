@@ -44,8 +44,18 @@
         <h1>Manage profile</h1>
         <p class="profile-manage-intro">
           Let us know how you want others to view you. <br>
-          Profile data can be changed at any time.
+          You can change your settings at any time.
         </p>
+
+        <div class="profile-avatar-section">
+          <div class="profile-avatar-preview" data-avatar-preview>
+            <span>?</span>
+          </div>
+          <button type="button" class="profile-avatar-edit-button" data-avatar-edit-button aria-label="Change avatar">
+            <span aria-hidden="true">&#9998;</span>
+          </button>
+          <input type="file" accept="image/png, image/jpeg, image/webp" data-avatar-file-input class="is-visually-hidden">
+        </div>
 
         <div class="profile-readonly-grid">
           <div class="profile-readonly-item">
@@ -102,6 +112,29 @@
         </form>
       </div>
     </main>
+
+    <div class="modal-overlay is-hidden" data-avatar-modal>
+      <div class="modal-card avatar-editor-modal" role="dialog" aria-modal="true" aria-labelledby="avatar-editor-heading">
+        <button class="create-list-close" type="button" aria-label="Close" data-avatar-editor-close>&times;</button>
+        <p class="eyebrow">Avatar</p>
+        <h2 id="avatar-editor-heading">Edit your avatar</h2>
+
+        <div class="avatar-editor-stage" data-avatar-stage>
+          <img data-avatar-editor-image class="avatar-editor-image" alt="">
+          <div class="avatar-editor-crop-circle" aria-hidden="true"></div>
+        </div>
+
+        <label class="avatar-zoom-label" for="avatar-zoom">Zoom</label>
+        <input id="avatar-zoom" type="range" min="100" max="300" value="100" data-avatar-zoom>
+
+        <p class="avatar-editor-hint">Drag the image to reposition it.</p>
+
+        <div class="modal-actions">
+          <button class="ghost-link" type="button" data-avatar-editor-cancel>Cancel</button>
+          <button type="button" data-avatar-editor-apply>Use as avatar</button>
+        </div>
+      </div>
+    </div>
 
     <script src="/script.js"></script>
     <script src="/profile.js"></script>
