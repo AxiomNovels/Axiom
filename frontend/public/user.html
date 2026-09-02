@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>User Profile | Axiom</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/novel.css">
+  </head>
+  <body>
+    <header class="site-header home-header">
+      <a class="brand" href="/" aria-label="Axiom home">
+        <img src="/assets/axiom-mark.png" alt="" class="brand-logo">
+        <img src="/assets/axiom-wordmark.png" alt="" class="brand-wordmark">
+      </a>
+      <nav class="nav-links reader-nav" aria-label="Primary navigation">
+        <a href="/finder.html">Finder</a>
+        <a href="/#popular">Popular</a>
+      </nav>
+      <form class="top-search-form search-form" action="/search.html" method="get" aria-label="Search novels">
+        <label for="novel-search">Search novels</label>
+        <div class="search-row">
+          <input id="novel-search" name="q" type="search" placeholder="Search novels, themes, moods...">
+          <button type="submit" aria-label="Search">Search</button>
+        </div>
+      </form>
+      <nav class="nav-links account-nav" aria-label="Account navigation">
+        <div class="guest-actions" data-guest-actions>
+          <a href="/login.html">Log in</a>
+          <a class="nav-cta" href="/signup.html">Sign up</a>
+        </div>
+        <div class="user-actions is-hidden" data-user-actions>
+          <span class="user-greeting" data-user-greeting></span>
+          <button class="logout-button" type="button" data-logout-button>Log out</button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="user-profile-page">
+      <div class="user-profile-card">
+        <div class="user-profile-header">
+          <div class="user-profile-avatar" data-user-avatar aria-hidden="true">
+            <span>?</span>
+          </div>
+          <h1 data-user-username>Loading&hellip;</h1>
+        </div>
+
+        <div class="user-profile-details">
+          <div class="user-profile-detail-item">
+            <span>Gender</span>
+            <strong data-user-gender>&mdash;</strong>
+          </div>
+          <div class="user-profile-detail-item">
+            <span>Country</span>
+            <strong data-user-country>&mdash;</strong>
+          </div>
+          <div class="user-profile-detail-item">
+            <span>City</span>
+            <strong data-user-city>&mdash;</strong>
+          </div>
+        </div>
+
+        <section class="user-profile-section" aria-labelledby="user-tags-heading">
+          <h2 id="user-tags-heading">Preferred tags</h2>
+          <div class="user-profile-tags" data-user-tags></div>
+        </section>
+
+        <section class="user-profile-section" aria-labelledby="user-about-heading">
+          <h2 id="user-about-heading">About me</h2>
+          <p class="user-profile-about" data-user-about></p>
+        </section>
+      </div>
+    </main>
+
+    <script src="/script.js"></script>
+    <script src="/user.js"></script>
+  </body>
+</html>

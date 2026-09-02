@@ -8,6 +8,7 @@ from routes.novels import router as novels_router
 from routes.profile import router as profile_router
 from routes.search import router as search_router
 from routes.reading_lists import router as reading_lists_router
+from routes.users import router as users_router
 from core.config import FRONTEND_ORIGIN
 
 
@@ -76,6 +77,7 @@ app.include_router(novels_router)
 app.include_router(profile_router)
 app.include_router(search_router)
 app.include_router(reading_lists_router)
+app.include_router(users_router)
 
 
 @app.get("/api/health")
