@@ -63,6 +63,30 @@ def _scrape_and_transform(payload: NovelSourceRequest) -> dict:
     return novel
 
 
+def _record_upload(client, user_id: str, novel_id: int) -> None:
+    """Append novel_id to the uploading user's profiles.novels_uploaded.
+
+    Best-effort: if this bookkeeping update fails for some reason, the
+    novel itself has already been published successfully, so we don't
+    fail the whole request over it.
+    """
+    try:
+        profile_response = (
+            client.table("profiles")
+            .select("novels_uploaded")
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+        current_ids = (profile_response.data or {}).get("novels_uploaded") or []
+        if novel_id not in current_ids:
+            client.table("profiles").update(
+                {"novels_uploaded": current_ids + [novel_id]}
+            ).eq("id", user_id).execute()
+    except Exception:
+        pass
+
+
 @router.get("/featured")
 def get_featured_novels():
     try:
@@ -91,6 +115,40 @@ def list_novels():
         raise HTTPException(status_code=500, detail=str(error))
 
     return response.data
+
+
+@router.get("/mine")
+def list_my_novels(auth=Depends(get_current_user)):
+    """Novels the current user has personally uploaded, for the upload
+    form's "Your uploaded novels" list."""
+    user_id, client = auth
+    try:
+        profile_response = (
+            client.table("profiles")
+            .select("novels_uploaded")
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    novel_ids = (profile_response.data or {}).get("novels_uploaded") or []
+    if not novel_ids:
+        return []
+
+    try:
+        novels_response = (
+            supabase.table("novels")
+            .select("id, title")
+            .in_("id", novel_ids)
+            .order("title")
+            .execute()
+        )
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    return novels_response.data or []
 
 
 @router.get("/{novel_id}")
@@ -127,6 +185,7 @@ def add_novel(payload: NovelSourceRequest, auth=Depends(get_current_user)):
     a fresh, server-verified fetch. Duplicates are rejected using the same
     title+author check scraper/publish.py uses for the batch pipeline.
     """
+    user_id, client = auth
     novel = _scrape_and_transform(payload)
 
     title = novel["title"]
@@ -164,4 +223,7 @@ def add_novel(payload: NovelSourceRequest, auth=Depends(get_current_user)):
     if not insert_response.data:
         raise HTTPException(status_code=500, detail="Novel could not be saved.")
 
-    return insert_response.data[0]
+    inserted_novel = insert_response.data[0]
+    _record_upload(client, user_id, inserted_novel["id"])
+
+    return inserted_novel

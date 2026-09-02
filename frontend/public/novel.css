@@ -1532,3 +1532,62 @@ body.modal-open { overflow:hidden; }
     grid-template-columns: 1fr;
   }
 }
+
+/* Upload page: "Your uploaded novels" collapsible list */
+.upload-mine-section {
+  margin-bottom: 26px;
+}
+
+.upload-mine-toggle {
+  width: auto;
+  min-height: 42px;
+  font-size: 0.88rem;
+}
+
+.upload-mine-toggle::after {
+  content: "⌄";
+  margin-left: 8px;
+  color: var(--focus);
+  transition: transform 0.18s ease;
+}
+
+.upload-mine-toggle[aria-expanded="true"]::after {
+  transform: rotate(180deg);
+}
+
+.upload-mine-list {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 14px 16px;
+}
+
+.upload-mine-list.is-hidden {
+  display: none;
+}
+
+.upload-mine-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.upload-mine-list li {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+
+.upload-mine-list li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.upload-mine-empty,
+.upload-mine-list > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}

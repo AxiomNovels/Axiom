@@ -1,4 +1,5 @@
 let lastSearch = null;
+let myUploadsLoaded = false;
 
 function getUploadElements() {
   return {
@@ -16,6 +17,9 @@ function getUploadElements() {
     addButton: document.querySelector("[data-upload-add-button]"),
     editButton: document.querySelector("[data-upload-edit]"),
     closeButton: document.querySelector("[data-upload-close]"),
+    mineToggle: document.querySelector("[data-upload-mine-toggle]"),
+    mineToggleLabel: document.querySelector("[data-upload-mine-toggle-label]"),
+    mineList: document.querySelector("[data-upload-mine-list]"),
   };
 }
 
@@ -161,6 +165,13 @@ async function handleAdd(elements) {
     elements.successEl.appendChild(link);
     elements.successEl.classList.remove("is-hidden");
     added = true;
+
+    // The new novel now belongs in "Your uploaded novels" -- refresh it
+    // so it's up to date next time the user expands the list.
+    myUploadsLoaded = false;
+    if (elements.mineToggle.getAttribute("aria-expanded") === "true") {
+      loadMyUploads(elements);
+    }
   } catch (error) {
     elements.successEl.textContent = "Couldn't reach the backend. Make sure it is running on port 8000.";
     elements.successEl.classList.remove("is-hidden");
@@ -178,12 +189,63 @@ function closeUploadForm() {
   }
 }
 
+async function loadMyUploads(elements) {
+  const list = elements.mineList;
+  list.innerHTML = "<p>Loading&hellip;</p>";
+
+  try {
+    const response = await authFetch(`${API_BASE}/api/novels/mine`);
+    if (response.status === 401) {
+      window.location.href = "/login.html";
+      return;
+    }
+    if (!response.ok) throw new Error("Failed to load your novels");
+
+    const novels = await response.json();
+    myUploadsLoaded = true;
+
+    elements.mineToggleLabel.textContent = `Your uploaded novels (${novels.length})`;
+
+    list.innerHTML = "";
+    if (!novels.length) {
+      list.innerHTML = "<p class=\"upload-mine-empty\">You haven't uploaded any novels yet.</p>";
+      return;
+    }
+
+    const ul = document.createElement("ul");
+    novels.forEach((novel) => {
+      const li = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = `/novel.html?id=${novel.id}`;
+      link.textContent = novel.title;
+      li.appendChild(link);
+      ul.appendChild(li);
+    });
+    list.appendChild(ul);
+  } catch (error) {
+    list.innerHTML = "<p class=\"upload-mine-empty\">Couldn't load your uploaded novels.</p>";
+  }
+}
+
+function setupMyUploads(elements) {
+  elements.mineToggle.addEventListener("click", () => {
+    const expanded = elements.mineToggle.getAttribute("aria-expanded") === "true";
+    elements.mineToggle.setAttribute("aria-expanded", String(!expanded));
+    elements.mineList.classList.toggle("is-hidden", expanded);
+
+    if (!expanded && !myUploadsLoaded) {
+      loadMyUploads(elements);
+    }
+  });
+}
+
 function initUploadForm() {
   const elements = getUploadElements();
   elements.form.addEventListener("submit", (event) => handleSearch(event, elements));
   elements.addButton.addEventListener("click", () => handleAdd(elements));
   elements.editButton.addEventListener("click", () => resetToForm(elements));
   elements.closeButton.addEventListener("click", closeUploadForm);
+  setupMyUploads(elements);
 }
 
 if (!getAccessToken()) {

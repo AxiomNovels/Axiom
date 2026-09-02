@@ -28,3 +28,8 @@ create policy "Users can insert their own profile"
 create policy "Users can update their own profile"
   on public.profiles for update
   using (auth.uid() = id);
+
+-- Tracks which novels this user has personally added to the catalogue,
+-- so the upload form can show them their own contribution history.
+alter table public.profiles
+  add column if not exists novels_uploaded bigint[] not null default '{}';
