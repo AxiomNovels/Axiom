@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Philosophy Profile Guide | Axiom</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/novel.css">
+  </head>
+  <body>
+    <header class="site-header home-header">
+      <a class="brand" href="/" aria-label="Axiom home">
+        <img src="/assets/axiom-mark.png" alt="" class="brand-logo">
+        <img src="/assets/axiom-wordmark.png" alt="" class="brand-wordmark">
+      </a>
+
+      <nav class="nav-links reader-nav" aria-label="Primary navigation">
+        <a href="/finder.html">Finder</a>
+        <a href="/#popular">Popular</a>
+      </nav>
+
+      <form class="top-search-form search-form" action="/search.html" method="get" aria-label="Search novels">
+        <label for="novel-search">Search novels</label>
+        <div class="search-row">
+          <input id="novel-search" name="q" type="search" placeholder="Search novels, themes, mood">
+          <button type="submit" aria-label="Search">Search</button>
+        </div>
+      </form>
+
+      <nav class="nav-links account-nav" aria-label="Account navigation">
+        <div class="guest-actions" data-guest-actions>
+          <a href="/login.html">Log in</a>
+          <a class="nav-cta" href="/signup.html">Sign up</a>
+        </div>
+
+        <div class="user-actions is-hidden" data-user-actions>
+          <span class="user-greeting" data-user-greeting></span>
+          <button class="logout-button" type="button" data-logout-button>Log out</button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="profile-guide-page">
+      <a class="novel-back-link" href="/finder.html">&larr; Back to finder</a>
+
+      <section class="profile-guide-hero">
+        <p class="eyebrow">Axiom scoring guide</p>
+        <h1>Understanding philosophy profiles</h1>
+        <p>
+          A philosophy profile measures how strongly major philosophical ideas
+          and themes appear throughout a novel. Scores describe narrative
+          evidence—not whether a theme is good or bad.
+        </p>
+      </section>
+
+      <section class="scoring-principles" aria-labelledby="scoring-title">
+        <h2 id="scoring-title">How to read the scale</h2>
+
+        <div class="principle-grid">
+          <article>
+            <strong>0 is explicit absence</strong>
+            <p>
+              The story specifically establishes that the theme is absent,
+              often as a meaningful part of the narrative. Silence alone is
+              not enough.
+            </p>
+          </article>
+
+          <article>
+            <strong>20 can mean limited evidence</strong>
+            <p>
+              The theme is outside the main storyline, barely discussed, or
+              supported by too little evidence for a stronger conclusion.
+            </p>
+          </article>
+
+          <article>
+            <strong>50 is substantial</strong>
+            <p>
+              The theme appears repeatedly and clearly affects the protagonist
+              or story, but does not consistently control its most important
+              ideas or decisions.
+            </p>
+          </article>
+
+          <article>
+            <strong>100 is defining</strong>
+            <p>
+              The theme is extreme, repeatedly explored, and central to the
+              novel's ideas, conflicts, or protagonist throughout the story.
+            </p>
+          </article>
+        </div>
+
+        <p class="confidence-note">
+          <strong>Score and confidence are different.</strong>
+          A low score means evidence points toward a weak or absent theme.
+          Low confidence means there is not enough reliable evidence to be
+          certain.
+        </p>
+      </section>
+
+      <section class="trait-guide-list" aria-labelledby="traits-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Detailed anchors</p>
+            <h2 id="traits-title">Each philosophical theme</h2>
+          </div>
+        </div>
+
+        <div data-philosophy-guides></div>
+      </section>
+    </main>
+
+    <script src="/script.js"></script>
+    <script src="/philosophy-profile-info.js"></script>
+  </body>
+</html>
