@@ -39,18 +39,37 @@ function getUserName(user) {
 }
 
 function applyAccountAvatar(avatarUrl) {
+  const user = getStoredUser();
+  const initial = getUserName(user).charAt(0).toUpperCase();
+
   const trigger = document.querySelector(".account-trigger");
-  if (!trigger) return;
-  if (avatarUrl) {
-    trigger.innerHTML = "";
-    const img = document.createElement("img");
-    img.src = avatarUrl;
-    img.alt = "";
-    img.className = "account-avatar-image";
-    trigger.appendChild(img);
-  } else {
-    const user = getStoredUser();
-    trigger.textContent = getUserName(user).charAt(0).toUpperCase();
+  if (trigger) {
+    if (avatarUrl) {
+      trigger.innerHTML = "";
+      const img = document.createElement("img");
+      img.src = avatarUrl;
+      img.alt = "";
+      img.className = "account-avatar-image";
+      trigger.appendChild(img);
+    } else {
+      trigger.textContent = initial;
+    }
+  }
+
+  // The larger avatar shown next to the username inside the dropdown,
+  // kept in sync with the small header icon above.
+  const popoverAvatar = document.querySelector("[data-popover-avatar]");
+  if (popoverAvatar) {
+    if (avatarUrl) {
+      popoverAvatar.innerHTML = "";
+      const img = document.createElement("img");
+      img.src = avatarUrl;
+      img.alt = "";
+      img.className = "account-popover-avatar-image";
+      popoverAvatar.appendChild(img);
+    } else {
+      popoverAvatar.textContent = initial;
+    }
   }
 }
 
@@ -108,14 +127,27 @@ function updateAccountNav() {
       accountMenu.className = "account-menu";
       accountMenu.setAttribute("data-account-menu", "");
 
-      const accountTrigger = document.createElement("summary");
+            const accountTrigger = document.createElement("summary");
       accountTrigger.className = "account-trigger";
       accountTrigger.setAttribute("aria-label", "Open account menu");
       accountTrigger.textContent = getUserName(user).charAt(0).toUpperCase();
 
       const popover = document.createElement("div");
       popover.className = "account-popover";
+
+      const popoverHeader = document.createElement("div");
+      popoverHeader.className = "account-popover-header";
+
+      const popoverAvatar = document.createElement("div");
+      popoverAvatar.className = "account-popover-avatar";
+      popoverAvatar.setAttribute("data-popover-avatar", "");
+      popoverAvatar.setAttribute("aria-hidden", "true");
+      popoverAvatar.textContent = getUserName(user).charAt(0).toUpperCase();
+
       userGreeting.textContent = getUserName(user);
+      userGreeting.classList.add("account-popover-username");
+
+      popoverHeader.append(popoverAvatar, userGreeting);
 
       const manageProfileLink = document.createElement("a");
       manageProfileLink.href = "/profile.html";
@@ -129,7 +161,7 @@ function updateAccountNav() {
       uploadNovelLink.setAttribute("data-upload-novel-link", "");
       uploadNovelLink.textContent = "Upload a novel";
 
-      popover.append(userGreeting, manageProfileLink, uploadNovelLink, logoutButton);
+      popover.append(popoverHeader, manageProfileLink, uploadNovelLink, logoutButton);
       accountMenu.append(accountTrigger, popover);
       userActions.appendChild(accountMenu);
     }

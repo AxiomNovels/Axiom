@@ -1257,14 +1257,15 @@ body.modal-open { overflow:hidden; }
 }
 
 .profile-message {
-  margin: 4px 0 18px;
-  border-left: 3px solid var(--accent);
-  border-radius: 4px;
+  margin: 0 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
   background: rgba(168, 85, 247, 0.08);
   color: var(--ink);
   font-size: 0.9rem;
   line-height: 1.5;
   padding: 10px 12px;
+  text-align: center;
 }
 
 .profile-message.is-hidden {
@@ -1272,7 +1273,7 @@ body.modal-open { overflow:hidden; }
 }
 
 .profile-message.profile-message-error {
-  border-left-color: var(--passion);
+  border-color: var(--passion);
   background: var(--passion-soft);
   color: #f5c4c9;
 }
