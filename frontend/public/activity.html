@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>User Profile | Axiom</title>
+    <title>Your Activity | Axiom</title>
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/novel.css">
   </head>
@@ -36,47 +36,23 @@
       </nav>
     </header>
 
-    <main class="user-profile-page">
-      <div class="user-profile-card">
-        <div class="user-profile-header">
-          <div class="user-profile-avatar" data-user-avatar aria-hidden="true">
-            <span>?</span>
+    <main class="user-profile-page activity-page">
+      <section class="user-activity-section" aria-labelledby="activity-heading">
+        <div class="user-activity-heading">
+          <div>
+            <p class="eyebrow">Your history</p>
+            <h1 id="activity-heading">Activity</h1>
+            <p class="activity-intro">Every novel you have rated or reviewed, newest first.</p>
           </div>
-          <div class="user-profile-identity">
-            <h1 data-user-username>Loading&hellip;</h1>
-            <a class="user-profile-activity-link" data-user-activity-link href="#">View activity</a>
-          </div>
+          <div class="user-activity-stats" data-user-activity-stats></div>
         </div>
-
-        <div class="user-profile-details">
-          <div class="user-profile-detail-item">
-            <span>Gender</span>
-            <strong data-user-gender>&mdash;</strong>
-          </div>
-          <div class="user-profile-detail-item">
-            <span>Country</span>
-            <strong data-user-country>&mdash;</strong>
-          </div>
-          <div class="user-profile-detail-item">
-            <span>City</span>
-            <strong data-user-city>&mdash;</strong>
-          </div>
+        <div class="user-activity-feed" data-user-activity-feed aria-live="polite">
+          <p class="user-profile-empty">Loading your activity&hellip;</p>
         </div>
-
-        <section class="user-profile-section" aria-labelledby="user-tags-heading">
-          <h2 id="user-tags-heading">Preferred tags</h2>
-          <div class="user-profile-tags" data-user-tags></div>
-        </section>
-
-        <section class="user-profile-section" aria-labelledby="user-about-heading">
-          <h2 id="user-about-heading">About me</h2>
-          <p class="user-profile-about" data-user-about></p>
-        </section>
-      </div>
-
+      </section>
     </main>
 
     <script src="/script.js"></script>
-    <script src="/user.js"></script>
+    <script src="/activity.js"></script>
   </body>
 </html>

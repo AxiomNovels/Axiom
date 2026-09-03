@@ -8,7 +8,7 @@ from services.search_service import PHILOSOPHY_MEASURES, PROFILE_MEASURES, STORY
 router = APIRouter(prefix="/api/search", tags=["search"])
 
 
-SEARCH_COLUMNS = f"{NOVEL_LIST_COLUMNS}, protagonist_profiles(*), philosophy_profiles(*), storytelling_style_profiles(*)"
+SEARCH_COLUMNS = f"{NOVEL_LIST_COLUMNS}, protagonist_profiles(*), philosophy_profiles(*), storytelling_style_profiles(*), reviews(rating)"
 
 
 def _split_tags(value):
@@ -24,6 +24,18 @@ def _threshold(value, field_name):
         raise HTTPException(status_code=422, detail=f"{field_name} must be a whole number from 0 to 100")
     if not 0 <= number <= 100:
         raise HTTPException(status_code=422, detail=f"{field_name} must be between 0 and 100")
+    return number
+
+
+def _rating_threshold(value):
+    if value is None or str(value).strip() == "":
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=422, detail="Minimum rating must be from 1 to 5")
+    if not 1 <= number <= 5:
+        raise HTTPException(status_code=422, detail="Minimum rating must be between 1 and 5")
     return number
 
 
@@ -62,6 +74,7 @@ def search_novels(
     tag_mode: str = "and",
     status: str = "",
     sort: str = "relevance",
+    min_rating: str | None = Query(None),
     impulsivity_min: str | None = Query(None),
     impulsivity_max: str | None = Query(None),
     arrogance_pride_min: str | None = Query(None),
@@ -117,5 +130,6 @@ def search_novels(
         profile_ranges=ranges,
         philosophy_ranges=philosophy_ranges,
         storytelling_ranges=storytelling_ranges,
+        min_rating=_rating_threshold(min_rating),
     )
     return sort_novels(novels, sort=sort, query=query if sort == "relevance" else "")

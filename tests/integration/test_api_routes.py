@@ -18,6 +18,7 @@ NOVELS = [
         "protagonist_profiles": [{"romantic_attachment": 25}],
         "philosophy_profiles": {"freedom": 80},
         "storytelling_style_profiles": {"mystery": 70},
+        "reviews": [{"rating": 5}, {"rating": 4}],
     },
     {
         "id": 2,
@@ -30,6 +31,7 @@ NOVELS = [
         "protagonist_profiles": [{"romantic_attachment": 70}],
         "philosophy_profiles": {"freedom": 30},
         "storytelling_style_profiles": {"mystery": 20},
+        "reviews": [{"rating": 3}],
     },
 ]
 
@@ -155,3 +157,18 @@ def test_search_filters_philosophy_and_storytelling_ranges(monkeypatch):
     response = TestClient(app).get("/api/search", params={"freedom_min": 60, "mystery_min": 50})
     assert response.status_code == 200
     assert [novel["id"] for novel in response.json()] == [1]
+
+
+def test_search_filters_by_average_reader_rating(monkeypatch):
+    monkeypatch.setattr(search_routes, "supabase", FakeSupabase())
+    response = TestClient(app).get("/api/search", params={"min_rating": 4})
+    assert response.status_code == 200
+    assert [novel["id"] for novel in response.json()] == [1]
+    assert response.json()[0]["average_rating"] == 4.5
+    assert response.json()[0]["review_count"] == 2
+
+
+def test_search_rejects_invalid_reader_rating(monkeypatch):
+    monkeypatch.setattr(search_routes, "supabase", FakeSupabase())
+    response = TestClient(app).get("/api/search", params={"min_rating": 6})
+    assert response.status_code == 422

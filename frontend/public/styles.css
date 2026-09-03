@@ -3421,3 +3421,63 @@ button {
     gap: 7px;
   }
 }
+
+.finder-fields.three-column {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(190px, 1fr);
+  align-items: end;
+  gap: 18px;
+  width: calc(100% - 56px);
+  margin-left: 56px;
+}
+
+.finder-fields.three-column > label,
+.finder-rating-field { min-width: 0; }
+
+.finder-rating-field {
+  grid-column: 1 / -1;
+  display: block;
+  min-height: 34px;
+}
+
+.finder-field-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-size: .85rem;
+  font-weight: 800;
+}
+
+.finder-star-filter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  min-height: 34px;
+}
+
+.finder-stars { display: flex; flex: 0 0 auto; outline: none; touch-action: none; user-select: none; }
+.finder-stars:focus-visible { border-radius: 4px; outline: 3px solid rgba(155, 77, 204, .28); outline-offset: 3px; }
+.finder-stars button { width: 27px; min-height: 30px; border: 0; background: transparent; padding: 0; cursor: pointer; }
+.finder-stars button span { display: block; color: #5c5660; font-size: 1.45rem; line-height: 1; transition: transform .14s ease; }
+.finder-stars button[data-fill="full"] span { color: #f2b84b; }
+.finder-stars button[data-fill="half"] span { color: transparent; background: linear-gradient(90deg, #f2b84b 50%, #5c5660 50%); background-clip: text; -webkit-background-clip: text; }
+.finder-stars button:hover span { transform: translateY(-1px); }
+
+.finder-rating-copy { display: flex; align-items: center; gap: 9px; min-width: 72px; }
+.finder-rating-copy output { color: var(--muted); font-size: .72rem; font-weight: 700; white-space: nowrap; }
+.finder-rating-copy output.is-preview { color: var(--ink); }
+.finder-rating-clear { min-height: auto; border: 0; background: transparent; color: var(--accent); padding: 0; font-size: .68rem; cursor: pointer; }
+.finder-rating-clear[hidden] { display: none; }
+
+.result-rating {
+  min-height: 20px;
+  margin-top: 7px;
+  color: #d6a94c;
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .finder-fields.three-column { grid-template-columns: 1fr; width: 100%; margin-left: 0; }
+}

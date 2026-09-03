@@ -117,7 +117,15 @@ def _matches_ranges(profile, ranges):
     return True
 
 
-def filter_novels(novels, include_tags=None, exclude_tags=None, status=None, profile_ranges=None, tag_mode="and", philosophy_ranges=None, storytelling_ranges=None):
+def review_summary(novel):
+    reviews = novel.get("reviews") or []
+    ratings = [float(review["rating"]) for review in reviews if review.get("rating") is not None]
+    novel["review_count"] = len(ratings)
+    novel["average_rating"] = round(sum(ratings) / len(ratings), 2) if ratings else None
+    return novel
+
+
+def filter_novels(novels, include_tags=None, exclude_tags=None, status=None, profile_ranges=None, tag_mode="and", philosophy_ranges=None, storytelling_ranges=None, min_rating=None):
     """Apply finder criteria to a catalogue already fetched from Supabase."""
     included = {tag.strip().lower() for tag in (include_tags or []) if tag.strip()}
     excluded = {tag.strip().lower() for tag in (exclude_tags or []) if tag.strip()}
@@ -126,6 +134,7 @@ def filter_novels(novels, include_tags=None, exclude_tags=None, status=None, pro
     matches = []
 
     for novel in novels:
+        review_summary(novel)
         tags = {str(tag).strip().lower() for tag in (novel.get("genres") or [])}
         if included and tag_mode == "or" and not included.intersection(tags):
             continue
@@ -134,6 +143,8 @@ def filter_novels(novels, include_tags=None, exclude_tags=None, status=None, pro
         if excluded.intersection(tags):
             continue
         if wanted_status and str(novel.get("status") or "").lower() != wanted_status:
+            continue
+        if min_rating is not None and (novel["average_rating"] is None or novel["average_rating"] < min_rating):
             continue
 
         if (

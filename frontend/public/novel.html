@@ -55,6 +55,7 @@
             <div class="novel-heading">
               <h1 id="novel-title">Loading...</h1>
               <p class="novel-author" id="novel-author"></p>
+              <div class="novel-rating-summary" id="novel-rating-summary" aria-live="polite"></div>
 
               <div class="novel-meta-actions">
                 <div class="novel-metadata">
@@ -132,6 +133,23 @@
           </section>
         </aside>
       </div>
+
+      <section class="reviews-section" aria-labelledby="reviews-heading">
+        <div class="reviews-feed">
+          <div class="reviews-heading-row">
+            <div>
+              <p class="eyebrow">Reader perspectives</p>
+              <h2 id="reviews-heading">Reviews</h2>
+            </div>
+            <div class="reviews-overview" data-reviews-overview aria-live="polite"></div>
+          </div>
+
+          <div class="reviews-list" data-reviews-list aria-live="polite">
+            <p class="reviews-empty">Loading reviews&hellip;</p>
+          </div>
+        </div>
+        <div class="review-composer" data-review-composer></div>
+      </section>
     </main>
 
     <script src="/script.js"></script>

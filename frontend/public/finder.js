@@ -22,6 +22,90 @@ const STORYTELLING_MEASURES = [
 const selectedTags = { include: new Set(), exclude: new Set() };
 let allTags = [];
 
+function setupRatingFilter() {
+  const stars = document.querySelector("[data-rating-stars]");
+  const valueField = document.querySelector("[data-rating-value]");
+  const output = document.querySelector("[data-rating-output]");
+  const clearButton = document.querySelector("[data-rating-clear]");
+  if (!stars || !valueField || !output || !clearButton) return;
+
+  let selectedRating = 0;
+  let previewRating = 0;
+  let selectionLocked = false;
+
+  function ratingLabel(rating) {
+    return rating ? `${rating} ${rating === 1 ? "star" : "stars"} & up` : "Any rating";
+  }
+
+  function renderRating(rating, isPreview = false) {
+    output.value = ratingLabel(rating);
+    output.classList.toggle("is-preview", isPreview && rating !== selectedRating);
+    stars.querySelectorAll("[data-star]").forEach((button) => {
+      const star = Number(button.dataset.star);
+      const fill = rating >= star ? "full" : rating === star - 0.5 ? "half" : "empty";
+      button.dataset.fill = fill;
+      button.setAttribute("aria-pressed", String(fill !== "empty"));
+    });
+  }
+
+  function setRating(value) {
+    selectedRating = Math.max(0, Math.min(5, Math.round(Number(value) * 2) / 2));
+    previewRating = selectedRating;
+    valueField.value = selectedRating || "";
+    clearButton.hidden = !selectedRating;
+    stars.setAttribute("aria-valuenow", String(selectedRating));
+    stars.setAttribute("aria-valuetext", ratingLabel(selectedRating));
+    renderRating(selectedRating);
+  }
+
+  function ratingFromPointer(clientX) {
+    const buttons = [...stars.querySelectorAll("[data-star]")];
+    for (const button of buttons) {
+      const box = button.getBoundingClientRect();
+      if (clientX <= box.right) {
+        return Number(button.dataset.star) - (clientX < box.left + box.width / 2 ? 0.5 : 0);
+      }
+    }
+    return 5;
+  }
+
+  function previewFromPointer(event) {
+    if (selectionLocked) return;
+    previewRating = ratingFromPointer(event.clientX);
+    renderRating(previewRating, true);
+  }
+
+  stars.addEventListener("pointermove", previewFromPointer);
+
+  stars.addEventListener("click", (event) => {
+    if (selectionLocked) return;
+    previewFromPointer(event);
+    setRating(previewRating);
+    selectionLocked = true;
+  });
+
+  stars.addEventListener("pointerleave", () => {
+    renderRating(selectedRating);
+  });
+
+  stars.addEventListener("keydown", (event) => {
+    if (!["ArrowLeft", "ArrowDown", "ArrowRight", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    if (selectionLocked) return;
+    const current = Number(valueField.value) || 0;
+    if (event.key === "Home") setRating(0);
+    else if (event.key === "End") setRating(5);
+    else setRating(current + (["ArrowRight", "ArrowUp"].includes(event.key) ? 0.5 : -0.5));
+    if (Number(valueField.value)) selectionLocked = true;
+  });
+
+  clearButton.addEventListener("click", () => {
+    selectionLocked = false;
+    setRating(0);
+  });
+  setRating(0);
+}
+
 function createProfileFilters(grid, measures) {
   const header = document.createElement("div");
   header.className = "profile-filter-header";
@@ -268,6 +352,7 @@ finderForm.addEventListener("reset", () => {
   selectedTags.exclude.clear();
 
   setTimeout(() => {
+    document.querySelector("[data-rating-clear]")?.click();
     renderSelectedTags();
     renderSuggestions();
 
@@ -304,4 +389,5 @@ finderForm.addEventListener("reset", () => {
 createProfileFilters(document.querySelector('[data-profile-filters="protagonist"]'), PROFILE_MEASURES);
 createProfileFilters(document.querySelector('[data-profile-filters="philosophy"]'), PHILOSOPHY_MEASURES);
 createProfileFilters(document.querySelector('[data-profile-filters="storytelling"]'), STORYTELLING_MEASURES);
+setupRatingFilter();
 loadOptions();

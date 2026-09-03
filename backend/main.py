@@ -9,6 +9,7 @@ from routes.profile import router as profile_router
 from routes.search import router as search_router
 from routes.reading_lists import router as reading_lists_router
 from routes.users import router as users_router
+from routes.reviews import router as reviews_router
 from core.config import FRONTEND_ORIGIN
 
 
@@ -73,6 +74,7 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
 
 
 app.include_router(auth_router)
+app.include_router(reviews_router)
 app.include_router(novels_router)
 app.include_router(profile_router)
 app.include_router(search_router)

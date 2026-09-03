@@ -34,15 +34,32 @@
       <section class="finder-heading">
         <p class="eyebrow">Fine-grained discovery</p>
         <h1>Series Finder</h1>
-        <p>Combine tags, publication status, and protagonist traits to find stories that fit precisely.</p>
+        <p>Combine ratings, tags, publication status, and story profiles to find stories that fit precisely.</p>
       </section>
 
       <form class="finder-form" action="/search.html" method="get" data-finder-form>
         <section class="finder-section">
           <div class="finder-section-title"><span>01</span><div><h2>Search details</h2><p>Start broad, or leave these fields open and filter below.</p></div></div>
-          <div class="finder-fields two-column">
+          <div class="finder-fields three-column">
             <label>Title, author, or keyword<input name="q" type="search" placeholder="e.g. time loop, Camus, cultivation"></label>
             <label>Series status<select name="status"><option value="">Any status</option></select></label>
+            <div class="finder-rating-field">
+              <span class="finder-field-label">Rating</span>
+              <div class="finder-star-filter" data-rating-filter>
+                <div class="finder-stars" role="slider" tabindex="0" aria-label="Rating" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0" aria-valuetext="Any rating" data-rating-stars>
+                  <button type="button" tabindex="-1" data-star="1" aria-label="1 star and up"><span aria-hidden="true">★</span></button>
+                  <button type="button" tabindex="-1" data-star="2" aria-label="2 stars and up"><span aria-hidden="true">★</span></button>
+                  <button type="button" tabindex="-1" data-star="3" aria-label="3 stars and up"><span aria-hidden="true">★</span></button>
+                  <button type="button" tabindex="-1" data-star="4" aria-label="4 stars and up"><span aria-hidden="true">★</span></button>
+                  <button type="button" tabindex="-1" data-star="5" aria-label="5 stars only"><span aria-hidden="true">★</span></button>
+                </div>
+                <div class="finder-rating-copy">
+                  <output data-rating-output>Any rating</output>
+                  <button type="button" class="finder-rating-clear" data-rating-clear hidden>Clear</button>
+                </div>
+                <input type="hidden" name="min_rating" data-rating-value>
+              </div>
+            </div>
           </div>
         </section>
 

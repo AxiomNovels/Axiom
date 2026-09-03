@@ -352,6 +352,235 @@ function buildReadingListControls(novelId, membership, lists) {
   return wrapper;
 }
 
+function renderStaticStars(container, rating) {
+  container.replaceChildren();
+  const value = Number(rating);
+  for (let star = 1; star <= 5; star += 1) {
+    const icon = document.createElement("span");
+    icon.textContent = "★";
+    icon.dataset.fill = value >= star ? "full" : value === star - 0.5 ? "half" : "empty";
+    container.appendChild(icon);
+  }
+}
+
+function setupReviewRatingPicker(stars, valueField, output, clearButton, initialRating) {
+  let selectedRating = Number(initialRating) || 0;
+  let previewRating = selectedRating;
+  let selectionLocked = Boolean(selectedRating);
+
+  function label(rating) {
+    return rating ? `${rating} out of 5` : "Select a rating";
+  }
+
+  function render(rating, isPreview = false) {
+    output.value = label(rating);
+    output.classList.toggle("is-preview", isPreview && rating !== selectedRating);
+    stars.querySelectorAll("[data-star]").forEach((button) => {
+      const star = Number(button.dataset.star);
+      button.dataset.fill = rating >= star ? "full" : rating === star - 0.5 ? "half" : "empty";
+    });
+  }
+
+  function commit(value) {
+    selectedRating = Math.max(0, Math.min(5, Math.round(Number(value) * 2) / 2));
+    previewRating = selectedRating;
+    valueField.value = selectedRating || "";
+    clearButton.hidden = !selectedRating;
+    stars.setAttribute("aria-valuenow", String(selectedRating));
+    stars.setAttribute("aria-valuetext", label(selectedRating));
+    render(selectedRating);
+  }
+
+  function valueAt(clientX) {
+    for (const button of stars.querySelectorAll("[data-star]")) {
+      const box = button.getBoundingClientRect();
+      if (clientX <= box.right) {
+        return Number(button.dataset.star) - (clientX < box.left + box.width / 2 ? 0.5 : 0);
+      }
+    }
+    return 5;
+  }
+
+  function preview(event) {
+    if (selectionLocked) return;
+    previewRating = valueAt(event.clientX);
+    render(previewRating, true);
+  }
+
+  stars.addEventListener("pointermove", preview);
+  stars.addEventListener("click", (event) => {
+    if (selectionLocked) return;
+    preview(event);
+    commit(previewRating);
+    selectionLocked = true;
+  });
+  stars.addEventListener("pointerleave", () => {
+    render(selectedRating);
+  });
+  stars.addEventListener("keydown", (event) => {
+    if (!["ArrowLeft", "ArrowDown", "ArrowRight", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    if (selectionLocked) return;
+    if (event.key === "Home") commit(0.5);
+    else if (event.key === "End") commit(5);
+    else commit(selectedRating + (["ArrowRight", "ArrowUp"].includes(event.key) ? 0.5 : -0.5));
+    selectionLocked = true;
+  });
+  clearButton.addEventListener("click", () => {
+    selectionLocked = false;
+    commit(0);
+    stars.focus();
+  });
+  commit(selectedRating);
+}
+
+function renderRatingSummary(payload) {
+  const summary = document.getElementById("novel-rating-summary");
+  const overview = document.querySelector("[data-reviews-overview]");
+  const countLabel = `${payload.review_count} ${payload.review_count === 1 ? "review" : "reviews"}`;
+  if (!payload.review_count) {
+    if (summary) summary.textContent = "Not yet rated";
+    if (overview) overview.textContent = "Be the first to rate this novel";
+    return;
+  }
+  const average = Number(payload.average_rating).toFixed(1);
+  if (summary) summary.innerHTML = `<span aria-hidden="true">★</span> <strong>${average}</strong><span> out of 5 · ${countLabel}</span>`;
+  if (overview) overview.innerHTML = `<strong>${average}</strong><span aria-hidden="true">★</span><small>${countLabel}</small>`;
+}
+
+function currentUserId() {
+  return getStoredUser()?.id || null;
+}
+
+function renderReviewComposer(novelId, reviews) {
+  const container = document.querySelector("[data-review-composer]");
+  if (!container) return;
+  container.innerHTML = "";
+  if (!getAccessToken()) {
+    const prompt = document.createElement("p");
+    prompt.className = "review-login-prompt";
+    prompt.append("Have you read this novel? ");
+    const link = document.createElement("a");
+    link.href = "/login.html";
+    link.textContent = "Log in to leave a review";
+    prompt.appendChild(link);
+    prompt.append(".");
+    container.appendChild(prompt);
+    return;
+  }
+
+  const mine = reviews.find((review) => review.user_id === currentUserId());
+  const form = document.createElement("form");
+  form.className = "review-form";
+  form.innerHTML = `
+    <div class="review-form-heading"><div><h3>${mine ? "Update your review" : "Share your review"}</h3><p>Your rating is required. Your comment is optional.</p></div></div>
+    <fieldset class="star-picker"><legend>Your rating</legend><div class="review-rating-control"><div class="star-picker-options" role="slider" tabindex="0" aria-label="Your rating" aria-valuemin="0.5" aria-valuemax="5" aria-valuenow="0"></div><div class="review-rating-copy"><output class="review-rating-value" data-review-rating-output>Select a rating</output><button type="button" class="review-rating-clear" data-review-rating-clear hidden>Clear</button></div></div><input type="hidden" name="rating" data-review-rating></fieldset>
+    <label class="review-comment-label">Comment <span>Optional</span><textarea maxlength="2000" rows="4" placeholder="What stood out to you?" data-review-comment></textarea></label>
+    <div class="review-form-footer"><span data-review-message role="status"></span><button type="submit">${mine ? "Update review" : "Post review"}</button></div>`;
+  const options = form.querySelector(".star-picker-options");
+  for (let rating = 1; rating <= 5; rating += 1) {
+    const button = document.createElement("button");
+    button.type = "button"; button.tabIndex = -1; button.dataset.star = rating;
+    button.setAttribute("aria-label", `${rating} ${rating === 1 ? "star" : "stars"}`);
+    const icon = document.createElement("span"); icon.textContent = "★"; icon.setAttribute("aria-hidden", "true");
+    button.appendChild(icon); options.appendChild(button);
+  }
+  setupReviewRatingPicker(options, form.querySelector("[data-review-rating]"), form.querySelector("[data-review-rating-output]"), form.querySelector("[data-review-rating-clear]"), mine?.rating);
+  form.querySelector("[data-review-comment]").value = mine?.comment || "";
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = form.querySelector("button[type='submit']");
+    const message = form.querySelector("[data-review-message]");
+    const rating = Number(form.querySelector("[data-review-rating]").value);
+    if (!rating) { message.textContent = "Choose a star rating first."; return; }
+    button.disabled = true; button.textContent = "Saving…"; message.textContent = "";
+    try {
+      const response = await authFetch(`${API_BASE}/api/novels/${novelId}/reviews`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating, comment: form.querySelector("[data-review-comment]").value }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (response.status === 401) { window.location.href = "/login.html"; return; }
+      if (!response.ok) throw new Error(typeof result.detail === "string" ? result.detail : "Couldn't save your review.");
+      await loadReviews(novelId);
+    } catch (error) {
+      message.textContent = error.message || "Couldn't save your review.";
+      button.disabled = false; button.textContent = mine ? "Update review" : "Post review";
+    }
+  });
+  container.appendChild(form);
+}
+
+function renderReviews(novelId, payload) {
+  renderRatingSummary(payload);
+  renderReviewComposer(novelId, payload.reviews);
+  const list = document.querySelector("[data-reviews-list]");
+  list.innerHTML = "";
+  const reviewsWithComments = payload.reviews.filter((review) => review.comment);
+  if (!reviewsWithComments.length) {
+    list.innerHTML = `<p class="reviews-empty">${payload.review_count ? "No written comments yet." : "No reviews yet. Start the conversation."}</p>`;
+    return;
+  }
+  reviewsWithComments.forEach((review) => {
+    const profileValue = review.profiles || {};
+    const profile = Array.isArray(profileValue) ? (profileValue[0] || {}) : profileValue;
+    const article = document.createElement("article"); article.className = "review-card";
+    const header = document.createElement("div"); header.className = "review-card-header";
+    const profileLink = document.createElement("a"); profileLink.className = "review-profile-link"; profileLink.href = `/user.html?id=${encodeURIComponent(review.user_id)}`; profileLink.setAttribute("aria-label", `View ${profile.username || "this reader"}'s profile`);
+    const avatar = document.createElement("div"); avatar.className = "review-avatar";
+    if (profile.avatar_url) { const image = document.createElement("img"); image.src = profile.avatar_url; image.alt = ""; avatar.appendChild(image); }
+    else avatar.textContent = (profile.username || "?").charAt(0).toUpperCase();
+    profileLink.appendChild(avatar);
+    const identity = document.createElement("div");
+    const nameLink = document.createElement("a"); nameLink.className = "review-author-link"; nameLink.href = `/user.html?id=${encodeURIComponent(review.user_id)}`;
+    const name = document.createElement("strong"); name.textContent = profile.username || "Axiom reader"; nameLink.appendChild(name);
+    const date = document.createElement("time"); date.dateTime = review.updated_at; date.textContent = new Date(review.updated_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    identity.append(nameLink, date);
+    const reviewMeta = document.createElement("div"); reviewMeta.className = "review-card-meta";
+    const stars = document.createElement("span"); stars.className = "review-card-stars"; renderStaticStars(stars, review.rating); stars.setAttribute("aria-label", `${review.rating} out of 5 stars`);
+    reviewMeta.appendChild(stars);
+    if (review.user_id === currentUserId()) {
+      article.classList.add("is-own-review");
+      const actions = document.createElement("div"); actions.className = "review-card-actions";
+      const editButton = document.createElement("button"); editButton.type = "button"; editButton.textContent = "Edit";
+      editButton.addEventListener("click", () => {
+        const composer = document.querySelector("[data-review-composer]");
+        composer?.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => composer?.querySelector("[data-review-comment]")?.focus(), 350);
+      });
+      const deleteButton = document.createElement("button"); deleteButton.type = "button"; deleteButton.className = "is-delete"; deleteButton.textContent = "Delete";
+      deleteButton.addEventListener("click", async () => {
+        if (!window.confirm("Delete your review? This can't be undone.")) return;
+        deleteButton.disabled = true; deleteButton.textContent = "Deleting…";
+        try {
+          const response = await authFetch(`${API_BASE}/api/novels/${novelId}/reviews`, { method: "DELETE" });
+          if (response.status === 401) { window.location.href = "/login.html"; return; }
+          if (!response.ok) throw new Error("Delete failed");
+          await loadReviews(novelId);
+        } catch {
+          deleteButton.disabled = false; deleteButton.textContent = "Delete";
+          window.alert("Couldn't delete your review. Please try again.");
+        }
+      });
+      actions.append(editButton, deleteButton); reviewMeta.appendChild(actions);
+    }
+    header.append(profileLink, identity, reviewMeta);
+    const comment = document.createElement("p"); comment.textContent = review.comment;
+    article.append(header, comment); list.appendChild(article);
+  });
+}
+
+async function loadReviews(novelId) {
+  try {
+    const response = await fetch(`${API_BASE}/api/novels/${novelId}/reviews`);
+    if (!response.ok) throw new Error("Reviews request failed");
+    renderReviews(novelId, await response.json());
+  } catch {
+    const list = document.querySelector("[data-reviews-list]");
+    if (list) list.innerHTML = '<p class="reviews-empty">Reviews are temporarily unavailable.</p>';
+  }
+}
+
 async function refreshReadingListControls(novelId) {
   const container = document.getElementById("novel-reading-list");
   if (!container) return;
@@ -405,6 +634,7 @@ async function loadNovel() {
     console.log("[novel.js] novel payload received:", novel);
     renderNovel(novel);
     refreshReadingListControls(novelId);
+    loadReviews(novelId);
     console.log("[novel.js] render complete");
   } catch (error) {
     console.error("[novel.js] failed to load novel:", error);

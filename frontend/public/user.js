@@ -38,6 +38,84 @@ function renderUserTags(tags) {
   });
 }
 
+function renderActivityStars(container, rating) {
+  const value = Number(rating) || 0;
+  container.innerHTML = "";
+  for (let index = 1; index <= 5; index += 1) {
+    const star = document.createElement("span");
+    star.textContent = "★";
+    star.dataset.fill = value >= index ? "full" : value >= index - 0.5 ? "half" : "empty";
+    container.appendChild(star);
+  }
+}
+
+function renderUserActivity(payload) {
+  const feed = document.querySelector("[data-user-activity-feed]");
+  const stats = document.querySelector("[data-user-activity-stats]");
+  if (!feed || !stats) return;
+
+  const count = Number(payload.review_count) || 0;
+  stats.textContent = count
+    ? `${count} ${count === 1 ? "review" : "reviews"} · ${Number(payload.average_rating).toFixed(1)} average`
+    : "No reviews yet";
+  feed.innerHTML = "";
+
+  if (!payload.activity?.length) {
+    feed.innerHTML = '<div class="user-activity-empty"><strong>No activity yet</strong><p>This reader has not rated or reviewed a novel.</p></div>';
+    return;
+  }
+
+  payload.activity.forEach((activity) => {
+    const novel = activity.novel || {};
+    const card = document.createElement("article");
+    card.className = "user-activity-card";
+
+    const coverLink = document.createElement("a");
+    coverLink.className = "user-activity-cover";
+    coverLink.href = `/novel.html?id=${encodeURIComponent(activity.novel_id)}`;
+    if (novel.cover_image_url) {
+      const image = document.createElement("img");
+      image.src = novel.cover_image_url;
+      image.alt = `Cover of ${novel.title || "novel"}`;
+      coverLink.appendChild(image);
+    } else {
+      coverLink.textContent = "A";
+    }
+
+    const body = document.createElement("div");
+    body.className = "user-activity-body";
+    const context = document.createElement("p");
+    context.className = "user-activity-context";
+    context.textContent = activity.comment ? "Reviewed" : "Rated";
+    const title = document.createElement("a");
+    title.className = "user-activity-title";
+    title.href = coverLink.href;
+    title.textContent = novel.title || "Unknown novel";
+    const author = document.createElement("span");
+    author.className = "user-activity-author";
+    author.textContent = novel.author ? `by ${novel.author}` : "";
+    const meta = document.createElement("div");
+    meta.className = "user-activity-meta";
+    const stars = document.createElement("span");
+    stars.className = "review-card-stars";
+    stars.setAttribute("aria-label", `${activity.rating} out of 5 stars`);
+    renderActivityStars(stars, activity.rating);
+    const date = document.createElement("time");
+    date.dateTime = activity.updated_at;
+    date.textContent = new Date(activity.updated_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    meta.append(stars, date);
+    body.append(context, title, author, meta);
+    if (activity.comment) {
+      const comment = document.createElement("p");
+      comment.className = "user-activity-comment";
+      comment.textContent = activity.comment;
+      body.appendChild(comment);
+    }
+    card.append(coverLink, body);
+    feed.appendChild(card);
+  });
+}
+
 async function loadPublicProfile() {
   const userId = getUserIdFromUrl();
   const usernameEl = document.querySelector("[data-user-username]");
@@ -50,6 +128,9 @@ async function loadPublicProfile() {
     if (usernameEl) usernameEl.textContent = "User not found";
     return;
   }
+
+  const activityLink = document.querySelector("[data-user-activity-link]");
+  if (activityLink) activityLink.href = `/activity.html?id=${encodeURIComponent(userId)}`;
 
   try {
     const response = await fetch(`${API_BASE}/api/users/${userId}`);
@@ -77,6 +158,7 @@ async function loadPublicProfile() {
         "This reader hasn't shared an About Me yet."
       );
     }
+
   } catch (error) {
     console.error("[user.js] failed to load public profile:", error);
     if (usernameEl) usernameEl.textContent = "Couldn't load this profile";

@@ -16,6 +16,7 @@ function showActiveFilters(params) {
   (params.get("include_tags") || "").split(",").filter(Boolean).forEach((tag) => chips.push(`+ ${tag}`));
   (params.get("exclude_tags") || "").split(",").filter(Boolean).forEach((tag) => chips.push(`− ${tag}`));
   if (params.get("status")) chips.push(`Status: ${params.get("status")}`);
+  if (params.get("min_rating")) chips.push(`Rating: ${params.get("min_rating")} stars & up`);
   if (params.get("include_tags")) chips.push(`Tag match: ${(params.get("tag_mode") || "and").toUpperCase()}`);
   Object.entries(PROFILE_LABELS).forEach(([key, label]) => {
     const min = params.get(`${key}_min`); const max = params.get(`${key}_max`);
@@ -36,9 +37,11 @@ function resultCard(novel, index) {
   const genres = novel.genres || [];
   const tags = genres.slice(0, 6).map((tag) => `<span>${tag}</span>`).join("");
   const remainingTags = genres.length > 6 ? `<span class="more-tags">+${genres.length - 6}</span>` : "";
-  copy.innerHTML = `<div class="result-title-row"><div><h3></h3><p class="result-author"></p></div><span class="result-status"></span></div><p class="result-synopsis"></p><div class="result-tags">${tags}${remainingTags}</div>`;
+  copy.innerHTML = `<div class="result-title-row"><div><h3></h3><p class="result-author"></p></div><span class="result-status"></span></div><div class="result-rating"></div><p class="result-synopsis"></p><div class="result-tags">${tags}${remainingTags}</div>`;
   copy.querySelector("h3").textContent = novel.title; copy.querySelector(".result-author").textContent = `by ${novel.author || "Unknown"}`;
   copy.querySelector(".result-status").textContent = novel.status || "Unknown"; copy.querySelector(".result-synopsis").textContent = novel.synopsis || "No synopsis available.";
+  const rating = copy.querySelector(".result-rating");
+  rating.textContent = novel.average_rating == null ? "Not yet rated" : `★ ${Number(novel.average_rating).toFixed(1)} · ${novel.review_count} ${novel.review_count === 1 ? "review" : "reviews"}`;
   link.append(cover, copy); return link;
 }
 
