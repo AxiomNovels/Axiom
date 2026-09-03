@@ -279,7 +279,7 @@ def extract_js_string(
 
     Handles WebNovel's unusual escaping such as:
 
-        "authorName":"Gu\ Zhen\ Ren"
+        "authorName":"Gu\\ Zhen\\ Ren"
 
     The backslash before a space is removed.
     """
@@ -369,8 +369,12 @@ def extract_tags_from_gdata(
     """
     Extract WebNovel tags directly from g_data.book.bookInfo.
 
+    WebNovel does not always populate enTagName. When enTagName
+    is empty, tagName contains the actual tag value.
+
     This deliberately avoids json.loads() because the massive
-    WebNovel object may contain invalid JavaScript escapes elsewhere.
+    WebNovel object may contain invalid JavaScript escapes
+    elsewhere.
     """
 
     for script in soup.find_all("script"):
@@ -442,15 +446,39 @@ def extract_tags_from_gdata(
             start:end
         ]
 
-        # Extract enTagName first.
-        tags = re.findall(
+        # -----------------------------------------------------
+        # Extract both tag-name fields.
+        #
+        # Normal books may have:
+        #
+        #   "tagName":"ACTION",
+        #   "enTagName":"ACTION"
+        #
+        # Some books instead have:
+        #
+        #   "tagName":"ACTION",
+        #   "enTagName":""
+        #
+        # In the second case, fall back to tagName.
+        # -----------------------------------------------------
+
+        tag_matches = re.findall(
+            r'"tagName"\s*:\s*"((?:\\.|[^"\\])*)".*?'
             r'"enTagName"\s*:\s*"((?:\\.|[^"\\])*)"',
             tag_text,
         )
 
         cleaned_tags = []
 
-        for tag in tags:
+        for tag_name, en_tag_name in tag_matches:
+
+            # Prefer the English name when available.
+            # Otherwise use tagName.
+            tag = (
+                en_tag_name
+                if en_tag_name
+                else tag_name
+            )
 
             # WebNovel's unusual escapes.
             tag = re.sub(
@@ -473,8 +501,13 @@ def extract_tags_from_gdata(
                 tag
             )
 
-            if tag and tag not in cleaned_tags:
-                cleaned_tags.append(tag)
+            if (
+                tag
+                and tag not in cleaned_tags
+            ):
+                cleaned_tags.append(
+                    tag
+                )
 
         if cleaned_tags:
             return cleaned_tags
@@ -1333,6 +1366,38 @@ def parse_webnovel(
     title = extract_title(soup)
     author = extract_author(soup)
     status = extract_status(soup)
+    print()
+    print("=" * 70)
+    print("TAG DEBUG")
+    print("=" * 70)
+
+    for script_index, script in enumerate(
+        soup.find_all("script")
+    ):
+        text = script.get_text()
+
+        if not text:
+            continue
+
+        if "g_data.book" not in text:
+            continue
+
+        print(
+            f"\nSCRIPT #{script_index}"
+        )
+
+        for keyword in [
+            "tagInfos",
+            "enTagName",
+            '"tags"',
+            "tagName",
+            "tagList",
+        ]:
+            print(
+                f"  {keyword}: "
+                f"{keyword in text}"
+            )
+
     tags = extract_tags(soup)
     synopsis = extract_synopsis(soup)
     cover_image_url = extract_cover(
@@ -1449,9 +1514,7 @@ if __name__ == "__main__":
 
     URLS = [
         "https://www.webnovel.com/book/reverend-insanity_7996858406002505",
-        "https://www.webnovel.com/book/radiant-blade-of-the-wilderness_35970900108664305",
-        "https://www.webnovel.com/book/walker-of-the-worlds_17307252205313105",
-        "https://www.webnovel.com/book/shadow-slave_22196546206090805",
+        "https://www.webnovel.com/book/22965486906528105",
     ]
 
     novels = scrape_webnovels(
