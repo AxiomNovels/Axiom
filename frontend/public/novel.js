@@ -547,7 +547,7 @@ function renderReviewComposer(novelId, reviews) {
   form.innerHTML = `
     <div class="review-form-heading"><div><h3>${mine ? "Update your review" : "Share your review"}</h3><p>Your rating is required. Your comment is optional.</p></div></div>
     <fieldset class="star-picker"><legend>Your rating</legend><div class="review-rating-control"><div class="star-picker-options" role="slider" tabindex="0" aria-label="Your rating" aria-valuemin="0.5" aria-valuemax="5" aria-valuenow="0"></div><div class="review-rating-copy"><output class="review-rating-value" data-review-rating-output>Select a rating</output><button type="button" class="review-rating-clear" data-review-rating-clear hidden>Clear</button></div></div><input type="hidden" name="rating" data-review-rating></fieldset>
-    <label class="review-comment-label">Comment <span>Optional</span><textarea maxlength="2000" rows="4" placeholder="What stood out to you?" data-review-comment></textarea></label>
+    <label class="review-comment-label">Comment <span>Optional</span><span class="review-comment-field"><textarea maxlength="2000" rows="4" placeholder="What stood out to you?" data-review-comment aria-describedby="review-comment-counter"></textarea><span class="review-comment-counter" id="review-comment-counter" data-review-comment-counter>0/2000</span></span></label>
     <div class="review-form-footer"><span data-review-message role="status"></span><button type="submit">${mine ? "Update review" : "Post review"}</button></div>`;
   const options = form.querySelector(".star-picker-options");
   for (let rating = 1; rating <= 5; rating += 1) {
@@ -558,7 +558,14 @@ function renderReviewComposer(novelId, reviews) {
     button.appendChild(icon); options.appendChild(button);
   }
   setupReviewRatingPicker(options, form.querySelector("[data-review-rating]"), form.querySelector("[data-review-rating-output]"), form.querySelector("[data-review-rating-clear]"), mine?.rating);
-  form.querySelector("[data-review-comment]").value = mine?.comment || "";
+  const commentField = form.querySelector("[data-review-comment]");
+  const commentCounter = form.querySelector("[data-review-comment-counter]");
+  commentField.value = mine?.comment || "";
+  const updateCommentCounter = () => {
+    commentCounter.textContent = `${commentField.value.length}/2000`;
+  };
+  commentField.addEventListener("input", updateCommentCounter);
+  updateCommentCounter();
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const button = form.querySelector("button[type='submit']");
@@ -569,7 +576,7 @@ function renderReviewComposer(novelId, reviews) {
     try {
       const response = await authFetch(`${API_BASE}/api/novels/${novelId}/reviews`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating, comment: form.querySelector("[data-review-comment]").value }),
+        body: JSON.stringify({ rating, comment: commentField.value }),
       });
       const result = await response.json().catch(() => ({}));
       if (response.status === 401) { window.location.href = "/login.html"; return; }

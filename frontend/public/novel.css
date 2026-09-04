@@ -1721,8 +1721,10 @@ body.modal-open { overflow:hidden; }
 
 .review-comment-label { display: grid; gap: 8px; color: var(--ink); font-weight: 700; }
 .review-comment-label > span { margin-left: 5px; color: var(--dim); font-size: .78rem; font-weight: 500; }
-.review-comment-label textarea { width: 100%; resize: vertical; min-height: 104px; border: 1px solid var(--line); border-radius: 8px; background: rgba(0,0,0,.16); color: var(--ink); padding: 13px 14px; font: inherit; line-height: 1.55; }
+.review-comment-label > .review-comment-field { position: relative; display: block; margin-left: 0; }
+.review-comment-label textarea { width: 100%; resize: vertical; min-height: 104px; border: 1px solid var(--line); border-radius: 8px; background: rgba(0,0,0,.16); color: var(--ink); padding: 13px 14px 34px; font: inherit; line-height: 1.55; }
 .review-comment-label textarea:focus { border-color: var(--focus); outline: 2px solid color-mix(in srgb, var(--focus) 25%, transparent); }
+.review-comment-label .review-comment-counter { position: absolute; right: 12px; bottom: 10px; color: var(--dim); font-size: .72rem; font-variant-numeric: tabular-nums; line-height: 1; pointer-events: none; }
 .review-form-footer { display: flex; justify-content: flex-end; align-items: center; gap: 16px; margin-top: 14px; }
 .review-form-footer [role="status"] { margin-right: auto; color: #ef9d9d; font-size: .88rem; }
 
