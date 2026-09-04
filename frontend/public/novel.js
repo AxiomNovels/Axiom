@@ -438,7 +438,6 @@ function renderStaticStars(container, rating) {
 function setupReviewRatingPicker(stars, valueField, output, clearButton, initialRating) {
   let selectedRating = Number(initialRating) || 0;
   let previewRating = selectedRating;
-  let selectionLocked = Boolean(selectedRating);
 
   function label(rating) {
     return rating ? `${rating} out of 5` : "Select a rating";
@@ -474,17 +473,14 @@ function setupReviewRatingPicker(stars, valueField, output, clearButton, initial
   }
 
   function preview(event) {
-    if (selectionLocked) return;
+    if (selectedRating) return;
     previewRating = valueAt(event.clientX);
     render(previewRating, true);
   }
 
   stars.addEventListener("pointermove", preview);
   stars.addEventListener("click", (event) => {
-    if (selectionLocked) return;
-    preview(event);
-    commit(previewRating);
-    selectionLocked = true;
+    commit(valueAt(event.clientX));
   });
   stars.addEventListener("pointerleave", () => {
     render(selectedRating);
@@ -492,14 +488,11 @@ function setupReviewRatingPicker(stars, valueField, output, clearButton, initial
   stars.addEventListener("keydown", (event) => {
     if (!["ArrowLeft", "ArrowDown", "ArrowRight", "ArrowUp", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
-    if (selectionLocked) return;
     if (event.key === "Home") commit(0.5);
     else if (event.key === "End") commit(5);
     else commit(selectedRating + (["ArrowRight", "ArrowUp"].includes(event.key) ? 0.5 : -0.5));
-    selectionLocked = true;
   });
   clearButton.addEventListener("click", () => {
-    selectionLocked = false;
     commit(0);
     stars.focus();
   });

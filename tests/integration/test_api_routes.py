@@ -168,6 +168,13 @@ def test_search_filters_by_average_reader_rating(monkeypatch):
     assert response.json()[0]["review_count"] == 2
 
 
+def test_search_accepts_half_star_minimum_rating(monkeypatch):
+    monkeypatch.setattr(search_routes, "supabase", FakeSupabase())
+    response = TestClient(app).get("/api/search", params={"min_rating": 0.5})
+    assert response.status_code == 200
+    assert [novel["id"] for novel in response.json()] == [2, 1]
+
+
 def test_search_rejects_invalid_reader_rating(monkeypatch):
     monkeypatch.setattr(search_routes, "supabase", FakeSupabase())
     response = TestClient(app).get("/api/search", params={"min_rating": 6})
