@@ -19,11 +19,18 @@ function createActivityCard(activity) {
   cover.href = novelUrl;
   if (novel.cover_image_url) {
     const image = document.createElement("img");
+    image.referrerPolicy = "no-referrer";
     image.src = novel.cover_image_url;
     image.alt = `Cover of ${novel.title || "novel"}`;
+    image.addEventListener("error", () => {
+      image.remove();
+      cover.classList.add("has-fallback");
+      cover.textContent = novel.title || "Axiom";
+    }, { once: true });
     cover.appendChild(image);
   } else {
-    cover.textContent = "A";
+    cover.classList.add("has-fallback");
+    cover.textContent = novel.title || "Axiom";
   }
 
   const body = document.createElement("div");

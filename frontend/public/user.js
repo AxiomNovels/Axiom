@@ -75,11 +75,18 @@ function renderUserActivity(payload) {
     coverLink.href = `/novel.html?id=${encodeURIComponent(activity.novel_id)}`;
     if (novel.cover_image_url) {
       const image = document.createElement("img");
+      image.referrerPolicy = "no-referrer";
       image.src = novel.cover_image_url;
       image.alt = `Cover of ${novel.title || "novel"}`;
+      image.addEventListener("error", () => {
+        image.remove();
+        coverLink.classList.add("has-fallback");
+        coverLink.textContent = novel.title || "Axiom";
+      }, { once: true });
       coverLink.appendChild(image);
     } else {
-      coverLink.textContent = "A";
+      coverLink.classList.add("has-fallback");
+      coverLink.textContent = novel.title || "Axiom";
     }
 
     const body = document.createElement("div");

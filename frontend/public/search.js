@@ -31,7 +31,7 @@ function showActiveFilters(params) {
 function resultCard(novel, index) {
   const link = document.createElement("a"); link.href = `/novel.html?id=${novel.id}`; link.className = "series-result book-card-link";
   const cover = document.createElement("div"); cover.className = `result-cover ${COVER_CLASSES[index % COVER_CLASSES.length]}`;
-  if (novel.cover_image_url) { const image = document.createElement("img"); image.src = novel.cover_image_url; image.alt = `${novel.title} cover`; image.referrerPolicy = "no-referrer"; cover.appendChild(image); }
+  if (novel.cover_image_url) { const image = document.createElement("img"); image.referrerPolicy = "no-referrer"; image.src = novel.cover_image_url; image.alt = `${novel.title} cover`; image.addEventListener("error", () => { image.remove(); cover.textContent = novel.title || "Axiom"; }, { once: true }); cover.appendChild(image); }
   else cover.textContent = novel.title;
   const copy = document.createElement("div");
   const genres = novel.genres || [];

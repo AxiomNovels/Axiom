@@ -56,9 +56,9 @@ function createListCard(list) {
     book.className = novel ? "list-preview-book" : "list-preview-book is-empty";
     if (novel?.cover_image_url) {
       const image = document.createElement("img");
+      image.referrerPolicy = "no-referrer";
       image.src = novel.cover_image_url;
       image.alt = "";
-      image.referrerPolicy = "no-referrer";
       image.addEventListener("error", () => {
         image.remove();
         book.classList.add("has-fallback");

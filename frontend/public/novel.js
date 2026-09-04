@@ -192,9 +192,9 @@ function renderNovel(novel) {
     if (novel.cover_image_url) {
       const coverImage = document.createElement("img");
       coverImage.className = "novel-cover-image";
+      coverImage.referrerPolicy = "no-referrer";
       coverImage.src = novel.cover_image_url;
       coverImage.alt = `${novel.title} cover`;
-      coverImage.referrerPolicy = "no-referrer";
       coverImage.addEventListener("error", () => {
         coverImage.remove();
         coverEl.textContent = novel.title;

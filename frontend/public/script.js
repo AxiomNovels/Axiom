@@ -303,9 +303,9 @@ function createNovelCard(novel, index) {
   if (novel.cover_image_url) {
     const coverImage = document.createElement("img");
     coverImage.className = "book-cover-image";
+    coverImage.referrerPolicy = "no-referrer";
     coverImage.src = novel.cover_image_url;
     coverImage.alt = `${novel.title} cover`;
-    coverImage.referrerPolicy = "no-referrer";
     coverImage.addEventListener("error", () => {
       coverImage.remove();
       const coverSpan = document.createElement("span");

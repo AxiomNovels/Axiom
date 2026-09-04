@@ -1548,6 +1548,7 @@ body.modal-open { overflow:hidden; }
 .user-activity-card { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 18px; border: 1px solid rgba(173,121,211,.22); border-radius: 12px; background: linear-gradient(145deg, rgba(29,15,40,.68), rgba(12,7,19,.78)); padding: 18px; box-shadow: 0 14px 34px rgba(0,0,0,.14); }
 .user-activity-cover { width: 76px; aspect-ratio: 2 / 3; overflow: hidden; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 6px; background: linear-gradient(145deg,#241031,#5c2782); color: var(--ink); font: 700 1.6rem Georgia,serif; text-decoration: none; }
 .user-activity-cover img { width: 100%; height: 100%; object-fit: cover; }
+.user-activity-cover.has-fallback { padding: 7px; font-size: .72rem; line-height: 1.25; text-align: center; overflow-wrap: anywhere; }
 .user-activity-body { min-width: 0; }
 .user-activity-context { margin: 0 0 5px; color: var(--accent); font-size: .7rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .user-activity-title { color: var(--ink); font: 700 1.2rem Georgia,serif; text-decoration: none; }

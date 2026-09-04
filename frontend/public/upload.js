@@ -44,9 +44,10 @@ function renderPreview(elements, novel) {
   if (novel.cover_image_url) {
     const image = document.createElement("img");
     image.className = "upload-preview-cover-image";
+    image.referrerPolicy = "no-referrer";
     image.src = novel.cover_image_url;
     image.alt = "";
-    image.referrerPolicy = "no-referrer";
+    image.addEventListener("error", () => image.remove(), { once: true });
     elements.coverEl.appendChild(image);
   }
 
