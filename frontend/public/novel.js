@@ -278,6 +278,73 @@ function buildReadingListLoginPrompt() {
   return wrapper;
 }
 
+// A small "Chapter N" control shown next to the reading-list picker when
+// the novel is on one of the user's lists. Only rendered while membership
+// exists -- if the novel is removed from every list, this disappears even
+// though the chapter number itself is retained server-side.
+function buildChapterTracker(novelId, currentChapter) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "novel-chapter-tracker";
+
+  const label = document.createElement("label");
+  label.textContent = "Chapter";
+  label.setAttribute("for", "novel-chapter-input");
+
+  const input = document.createElement("input");
+  input.type = "number";
+  input.min = "1";
+  input.step = "1";
+  input.inputMode = "numeric";
+  input.id = "novel-chapter-input";
+  input.className = "novel-chapter-input";
+  input.value = currentChapter || 1;
+  input.setAttribute("aria-label", "Your current chapter for this novel");
+
+  const status = document.createElement("span");
+  status.className = "novel-chapter-status";
+  status.setAttribute("aria-live", "polite");
+
+  let savedChapter = currentChapter || 1;
+
+  const save = async () => {
+    const parsed = Math.max(1, Math.floor(Number(input.value)) || 1);
+    input.value = parsed;
+    if (parsed === savedChapter) return;
+
+    status.textContent = "Saving…";
+    try {
+      const response = await authFetch(`${API_BASE}/api/reading-progress/${novelId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ current_chapter: parsed }),
+      });
+      if (response.status === 401) {
+        window.location.href = "/login.html";
+        return;
+      }
+      if (!response.ok) throw new Error("Update failed");
+      savedChapter = parsed;
+      status.textContent = "Saved";
+      setTimeout(() => { status.textContent = ""; }, 1500);
+    } catch (error) {
+      status.textContent = "";
+      alert("Couldn't save your chapter progress. Please try again.");
+      input.value = savedChapter;
+    }
+  };
+
+  input.addEventListener("change", save);
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      input.blur();
+    }
+  });
+
+  wrapper.append(label, input, status);
+  return wrapper;
+}
+
 function buildReadingListControls(novelId, membership, lists) {
   const wrapper = document.createElement("div");
   wrapper.className = "reading-list-controls";
@@ -349,6 +416,11 @@ function buildReadingListControls(novelId, membership, lists) {
 
   picker.appendChild(menu);
   wrapper.appendChild(picker);
+
+  if (membership) {
+    wrapper.appendChild(buildChapterTracker(novelId, membership.current_chapter));
+  }
+
   return wrapper;
 }
 

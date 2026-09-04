@@ -1769,3 +1769,78 @@ body.modal-open { overflow:hidden; }
   .review-card-header { grid-template-columns: auto 1fr; }
   .review-card-meta { grid-column: 2; justify-items: start; }
 }
+
+/* Chapter tracking */
+.novel-chapter-tracker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.novel-chapter-tracker label {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.novel-chapter-input {
+  width: 90px;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(3, 1, 8, 0.72);
+  color: var(--ink);
+  font: inherit;
+  padding: 0 10px;
+}
+
+.novel-chapter-input:focus {
+  border-color: var(--focus);
+  outline: 3px solid rgba(155, 77, 204, 0.14);
+}
+
+.novel-chapter-status {
+  color: var(--dim);
+  font-size: 0.78rem;
+  min-width: 44px;
+}
+
+.list-novel-chapter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.list-novel-chapter-label {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.list-novel-chapter-input {
+  width: 76px;
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(3, 1, 8, 0.72);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0 8px;
+}
+
+.list-novel-chapter-input:focus {
+  border-color: var(--focus);
+  outline: 3px solid rgba(155, 77, 204, 0.14);
+}
+
+.list-novel-chapter-status {
+  color: var(--dim);
+  font-size: 0.74rem;
+}

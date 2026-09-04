@@ -2,11 +2,78 @@ function getListIdFromUrl() {
   return new URLSearchParams(window.location.search).get("id");
 }
 
+// A small "Chapter N" control shown on each novel in a reading list.
+// Saves via PUT /api/reading-progress/{novel_id} on blur/Enter, and keeps
+// the in-memory novel.current_chapter in sync so repeated edits diff
+// correctly without needing a full list reload.
+function createChapterControl(novel) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "list-novel-chapter";
+
+  const label = document.createElement("label");
+  label.className = "list-novel-chapter-label";
+  label.textContent = "Chapter";
+  label.setAttribute("for", `chapter-input-${novel.id}`);
+
+  const input = document.createElement("input");
+  input.type = "number";
+  input.min = "1";
+  input.step = "1";
+  input.inputMode = "numeric";
+  input.id = `chapter-input-${novel.id}`;
+  input.className = "list-novel-chapter-input";
+  input.value = novel.current_chapter || 1;
+  input.setAttribute("aria-label", `Current chapter for ${novel.title}`);
+
+  const status = document.createElement("span");
+  status.className = "list-novel-chapter-status";
+  status.setAttribute("aria-live", "polite");
+
+  const saveChapter = async () => {
+    const parsed = Math.max(1, Math.floor(Number(input.value)) || 1);
+    input.value = parsed;
+    if (parsed === novel.current_chapter) return;
+
+    status.textContent = "Saving…";
+    try {
+      const response = await authFetch(`${API_BASE}/api/reading-progress/${novel.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ current_chapter: parsed }),
+      });
+      if (response.status === 401) {
+        window.location.href = "/login.html";
+        return;
+      }
+      if (!response.ok) throw new Error("Update failed");
+      novel.current_chapter = parsed;
+      status.textContent = "Saved";
+      setTimeout(() => { status.textContent = ""; }, 1500);
+    } catch (error) {
+      status.textContent = "";
+      alert("Couldn't save your chapter progress. Please try again.");
+      input.value = novel.current_chapter || 1;
+    }
+  };
+
+  input.addEventListener("change", saveChapter);
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      input.blur();
+    }
+  });
+
+  wrapper.append(label, input, status);
+  return wrapper;
+}
+
 function createListNovelCard(novel, index, listId) {
   const wrapper = document.createElement("div");
   wrapper.className = "list-novel-item";
 
   const link = createNovelCard(novel, index);
+  const chapterControl = createChapterControl(novel);
 
   const removeButton = document.createElement("button");
   removeButton.type = "button";
@@ -28,6 +95,7 @@ function createListNovelCard(novel, index, listId) {
   });
 
   wrapper.appendChild(link);
+  wrapper.appendChild(chapterControl);
   wrapper.appendChild(removeButton);
   return wrapper;
 }
