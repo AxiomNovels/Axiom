@@ -89,6 +89,39 @@ async function refreshAccountAvatar() {
 }
 window.refreshAccountAvatar = refreshAccountAvatar;
 
+// Exposed globally so inbox.js can refresh the header badge immediately
+// after a message is opened or its read state is toggled, without a
+// full page reload.
+async function refreshInboxBadge() {
+  const badge = document.querySelector("[data-inbox-badge]");
+  if (!badge) return;
+
+  if (!getAccessToken()) {
+    badge.classList.add("is-hidden");
+    badge.textContent = "";
+    return;
+  }
+
+  try {
+    const response = await authFetch(`${API_BASE}/api/inbox/unread-count`);
+    if (!response.ok) return;
+    const result = await response.json();
+    const count = Number(result.unread_count) || 0;
+
+    if (count > 0) {
+      badge.textContent = count > 9 ? "9+" : String(count);
+      badge.classList.remove("is-hidden");
+    } else {
+      badge.textContent = "";
+      badge.classList.add("is-hidden");
+    }
+  } catch {
+    // Leave whatever badge state was already showing; not worth
+    // surfacing an error just for the header icon.
+  }
+}
+window.refreshInboxBadge = refreshInboxBadge;
+
 function updateAccountNav() {
   const guestActions = document.querySelector("[data-guest-actions]");
   const userActions = document.querySelector("[data-user-actions]");
@@ -120,6 +153,27 @@ function updateAccountNav() {
         <span>My Lists</span>`;
       myListsLink.setAttribute("data-my-lists-link", "");
       userActions.insertBefore(myListsLink, userGreeting);
+    }
+
+    // Inbox link + unread badge, placed right next to My Lists.
+    if (!userActions.querySelector("[data-inbox-link]")) {
+      const inboxLink = document.createElement("a");
+      inboxLink.href = "/inbox.html";
+      inboxLink.className = "inbox-link";
+      inboxLink.setAttribute("data-inbox-link", "");
+      inboxLink.setAttribute("aria-label", "Inbox");
+      inboxLink.innerHTML = `
+        <span class="inbox-icon-wrap">
+          <svg class="inbox-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3.5 6.5h17v11h-17z" />
+            <path d="m3.5 6.5 8.5 6 8.5-6" />
+          </svg>
+          <span class="inbox-badge is-hidden" data-inbox-badge aria-hidden="true"></span>
+        </span>
+        <span>Inbox</span>`;
+
+      const myListsLink = userActions.querySelector("[data-my-lists-link]");
+      userActions.insertBefore(inboxLink, myListsLink ? myListsLink.nextSibling : userGreeting);
     }
 
     if (!userActions.querySelector("[data-account-menu]")) {
@@ -173,6 +227,7 @@ function updateAccountNav() {
     }
 
     refreshAccountAvatar();
+    refreshInboxBadge();
   } else {
     guestActions.classList.remove("is-hidden");
     userActions.classList.add("is-hidden");

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
 from core.database import create_service_client, supabase
+from core.notifications import send_welcome_notification
 from models.auth import LoginRequest, SignupRequest
 
 
@@ -101,6 +102,15 @@ def signup(payload: SignupRequest):
             raise HTTPException(
                 status_code=409, detail="That username is already taken."
             ) from error
+
+        # Send the one-time welcome notification (inbox row + email copy).
+        # This is best-effort: send_welcome_notification already swallows
+        # its own DB/email failures, but the account itself must never be
+        # rolled back just because a notification couldn't be delivered.
+        try:
+            send_welcome_notification(user.id, payload.username, payload.email)
+        except Exception as error:
+            print(f"[auth] failed to send welcome notification for {user.id}: {error}")
 
     return auth_response_payload(response)
 

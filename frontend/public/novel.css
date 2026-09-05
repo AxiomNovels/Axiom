@@ -1847,3 +1847,216 @@ body.modal-open { overflow:hidden; }
   color: var(--dim);
   font-size: 0.74rem;
 }
+
+/* =========================================================
+   INBOX NAV LINK (header icon + unread badge)
+   ========================================================= */
+
+.home-header .inbox-link {
+  position: relative;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.inbox-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.home-header .inbox-icon {
+  width: 21px;
+  height: 21px;
+  flex: 0 0 auto;
+  overflow: visible;
+  fill: rgba(155, 77, 204, 0.14);
+  stroke: var(--focus);
+  stroke-width: 1.45;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 5px rgba(155, 77, 204, 0.30));
+  transition: filter 0.18s ease, transform 0.18s ease;
+}
+
+.home-header .inbox-link:hover .inbox-icon {
+  filter: drop-shadow(0 0 8px rgba(192, 132, 252, 0.55));
+  transform: translateY(-1px);
+}
+
+.home-header .inbox-link:hover {
+  color: #ffffff;
+}
+
+/* Small red circle in the top-right corner of the icon, showing an
+   unread count (capped visually at "9+"). Hidden entirely when there
+   are no unread messages. */
+.inbox-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--passion);
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0 4px;
+  box-shadow: 0 0 0 2px rgba(7, 3, 13, 0.86);
+}
+
+.inbox-badge.is-hidden {
+  display: none;
+}
+
+@media (max-width: 620px) {
+  .home-header .inbox-link {
+    font-size: 0;
+    padding: 0 8px;
+  }
+
+  .home-header .inbox-icon {
+    width: 21px;
+    height: 21px;
+  }
+}
+
+/* =========================================================
+   INBOX PAGE
+   ========================================================= */
+
+.inbox-page {
+  position: relative;
+  z-index: 1;
+  width: min(900px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 48px 0 80px;
+}
+
+.inbox-summary {
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+
+.inbox-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.inbox-message {
+  border: 1px solid rgba(173, 121, 211, 0.22);
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(145deg, rgba(29, 15, 40, 0.68), rgba(12, 7, 19, 0.78));
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.14);
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+/* Unread highlight. */
+.inbox-message.is-unread {
+  border-color: rgba(216, 180, 254, 0.5);
+  background: linear-gradient(145deg, rgba(60, 26, 87, 0.62), rgba(20, 9, 30, 0.84));
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(155, 77, 204, 0.12) inset;
+}
+
+.inbox-message > summary {
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+  padding: 18px 22px;
+}
+
+.inbox-message > summary::-webkit-details-marker {
+  display: none;
+}
+
+.inbox-message > summary:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.inbox-unread-dot {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.inbox-message.is-unread .inbox-unread-dot {
+  background: var(--passion);
+  box-shadow: 0 0 8px rgba(209, 74, 85, 0.6);
+}
+
+.inbox-message-subject {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inbox-message.is-unread .inbox-message-subject {
+  font-weight: 800;
+}
+
+.inbox-message-date {
+  flex: 0 0 auto;
+  color: var(--dim);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.inbox-message-body {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 18px 22px 20px;
+}
+
+.inbox-message-body p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+.inbox-message-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.inbox-read-toggle {
+  width: auto;
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 560px) {
+  .inbox-message > summary {
+    padding: 15px 16px;
+  }
+
+  .inbox-message-body {
+    padding: 15px 16px 16px;
+  }
+
+  .inbox-message-date {
+    display: none;
+  }
+}
