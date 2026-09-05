@@ -31,7 +31,6 @@ function setupRatingFilter() {
 
   let selectedRating = 0;
   let previewRating = 0;
-  let selectionLocked = false;
 
   function ratingLabel(rating) {
     return rating ? `${rating} ${rating === 1 ? "star" : "stars"} & up` : "Any rating";
@@ -70,7 +69,7 @@ function setupRatingFilter() {
   }
 
   function previewFromPointer(event) {
-    if (selectionLocked) return;
+    if (selectedRating) return;
     previewRating = ratingFromPointer(event.clientX);
     renderRating(previewRating, true);
   }
@@ -78,10 +77,7 @@ function setupRatingFilter() {
   stars.addEventListener("pointermove", previewFromPointer);
 
   stars.addEventListener("click", (event) => {
-    if (selectionLocked) return;
-    previewFromPointer(event);
-    setRating(previewRating);
-    selectionLocked = true;
+    setRating(ratingFromPointer(event.clientX));
   });
 
   stars.addEventListener("pointerleave", () => {
@@ -91,16 +87,13 @@ function setupRatingFilter() {
   stars.addEventListener("keydown", (event) => {
     if (!["ArrowLeft", "ArrowDown", "ArrowRight", "ArrowUp", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
-    if (selectionLocked) return;
     const current = Number(valueField.value) || 0;
-    if (event.key === "Home") setRating(0);
+    if (event.key === "Home") setRating(0.5);
     else if (event.key === "End") setRating(5);
     else setRating(current + (["ArrowRight", "ArrowUp"].includes(event.key) ? 0.5 : -0.5));
-    if (Number(valueField.value)) selectionLocked = true;
   });
 
   clearButton.addEventListener("click", () => {
-    selectionLocked = false;
     setRating(0);
   });
   setRating(0);

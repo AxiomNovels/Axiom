@@ -33,9 +33,9 @@ def _rating_threshold(value):
     try:
         number = float(value)
     except (TypeError, ValueError):
-        raise HTTPException(status_code=422, detail="Minimum rating must be from 1 to 5")
-    if not 1 <= number <= 5:
-        raise HTTPException(status_code=422, detail="Minimum rating must be between 1 and 5")
+        raise HTTPException(status_code=422, detail="Minimum rating must be from 0.5 to 5")
+    if not 0.5 <= number <= 5:
+        raise HTTPException(status_code=422, detail="Minimum rating must be between 0.5 and 5")
     return number
 
 
