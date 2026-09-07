@@ -2060,3 +2060,98 @@ body.modal-open { overflow:hidden; }
     display: none;
   }
 }
+
+/* =========================================================
+   FRIEND ACTION (profile page: Add friend / Request sent / Friends)
+   ========================================================= */
+
+.friend-action {
+  flex: 0 0 auto;
+  margin-left: auto;
+  align-self: center;
+}
+
+.friend-action-button {
+  width: auto;
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+
+.friend-action-static {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+  font-weight: 800;
+  font-size: 0.92rem;
+  white-space: nowrap;
+  padding: 0 16px;
+}
+
+.friend-action-static.is-friends {
+  border-color: rgba(155, 77, 204, 0.4);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+.friend-action-static.is-pending {
+  border-style: dashed;
+}
+
+@media (max-width: 560px) {
+  .friend-action {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .friend-action-button,
+  .friend-action-static {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* =========================================================
+   INBOX: FRIEND REQUEST NOTIFICATIONS
+   ========================================================= */
+
+.inbox-friend-request-link {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.inbox-friend-request-link a {
+  font-weight: 800;
+}
+
+.inbox-friend-request-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.inbox-friend-accept,
+.inbox-friend-reject {
+  width: auto;
+  min-height: 38px;
+  padding: 0 16px;
+  font-size: 0.85rem;
+}
+
+.inbox-friend-reject {
+  border-color: rgba(255, 93, 98, 0.3);
+  color: #fda4af;
+}
+
+.inbox-friend-request-resolved {
+  margin: 14px 0 0;
+  color: var(--dim);
+  font-size: 0.85rem;
+  font-style: italic;
+}

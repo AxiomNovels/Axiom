@@ -123,6 +123,106 @@ function renderUserActivity(payload) {
   });
 }
 
+// ---------------------------------------------------------------------
+// Friend action (Add friend / Request sent / Friends) on a profile page
+// ---------------------------------------------------------------------
+
+const FRIEND_STATUS_ICONS = {
+  add: "\uD83D\uDC64+",     // 👤+
+  pending: "\uD83D\uDC64\u2713", // 👤✓
+  friends: "\uD83D\uDC65\u2713", // 👥✓
+};
+
+function renderFriendActionStatic(container, status) {
+  const span = document.createElement("span");
+  span.className = `friend-action-static is-${status}`;
+  span.textContent =
+    status === "friends"
+      ? `${FRIEND_STATUS_ICONS.friends} Friends`
+      : `${FRIEND_STATUS_ICONS.pending} Request sent`;
+  container.replaceChildren(span);
+}
+
+function renderFriendActionButton(container, targetUserId) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "friend-action-button";
+  button.textContent = `${FRIEND_STATUS_ICONS.add} Add friend`;
+
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    button.textContent = "Sending\u2026";
+    try {
+      const response = await authFetch(`${API_BASE}/api/friendships/${targetUserId}`, {
+        method: "POST",
+      });
+      if (response.status === 401) {
+        window.location.href = "/login.html";
+        return;
+      }
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(
+          typeof result.detail === "string" ? result.detail : "Couldn't send that friend request."
+        );
+      }
+      // The backend is the source of truth for the resulting state --
+      // this also covers the mutual-request case, where sending a
+      // request to someone who already requested *you* immediately
+      // makes you friends instead of leaving a pending request.
+      if (result.status === "friends") {
+        renderFriendActionStatic(container, "friends");
+      } else {
+        renderFriendActionStatic(container, "pending");
+      }
+    } catch (error) {
+      alert(error.message || "Couldn't send that friend request. Please try again.");
+      button.disabled = false;
+      button.textContent = `${FRIEND_STATUS_ICONS.add} Add friend`;
+    }
+  });
+
+  container.replaceChildren(button);
+}
+
+function renderFriendAction(container, targetUserId, status) {
+  if (status === "friends") renderFriendActionStatic(container, "friends");
+  else if (status === "pending") renderFriendActionStatic(container, "pending");
+  else renderFriendActionButton(container, targetUserId);
+}
+
+async function loadFriendAction(targetUserId) {
+  const container = document.querySelector("[data-friend-action]");
+  if (!container || !targetUserId) return;
+
+  // Friending requires an account, and a user can never friend
+  // themselves -- both cases simply show nothing, matching a normal
+  // profile page's "no action available" state.
+  const viewer = getStoredUser();
+  if (!getAccessToken() || !viewer || viewer.id === targetUserId) {
+    container.innerHTML = "";
+    return;
+  }
+
+  try {
+    const response = await authFetch(`${API_BASE}/api/friendships/status/${targetUserId}`);
+    if (response.status === 401) {
+      container.innerHTML = "";
+      return;
+    }
+    if (!response.ok) throw new Error("Failed to load friend status");
+    const result = await response.json();
+    if (result.status === "self") {
+      container.innerHTML = "";
+      return;
+    }
+    renderFriendAction(container, targetUserId, result.status);
+  } catch (error) {
+    console.error("[user.js] failed to load friend status:", error);
+    container.innerHTML = "";
+  }
+}
+
 async function loadPublicProfile() {
   const userId = getUserIdFromUrl();
   const usernameEl = document.querySelector("[data-user-username]");
@@ -158,6 +258,7 @@ async function loadPublicProfile() {
     if (cityEl) cityEl.textContent = formatOrFallback(profile.city, "Not specified");
 
     renderUserTags(profile.tag_preferences);
+    loadFriendAction(userId);
 
     if (aboutEl) {
       aboutEl.textContent = formatOrFallback(

@@ -28,6 +28,83 @@ async function setNotificationRead(id, isRead) {
   return response.json();
 }
 
+// Renders the friend_request-specific part of a message body: a link to
+// the sender's profile, and either the live Accept/Reject controls (while
+// data.friendship_status is "pending") or a short resolved message.
+// Called again after a response is submitted so the UI reflects the
+// backend's answer rather than assuming the click succeeded as intended.
+function renderFriendRequestExtras(extrasContainer, notification) {
+  extrasContainer.innerHTML = "";
+  const data = notification.data || {};
+
+  if (data.sender_id) {
+    const profileLine = document.createElement("p");
+    profileLine.className = "inbox-friend-request-link";
+    profileLine.append("From ");
+    const link = document.createElement("a");
+    link.href = `/user.html?id=${encodeURIComponent(data.sender_id)}`;
+    link.textContent = data.sender_username || "this reader";
+    profileLine.appendChild(link);
+    extrasContainer.appendChild(profileLine);
+  }
+
+  const status = data.friendship_status;
+
+  if (status !== "pending") {
+    const resolved = document.createElement("p");
+    resolved.className = "inbox-friend-request-resolved";
+    if (status === "accepted") resolved.textContent = "You accepted this request. You're now friends.";
+    else if (status === "rejected") resolved.textContent = "You declined this request.";
+    else resolved.textContent = "This request is no longer available.";
+    extrasContainer.appendChild(resolved);
+    return;
+  }
+
+  const actionsRow = document.createElement("div");
+  actionsRow.className = "inbox-friend-request-actions";
+
+  const acceptButton = document.createElement("button");
+  acceptButton.type = "button";
+  acceptButton.className = "inbox-friend-accept";
+  acceptButton.textContent = "Accept";
+
+  const rejectButton = document.createElement("button");
+  rejectButton.type = "button";
+  rejectButton.className = "ghost-link inbox-friend-reject";
+  rejectButton.textContent = "Reject";
+
+  async function respond(action) {
+    acceptButton.disabled = true;
+    rejectButton.disabled = true;
+    try {
+      const response = await authFetch(`${API_BASE}/api/friendships/${data.friendship_id}/respond`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (response.status === 401) {
+        window.location.href = "/login.html";
+        return;
+      }
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(typeof result.detail === "string" ? result.detail : "Couldn't update this request.");
+      }
+      notification.data = { ...data, friendship_status: result.status };
+      renderFriendRequestExtras(extrasContainer, notification);
+    } catch (error) {
+      alert(error.message || "Couldn't update this request. Please try again.");
+      acceptButton.disabled = false;
+      rejectButton.disabled = false;
+    }
+  }
+
+  acceptButton.addEventListener("click", () => respond("accept"));
+  rejectButton.addEventListener("click", () => respond("reject"));
+  actionsRow.append(acceptButton, rejectButton);
+  extrasContainer.appendChild(actionsRow);
+}
+
 // Each message is a <details>/<summary> disclosure, matching the pattern
 // already used elsewhere on the site (trait guides, profile disclosures).
 // Opening it is what marks a message read; the button lets a reader
@@ -60,6 +137,14 @@ function createNotificationCard(notification) {
 
   const bodyText = document.createElement("p");
   bodyText.textContent = notification.body;
+  body.appendChild(bodyText);
+
+  if (notification.type === "friend_request") {
+    const extras = document.createElement("div");
+    extras.className = "inbox-friend-request-extras";
+    renderFriendRequestExtras(extras, notification);
+    body.appendChild(extras);
+  }
 
   const actions = document.createElement("div");
   actions.className = "inbox-message-actions";
@@ -88,7 +173,7 @@ function createNotificationCard(notification) {
   });
 
   actions.appendChild(readToggleButton);
-  body.append(bodyText, actions);
+  body.appendChild(actions);
   details.append(summary, body);
 
   applyReadState(notification.is_read);

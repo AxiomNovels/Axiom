@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from routes.auth import router as auth_router
+from routes.friendships import router as friendships_router
 from routes.inbox import router as inbox_router
 from routes.novels import router as novels_router
 from routes.profile import router as profile_router
@@ -84,6 +85,7 @@ app.include_router(reading_lists_router)
 app.include_router(reading_progress_router)
 app.include_router(users_router)
 app.include_router(inbox_router)
+app.include_router(friendships_router)
 
 
 @app.get("/api/health")
