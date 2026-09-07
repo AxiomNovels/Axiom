@@ -109,7 +109,10 @@ def get_friendship_status(other_user_id: str, auth=Depends(get_current_user)):
 def list_my_friendships(auth=Depends(get_current_user)):
     """Everything needed for the "Your friends" page in one call: the
     user's accepted friends and their pending requests (both directions),
-    each sorted alphabetically by username.
+    each sorted alphabetically by username. Both lists share the same
+    shape -- {"friendship_id": ..., "user": {...}} (plus "direction" for
+    pending) -- so the frontend has the friendship_id it needs to power
+    the Remove-friend button without a second lookup.
 
     Uses the RLS-scoped client for the friendships read (the same
     guarantee as get_friendship_status: a user only ever sees rows where
@@ -162,7 +165,7 @@ def list_my_friendships(auth=Depends(get_current_user)):
             continue
 
         if row["status"] == "accepted":
-            friends.append(profile)
+            friends.append({"friendship_id": row["id"], "user": profile})
         elif row["status"] == "pending":
             direction = "outgoing" if row["requested_by"] == user_id else "incoming"
             pending.append({
@@ -171,7 +174,7 @@ def list_my_friendships(auth=Depends(get_current_user)):
                 "user": profile,
             })
 
-    friends.sort(key=lambda profile: (profile.get("username") or "").casefold())
+    friends.sort(key=lambda entry: (entry["user"].get("username") or "").casefold())
     pending.sort(key=lambda entry: (entry["user"].get("username") or "").casefold())
 
     return {"friends": friends, "pending": pending}
@@ -236,6 +239,11 @@ def send_friend_request(target_user_id: str, auth=Depends(get_current_user)):
                 detail=f"You can send this reader another request in about {hours_left} hour(s).",
             )
 
+    # If the most recent row is "removed" (a former friendship that was
+    # ended via remove_friend), none of the branches above apply, and
+    # execution falls through to here -- a fresh request is created
+    # immediately, with no cooldown, exactly as if they'd never been
+    # friends.
     try:
         insert_response = (
             service_client.table("friendships")
@@ -323,3 +331,50 @@ def respond_to_friend_request(
         raise HTTPException(status_code=409, detail="This request has already been responded to.")
 
     return update_response.data[0]
+
+
+@router.delete("/{friendship_id}")
+def remove_friend(friendship_id: str, auth=Depends(get_current_user)):
+    """Unfriend someone. Either participant of an accepted friendship can
+    do this to the other -- there is no notification, no confirmation
+    needed from the other side, and no cooldown afterward (see
+    database/friend_removal.sql). The only way the other person finds
+    out is by noticing the friendship is gone from their own list.
+    """
+    user_id, _client = auth
+    service_client = create_service_client()
+
+    row = _get_friendship_row(service_client, friendship_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="This friendship no longer exists.")
+
+    if user_id not in (row["user_id_1"], row["user_id_2"]):
+        raise HTTPException(status_code=403, detail="You don't have permission to remove this friendship.")
+
+    if row["status"] == "removed":
+        # Already removed -- by the other participant, or a duplicate
+        # click from this same user. The desired end state (not being
+        # friends) already holds, so this is a success, not an error.
+        return {"status": "none"}
+
+    if row["status"] != "accepted":
+        raise HTTPException(status_code=409, detail="You're not currently friends with this reader.")
+
+    try:
+        update_response = (
+            service_client.table("friendships")
+            .update({"status": "removed", "responded_at": datetime.now(timezone.utc).isoformat()})
+            .eq("id", friendship_id)
+            .eq("status", "accepted")
+            .execute()
+        )
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    if not update_response.data:
+        # The other participant (or a second click) removed the
+        # friendship in the instant between our read above and this
+        # write -- again, the desired end state already holds.
+        return {"status": "none"}
+
+    return {"status": "none"}

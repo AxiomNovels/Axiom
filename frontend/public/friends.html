@@ -89,6 +89,16 @@
       </section>
     </main>
 
+    <div class="modal-overlay is-hidden" data-modal-overlay>
+      <div class="modal-card" role="alertdialog" aria-modal="true" aria-labelledby="modal-message">
+        <p id="modal-message" data-modal-message></p>
+        <div class="modal-actions">
+          <button class="ghost-link" type="button" data-modal-cancel>No</button>
+          <button class="button-link" type="button" data-modal-confirm>Yes</button>
+        </div>
+      </div>
+    </div>
+
     <script src="/script.js"></script>
     <script src="/friends.js"></script>
   </body>

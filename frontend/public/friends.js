@@ -6,7 +6,40 @@ function requireSession() {
   return true;
 }
 
-function createFriendListItem(profile) {
+// Shows the shared Yes/No modal and resolves true/false with the user's
+// choice. Falls back to the native confirm() if the modal markup is
+// missing from the page for some reason. Matches the implementation in
+// lists.js so the confirmation experience feels the same across pages.
+function showConfirmModal(message) {
+  return new Promise((resolve) => {
+    const overlay = document.querySelector("[data-modal-overlay]");
+    const messageEl = document.querySelector("[data-modal-message]");
+    const confirmButton = document.querySelector("[data-modal-confirm]");
+    const cancelButton = document.querySelector("[data-modal-cancel]");
+
+    if (!overlay || !messageEl || !confirmButton || !cancelButton) {
+      resolve(window.confirm(message));
+      return;
+    }
+
+    messageEl.textContent = message;
+    overlay.classList.remove("is-hidden");
+
+    const cleanup = (result) => {
+      overlay.classList.add("is-hidden");
+      confirmButton.removeEventListener("click", onConfirm);
+      cancelButton.removeEventListener("click", onCancel);
+      resolve(result);
+    };
+    const onConfirm = () => cleanup(true);
+    const onCancel = () => cleanup(false);
+
+    confirmButton.addEventListener("click", onConfirm);
+    cancelButton.addEventListener("click", onCancel);
+  });
+}
+
+function createFriendProfileLink(profile) {
   const link = document.createElement("a");
   link.className = "friend-list-item";
   link.href = `/user.html?id=${encodeURIComponent(profile.id)}`;
@@ -37,16 +70,66 @@ function createFriendListItem(profile) {
   return link;
 }
 
-function createPendingListItem(entry) {
-  const item = createFriendListItem(entry.user);
-  item.classList.add("is-pending");
+// "All" tab: profile link + a Remove button. Removing calls onRemoved
+// (a full reload of the friends page) once the backend confirms it, so
+// the list always reflects the database rather than an optimistic guess.
+function createFriendRow(entry, onRemoved) {
+  const row = document.createElement("div");
+  row.className = "friend-list-row";
+  row.appendChild(createFriendProfileLink(entry.user));
+
+  const actions = document.createElement("div");
+  actions.className = "friend-list-row-actions";
+
+  const removeButton = document.createElement("button");
+  removeButton.type = "button";
+  removeButton.className = "ghost-link friend-list-remove";
+  removeButton.textContent = "Remove";
+  removeButton.addEventListener("click", async () => {
+    const name = entry.user.username || "this reader";
+    const confirmed = await showConfirmModal(`Remove ${name} as a friend?`);
+    if (!confirmed) return;
+
+    removeButton.disabled = true;
+    removeButton.textContent = "Removing\u2026";
+    try {
+      const response = await authFetch(`${API_BASE}/api/friendships/${entry.friendship_id}`, {
+        method: "DELETE",
+      });
+      if (response.status === 401) {
+        window.location.href = "/login.html";
+        return;
+      }
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(typeof result.detail === "string" ? result.detail : "Couldn't remove this friend.");
+      }
+      onRemoved();
+    } catch (error) {
+      alert(error.message || "Couldn't remove this friend. Please try again.");
+      removeButton.disabled = false;
+      removeButton.textContent = "Remove";
+    }
+  });
+
+  actions.appendChild(removeButton);
+  row.appendChild(actions);
+  return row;
+}
+
+// "Pending" tab: profile link + a direction badge. Purely informational
+// -- accepting/rejecting still happens from the Inbox notification.
+function createPendingRow(entry) {
+  const row = document.createElement("div");
+  row.className = "friend-list-row is-pending";
+  row.appendChild(createFriendProfileLink(entry.user));
 
   const badge = document.createElement("span");
   badge.className = "friend-list-direction";
   badge.textContent = entry.direction === "outgoing" ? "Request sent" : "Awaiting your response";
-  item.appendChild(badge);
+  row.appendChild(badge);
 
-  return item;
+  return row;
 }
 
 function renderEmptyState(container, message) {
@@ -110,14 +193,14 @@ async function loadFriends() {
     } else {
       // The backend already returns these sorted alphabetically by
       // username, so no client-side sort is needed here.
-      friends.forEach((profile) => allList.appendChild(createFriendListItem(profile)));
+      friends.forEach((entry) => allList.appendChild(createFriendRow(entry, loadFriends)));
     }
 
     pendingList.innerHTML = "";
     if (!pending.length) {
       renderEmptyState(pendingList, "No pending friend requests.");
     } else {
-      pending.forEach((entry) => pendingList.appendChild(createPendingListItem(entry)));
+      pending.forEach((entry) => pendingList.appendChild(createPendingRow(entry)));
     }
   } catch (error) {
     if (summary) summary.textContent = "Friends are temporarily unavailable.";
