@@ -249,6 +249,17 @@ function updateAccountNav() {
 
 updateAccountNav();
 
+document.addEventListener("click", (event) => {
+  const accountMenu = document.querySelector("[data-account-menu]");
+
+  if (!accountMenu) return;
+
+  // If the click happened outside the account dropdown, close it.
+  if (!accountMenu.contains(event.target)) {
+    accountMenu.removeAttribute("open");
+  }
+});
+
 function showAuthError(form, message) {
   const errorEl = form.querySelector("[data-auth-error]");
   if (!errorEl) {
