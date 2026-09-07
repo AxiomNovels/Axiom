@@ -215,13 +215,19 @@ function updateAccountNav() {
       activityLink.setAttribute("data-activity-link", "");
       activityLink.textContent = "Your activity";
 
+      const friendsLink = document.createElement("a");
+      friendsLink.href = "/friends.html";
+      friendsLink.className = "account-popover-link";
+      friendsLink.setAttribute("data-friends-page-link", "");
+      friendsLink.textContent = "Friends";
+
       const uploadNovelLink = document.createElement("a");
       uploadNovelLink.href = "/upload.html";
       uploadNovelLink.className = "account-popover-link";
       uploadNovelLink.setAttribute("data-upload-novel-link", "");
       uploadNovelLink.textContent = "Upload a novel";
 
-      popover.append(popoverHeader, manageProfileLink, activityLink, uploadNovelLink, logoutButton);
+      popover.append(popoverHeader, manageProfileLink, activityLink, friendsLink, uploadNovelLink, logoutButton);
       accountMenu.append(accountTrigger, popover);
       userActions.appendChild(accountMenu);
     }

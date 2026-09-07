@@ -105,6 +105,78 @@ def get_friendship_status(other_user_id: str, auth=Depends(get_current_user)):
     return {"status": "none"}
 
 
+@router.get("")
+def list_my_friendships(auth=Depends(get_current_user)):
+    """Everything needed for the "Your friends" page in one call: the
+    user's accepted friends and their pending requests (both directions),
+    each sorted alphabetically by username.
+
+    Uses the RLS-scoped client for the friendships read (the same
+    guarantee as get_friendship_status: a user only ever sees rows where
+    they're a participant) and the service-role client only for the
+    batched profile lookup, matching the public-profile pattern already
+    used in routes/users.py.
+    """
+    user_id, client = auth
+
+    try:
+        response = (
+            client.table("friendships")
+            .select(FRIENDSHIP_COLUMNS)
+            .or_(f"user_id_1.eq.{user_id},user_id_2.eq.{user_id}")
+            .in_("status", ["accepted", "pending"])
+            .execute()
+        )
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    rows = response.data or []
+    other_ids = list({
+        row["user_id_2"] if row["user_id_1"] == user_id else row["user_id_1"]
+        for row in rows
+    })
+
+    profiles_by_id: dict[str, dict] = {}
+    if other_ids:
+        service_client = create_service_client()
+        try:
+            profiles_response = (
+                service_client.table("profiles")
+                .select("id, username, avatar_url")
+                .in_("id", other_ids)
+                .execute()
+            )
+            profiles_by_id = {profile["id"]: profile for profile in (profiles_response.data or [])}
+        except Exception as error:
+            raise HTTPException(status_code=500, detail=str(error))
+
+    friends: list[dict] = []
+    pending: list[dict] = []
+
+    for row in rows:
+        other_id = row["user_id_2"] if row["user_id_1"] == user_id else row["user_id_1"]
+        profile = profiles_by_id.get(other_id)
+        if not profile:
+            # The other account no longer exists (deleted/deactivated) --
+            # skip it silently rather than showing a broken entry.
+            continue
+
+        if row["status"] == "accepted":
+            friends.append(profile)
+        elif row["status"] == "pending":
+            direction = "outgoing" if row["requested_by"] == user_id else "incoming"
+            pending.append({
+                "friendship_id": row["id"],
+                "direction": direction,
+                "user": profile,
+            })
+
+    friends.sort(key=lambda profile: (profile.get("username") or "").casefold())
+    pending.sort(key=lambda entry: (entry["user"].get("username") or "").casefold())
+
+    return {"friends": friends, "pending": pending}
+
+
 @router.post("/{target_user_id}", status_code=201)
 def send_friend_request(target_user_id: str, auth=Depends(get_current_user)):
     user_id, _client = auth
