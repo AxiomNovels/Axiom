@@ -92,6 +92,7 @@ function renderFriendRequestExtras(extrasContainer, notification) {
       }
       notification.data = { ...data, friendship_status: result.status };
       renderFriendRequestExtras(extrasContainer, notification);
+      window.refreshFriendRequestBadges?.();
     } catch (error) {
       alert(error.message || "Couldn't update this request. Please try again.");
       acceptButton.disabled = false;

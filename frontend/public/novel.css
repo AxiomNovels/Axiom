@@ -2321,6 +2321,25 @@ body.modal-open { overflow:hidden; }
   color: #ff8b8f;
 }
 
+.friend-list-accept,
+.friend-list-reject {
+  width: auto;
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 0.8rem;
+}
+
+.friend-list-reject {
+  color: #fda4af;
+  border-color: rgba(255, 93, 98, 0.3);
+}
+
+.friend-list-reject:hover {
+  border-color: #ff666b;
+  background: rgba(255, 93, 98, 0.12);
+  color: #ff8b8f;
+}
+
 @media (max-width: 480px) {
   .friends-tabs {
     width: 100%;
@@ -2342,4 +2361,73 @@ body.modal-open { overflow:hidden; }
     width: 100%;
     justify-content: flex-end;
   }
+}
+
+/* =========================================================
+   FRIEND REQUEST BADGES (avatar + "Friends" dropdown link)
+   ========================================================= */
+
+/* .account-trigger is defined in styles.css without a position, since it
+   previously only ever held one centered child (the initial letter or
+   avatar image). It now also holds a sibling badge, so it needs to be a
+   positioning context for that badge's absolute placement. */
+.account-trigger {
+  position: relative;
+}
+
+.account-trigger-content {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.account-trigger-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--passion);
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0 4px;
+  box-shadow: 0 0 0 2px rgba(7, 3, 13, 0.86);
+}
+
+.account-trigger-badge.is-hidden {
+  display: none;
+}
+
+.account-popover-link-friends {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.account-popover-badge {
+  flex: 0 0 auto;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--passion);
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0 5px;
+}
+
+.account-popover-badge.is-hidden {
+  display: none;
 }

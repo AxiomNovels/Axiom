@@ -132,6 +132,61 @@ function createPendingRow(entry) {
   return row;
 }
 
+// "Incoming" tab: profile link + Accept/Reject buttons, exactly like the
+// friend-request notification in the Inbox, but scoped to just incoming
+// requests and living on its own page. Resolving one (accept or reject)
+// reloads the whole friends list and refreshes the header badges.
+function createIncomingRow(entry, onResolved) {
+  const row = document.createElement("div");
+  row.className = "friend-list-row is-pending";
+  row.appendChild(createFriendProfileLink(entry.user));
+
+  const actions = document.createElement("div");
+  actions.className = "friend-list-row-actions";
+
+  const acceptButton = document.createElement("button");
+  acceptButton.type = "button";
+  acceptButton.className = "friend-list-accept";
+  acceptButton.textContent = "Accept";
+
+  const rejectButton = document.createElement("button");
+  rejectButton.type = "button";
+  rejectButton.className = "ghost-link friend-list-reject";
+  rejectButton.textContent = "Reject";
+
+  async function respond(action) {
+    acceptButton.disabled = true;
+    rejectButton.disabled = true;
+    try {
+      const response = await authFetch(`${API_BASE}/api/friendships/${entry.friendship_id}/respond`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (response.status === 401) {
+        window.location.href = "/login.html";
+        return;
+      }
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(typeof result.detail === "string" ? result.detail : "Couldn't update this request.");
+      }
+      window.refreshFriendRequestBadges?.();
+      onResolved();
+    } catch (error) {
+      alert(error.message || "Couldn't update this request. Please try again.");
+      acceptButton.disabled = false;
+      rejectButton.disabled = false;
+    }
+  }
+
+  acceptButton.addEventListener("click", () => respond("accept"));
+  rejectButton.addEventListener("click", () => respond("reject"));
+  actions.append(acceptButton, rejectButton);
+  row.appendChild(actions);
+  return row;
+}
+
 function renderEmptyState(container, message) {
   container.innerHTML = "";
   const empty = document.createElement("p");
@@ -165,7 +220,8 @@ async function loadFriends() {
   const summary = document.querySelector("[data-friends-summary]");
   const allList = document.querySelector('[data-friends-list="all"]');
   const pendingList = document.querySelector('[data-friends-list="pending"]');
-  if (!allList || !pendingList) return;
+  const incomingList = document.querySelector('[data-friends-list="incoming"]');
+  if (!allList || !pendingList || !incomingList) return;
 
   try {
     const response = await authFetch(`${API_BASE}/api/friendships`);
@@ -178,13 +234,14 @@ async function loadFriends() {
     const payload = await response.json();
     const friends = payload.friends || [];
     const pending = payload.pending || [];
+    const incoming = pending.filter((entry) => entry.direction === "incoming");
 
     if (summary) {
       const friendWord = friends.length === 1 ? "friend" : "friends";
-      const pendingSuffix = pending.length
-        ? ` \u00b7 ${pending.length} pending ${pending.length === 1 ? "request" : "requests"}`
+      const incomingSuffix = incoming.length
+        ? ` \u00b7 ${incoming.length} incoming ${incoming.length === 1 ? "request" : "requests"}`
         : "";
-      summary.textContent = `${friends.length} ${friendWord}${pendingSuffix}.`;
+      summary.textContent = `${friends.length} ${friendWord}${incomingSuffix}.`;
     }
 
     allList.innerHTML = "";
@@ -202,10 +259,18 @@ async function loadFriends() {
     } else {
       pending.forEach((entry) => pendingList.appendChild(createPendingRow(entry)));
     }
+
+    incomingList.innerHTML = "";
+    if (!incoming.length) {
+      renderEmptyState(incomingList, "No incoming friend requests.");
+    } else {
+      incoming.forEach((entry) => incomingList.appendChild(createIncomingRow(entry, loadFriends)));
+    }
   } catch (error) {
     if (summary) summary.textContent = "Friends are temporarily unavailable.";
-    renderEmptyState(allList, "Couldn't load your friends. Make sure the backend is running on port 8000.");
-    renderEmptyState(pendingList, "Couldn't load your friends. Make sure the backend is running on port 8000.");
+    [allList, pendingList, incomingList].forEach((list) => {
+      renderEmptyState(list, "Couldn't load your friends. Make sure the backend is running on port 8000.");
+    });
   }
 }
 

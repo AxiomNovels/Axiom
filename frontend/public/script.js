@@ -42,17 +42,20 @@ function applyAccountAvatar(avatarUrl) {
   const user = getStoredUser();
   const initial = getUserName(user).charAt(0).toUpperCase();
 
-  const trigger = document.querySelector(".account-trigger");
-  if (trigger) {
+  // Targets the inner content span rather than .account-trigger itself,
+  // since the trigger also holds a sibling friend-request badge (see
+  // updateAccountNav) that must survive this update untouched.
+  const triggerContent = document.querySelector("[data-account-trigger-content]");
+  if (triggerContent) {
     if (avatarUrl) {
-      trigger.innerHTML = "";
+      triggerContent.innerHTML = "";
       const img = document.createElement("img");
       img.src = avatarUrl;
       img.alt = "";
       img.className = "account-avatar-image";
-      trigger.appendChild(img);
+      triggerContent.appendChild(img);
     } else {
-      trigger.textContent = initial;
+      triggerContent.textContent = initial;
     }
   }
 
@@ -122,6 +125,46 @@ async function refreshInboxBadge() {
 }
 window.refreshInboxBadge = refreshInboxBadge;
 
+// Exposed globally so friends.js and inbox.js can refresh these badges
+// immediately after an incoming request is accepted or rejected from
+// either of those pages, without a full page reload.
+async function refreshFriendRequestBadges() {
+  const avatarBadge = document.querySelector("[data-friends-request-avatar-badge]");
+  const linkBadge = document.querySelector("[data-friends-request-badge]");
+  if (!avatarBadge && !linkBadge) return;
+
+  const badges = [avatarBadge, linkBadge].filter(Boolean);
+
+  if (!getAccessToken()) {
+    badges.forEach((badge) => {
+      badge.classList.add("is-hidden");
+      badge.textContent = "";
+    });
+    return;
+  }
+
+  try {
+    const response = await authFetch(`${API_BASE}/api/friendships/incoming-count`);
+    if (!response.ok) return;
+    const result = await response.json();
+    const count = Number(result.incoming_count) || 0;
+
+    badges.forEach((badge) => {
+      if (count > 0) {
+        badge.textContent = count > 9 ? "9+" : String(count);
+        badge.classList.remove("is-hidden");
+      } else {
+        badge.textContent = "";
+        badge.classList.add("is-hidden");
+      }
+    });
+  } catch {
+    // Leave whatever badge state was already showing; not worth
+    // surfacing an error just for a header badge.
+  }
+}
+window.refreshFriendRequestBadges = refreshFriendRequestBadges;
+
 function updateAccountNav() {
   const guestActions = document.querySelector("[data-guest-actions]");
   const userActions = document.querySelector("[data-user-actions]");
@@ -184,7 +227,18 @@ function updateAccountNav() {
             const accountTrigger = document.createElement("summary");
       accountTrigger.className = "account-trigger";
       accountTrigger.setAttribute("aria-label", "Open account menu");
-      accountTrigger.textContent = getUserName(user).charAt(0).toUpperCase();
+
+      const accountTriggerContent = document.createElement("span");
+      accountTriggerContent.className = "account-trigger-content";
+      accountTriggerContent.setAttribute("data-account-trigger-content", "");
+      accountTriggerContent.textContent = getUserName(user).charAt(0).toUpperCase();
+
+      const accountTriggerBadge = document.createElement("span");
+      accountTriggerBadge.className = "account-trigger-badge is-hidden";
+      accountTriggerBadge.setAttribute("data-friends-request-avatar-badge", "");
+      accountTriggerBadge.setAttribute("aria-hidden", "true");
+
+      accountTrigger.append(accountTriggerContent, accountTriggerBadge);
 
       const popover = document.createElement("div");
       popover.className = "account-popover";
@@ -217,9 +271,18 @@ function updateAccountNav() {
 
       const friendsLink = document.createElement("a");
       friendsLink.href = "/friends.html";
-      friendsLink.className = "account-popover-link";
+      friendsLink.className = "account-popover-link account-popover-link-friends";
       friendsLink.setAttribute("data-friends-page-link", "");
-      friendsLink.textContent = "Friends";
+
+      const friendsLabel = document.createElement("span");
+      friendsLabel.textContent = "Friends";
+
+      const friendsBadge = document.createElement("span");
+      friendsBadge.className = "account-popover-badge is-hidden";
+      friendsBadge.setAttribute("data-friends-request-badge", "");
+      friendsBadge.setAttribute("aria-hidden", "true");
+
+      friendsLink.append(friendsLabel, friendsBadge);
 
       const uploadNovelLink = document.createElement("a");
       uploadNovelLink.href = "/upload.html";
@@ -234,6 +297,7 @@ function updateAccountNav() {
 
     refreshAccountAvatar();
     refreshInboxBadge();
+    refreshFriendRequestBadges();
   } else {
     guestActions.classList.remove("is-hidden");
     userActions.classList.add("is-hidden");

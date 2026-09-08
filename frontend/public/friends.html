@@ -63,6 +63,16 @@
           tabindex="-1"
           data-friends-tab="pending"
         >Pending</button>
+        <button
+          type="button"
+          role="tab"
+          id="friends-tab-incoming"
+          class="friends-tab"
+          aria-selected="false"
+          aria-controls="friends-panel-incoming"
+          tabindex="-1"
+          data-friends-tab="incoming"
+        >Incoming</button>
       </div>
 
       <section
@@ -84,6 +94,18 @@
         hidden
       >
         <div class="friends-list" data-friends-list="pending">
+          <p>Loading&hellip;</p>
+        </div>
+      </section>
+
+      <section
+        id="friends-panel-incoming"
+        role="tabpanel"
+        aria-labelledby="friends-tab-incoming"
+        data-friends-panel="incoming"
+        hidden
+      >
+        <div class="friends-list" data-friends-list="incoming">
           <p>Loading&hellip;</p>
         </div>
       </section>

@@ -105,6 +105,33 @@ def get_friendship_status(other_user_id: str, auth=Depends(get_current_user)):
     return {"status": "none"}
 
 
+@router.get("/incoming-count")
+def get_incoming_request_count(auth=Depends(get_current_user)):
+    """Lightweight count used to badge the account avatar and the
+    "Friends" dropdown link with the number of *incoming* pending
+    requests -- i.e. requests waiting on this user to accept or reject,
+    not ones they've sent themselves. Deliberately separate from the
+    fuller GET "" response so every page load (which calls this via
+    script.js) doesn't need to pull full profile data for every friend
+    and pending request just to render a badge.
+    """
+    user_id, client = auth
+    try:
+        response = (
+            client.table("friendships")
+            .select("id, requested_by")
+            .or_(f"user_id_1.eq.{user_id},user_id_2.eq.{user_id}")
+            .eq("status", "pending")
+            .execute()
+        )
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    rows = response.data or []
+    incoming_count = sum(1 for row in rows if row["requested_by"] != user_id)
+    return {"incoming_count": incoming_count}
+
+
 @router.get("")
 def list_my_friendships(auth=Depends(get_current_user)):
     """Everything needed for the "Your friends" page in one call: the
