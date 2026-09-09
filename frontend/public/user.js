@@ -45,13 +45,48 @@ const SOCIAL_PLATFORM_LABELS = {
   tiktok: "TikTok",
 };
 
-// Renders all four platforms every time, regardless of whether the
-// reader has set them -- each row shows the actual handle, a
-// friends-only restriction notice, or an "hasn't shared yet" notice,
-// per backend/routes/users.py's per-platform "state".
+const SOCIAL_PLATFORM_ICONS = {
+  discord: `
+    <svg class="social-platform-icon discord-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M19.54 5.07A16.8 16.8 0 0 0 15.3 3.75l-.52 1.06a15.6 15.6 0 0 0-5.56 0L8.7 3.75a16.8 16.8 0 0 0-4.24 1.32C1.78 9.29 1.05 13.4 1.42 17.45a16.9 16.9 0 0 0 5.2 2.63l1.27-1.73a10.5 10.5 0 0 1-1.99-.96l.49-.38a12 12 0 0 0 10.22 0l.5.38c-.64.38-1.31.7-2 .96l1.27 1.73a16.9 16.9 0 0 0 5.2-2.63c.43-4.7-.74-8.77-2.04-12.38ZM8.68 15.1c-.99 0-1.8-.91-1.8-2.03s.79-2.04 1.8-2.04c1 0 1.81.92 1.8 2.04 0 1.12-.8 2.03-1.8 2.03Zm6.64 0c-.99 0-1.8-.91-1.8-2.03s.79-2.04 1.8-2.04c1 0 1.81.92 1.8 2.04 0 1.12-.8 2.03-1.8 2.03Z"
+      />
+    </svg>
+  `,
+
+  instagram: `
+    <svg class="social-platform-icon instagram-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M7.8 2h8.4A5.8 5.8 0 0 1 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8A5.8 5.8 0 0 1 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2Zm-.2 2A3.6 3.6 0 0 0 4 7.6v8.8A3.6 3.6 0 0 0 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6A3.6 3.6 0 0 0 16.4 4H7.6Zm8.9 1.5a1.35 1.35 0 1 1 0 2.7 1.35 1.35 0 0 1 0-2.7ZM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"
+      />
+    </svg>
+  `,
+
+  reddit: `
+    <svg class="social-platform-icon reddit-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M22 12.1c0-1.55-1.26-2.8-2.81-2.8-.76 0-1.45.3-1.96.8-1.29-.9-2.93-1.47-4.74-1.6l1.01-4.73 3.28.7a1.8 1.8 0 1 0 .27-1.28l-3.65-.78a.65.65 0 0 0-.76.5l-1.12 5.27c-1.87.1-3.56.67-4.89 1.57a2.8 2.8 0 1 0-1.99 4.77c0 .14-.01.28-.01.42 0 3.44 3.86 6.24 8.62 6.24s8.62-2.8 8.62-6.24c0-.14 0-.28-.01-.42A2.8 2.8 0 0 0 22 12.1ZM7.4 13.25a1.45 1.45 0 1 1 0-2.9 1.45 1.45 0 0 1 0 2.9Zm9.58 3.36c-1.27 1.27-4.3 1.37-4.98 1.37s-3.71-.1-4.98-1.37a.65.65 0 0 1 .92-.92c.77.77 2.79.99 4.06.99s3.29-.22 4.06-.99a.65.65 0 1 1 .92.92Zm-.38-3.36a1.45 1.45 0 1 1 0-2.9 1.45 1.45 0 0 1 0 2.9Z"
+      />
+    </svg>
+  `,
+
+  tiktok: `
+    <svg class="social-platform-icon tiktok-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M16.6 3c.35 1.82 1.38 3.27 3.4 3.8v2.34c-1.14-.03-2.3-.3-3.4-.86v5.78c0 4.18-2.86 6.94-6.72 6.94A6.2 6.2 0 0 1 3.5 14.8c0-3.66 2.8-6.45 6.5-6.45.4 0 .8.04 1.18.11v2.54a3.85 3.85 0 0 0-1.18-.18c-1.7 0-3.1 1.34-3.1 3.98 0 1.73 1.1 3.72 3.04 3.72 1.84 0 2.99-1.36 2.99-3.53V3h3.67Z"
+      />
+    </svg>
+  `,
+};
+
 function renderSocialLinks(socialLinks) {
   const container = document.querySelector("[data-user-social-list]");
   if (!container) return;
+
   container.innerHTML = "";
 
   Object.entries(SOCIAL_PLATFORM_LABELS).forEach(([platform, label]) => {
@@ -62,7 +97,13 @@ function renderSocialLinks(socialLinks) {
 
     const name = document.createElement("span");
     name.className = "user-social-platform";
-    name.textContent = label;
+
+    // Add the same icon used on the Manage Profile page.
+    name.innerHTML = SOCIAL_PLATFORM_ICONS[platform] || "";
+
+    const nameText = document.createElement("span");
+    nameText.textContent = label;
+    name.appendChild(nameText);
 
     const value = document.createElement("span");
     value.className = "user-social-value";
