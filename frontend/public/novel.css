@@ -2431,3 +2431,123 @@ body.modal-open { overflow:hidden; }
 .account-popover-badge.is-hidden {
   display: none;
 }
+
+/* =========================================================
+   MANAGE PROFILE: SOCIAL ACCOUNTS
+   ========================================================= */
+
+.profile-social-section {
+  border-top: 1px solid var(--line);
+  margin-top: 6px;
+  padding-top: 24px;
+}
+
+.profile-social-heading {
+  margin-bottom: 6px;
+  font-size: 1.3rem;
+}
+
+.profile-social-intro {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.profile-social-field {
+  margin-bottom: 16px;
+}
+
+.profile-social-field label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.profile-social-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 220px);
+  gap: 12px;
+}
+
+.profile-social-controls input,
+.profile-social-controls select {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(3, 1, 8, 0.78);
+  color: var(--ink);
+  font: inherit;
+  padding: 0 13px;
+}
+
+.profile-social-controls input:focus,
+.profile-social-controls select:focus {
+  border-color: var(--focus);
+  outline: 3px solid rgba(168, 85, 247, 0.14);
+}
+
+@media (max-width: 560px) {
+  .profile-social-controls {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   PUBLIC PROFILE: SOCIAL ACCOUNTS
+   ========================================================= */
+
+.user-social-list {
+  display: grid;
+  gap: 10px;
+}
+
+.user-social-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 12px 14px;
+}
+
+.user-social-platform {
+  flex: 0 0 auto;
+  width: 92px;
+  color: var(--dim);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.user-social-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--ink);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.user-social-value.is-empty,
+.user-social-value.is-restricted {
+  color: var(--muted);
+  font-weight: 500;
+  font-style: italic;
+}
+
+@media (max-width: 480px) {
+  .user-social-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .user-social-platform {
+    width: auto;
+  }
+}

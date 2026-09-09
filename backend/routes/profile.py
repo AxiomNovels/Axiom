@@ -12,7 +12,13 @@ from models.profile import AvatarUpdate, ProfileUpdate
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
-PROFILE_COLUMNS = "id, username, created_at, gender, city, country, about_me, tag_preferences, avatar_url"
+PROFILE_COLUMNS = (
+    "id, username, created_at, gender, city, country, about_me, tag_preferences, avatar_url, "
+    "discord_username, discord_visibility, "
+    "instagram_username, instagram_visibility, "
+    "reddit_username, reddit_visibility, "
+    "tiktok_username, tiktok_visibility"
+)
 
 AVATAR_BUCKET = "avatars"
 MAX_AVATAR_BYTES = 5 * 1024 * 1024  # 5 MB -- generous, since the exported avatar is always a small, fixed-size image
@@ -48,6 +54,14 @@ def update_my_profile(payload: ProfileUpdate, auth=Depends(get_current_user)):
                     "country": payload.country,
                     "about_me": payload.about_me,
                     "tag_preferences": payload.tag_preferences,
+                    "discord_username": payload.discord_username,
+                    "discord_visibility": payload.discord_visibility,
+                    "instagram_username": payload.instagram_username,
+                    "instagram_visibility": payload.instagram_visibility,
+                    "reddit_username": payload.reddit_username,
+                    "reddit_visibility": payload.reddit_visibility,
+                    "tiktok_username": payload.tiktok_username,
+                    "tiktok_visibility": payload.tiktok_visibility,
                 }
             )
             .eq("id", user_id)

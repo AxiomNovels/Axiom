@@ -9,6 +9,11 @@ function requireSession() {
 const preferredTags = new Set();
 let allTags = [];
 
+// Matches backend/models/profile.py's SOCIAL_PLATFORMS. Used to loop
+// over the four platform fields instead of repeating the same
+// load/save logic four times.
+const SOCIAL_PLATFORMS = ["discord", "instagram", "reddit", "tiktok"];
+
 function renderPreferredTags() {
   const container = document.querySelector("[data-selected-tags]");
   container.innerHTML = "";
@@ -189,6 +194,13 @@ async function loadProfile() {
     aboutMeEl.value = profile.about_me || "";
     counterEl.textContent = `${(profile.about_me || "").length}/500 characters`;
 
+    SOCIAL_PLATFORMS.forEach((platform) => {
+      const usernameField = form[`${platform}_username`];
+      const visibilityField = form[`${platform}_visibility`];
+      if (usernameField) usernameField.value = profile[`${platform}_username`] || "";
+      if (visibilityField) visibilityField.value = profile[`${platform}_visibility`] || "friends_only";
+    });
+
     applyAvatarPreview(profile);
 
     (profile.tag_preferences || []).forEach((tag) => preferredTags.add(tag));
@@ -221,6 +233,13 @@ function setupProfileForm() {
       about_me: document.getElementById("about-me").value.trim(),
       tag_preferences: [...preferredTags],
     };
+
+    SOCIAL_PLATFORMS.forEach((platform) => {
+      const usernameField = form[`${platform}_username`];
+      const visibilityField = form[`${platform}_visibility`];
+      payload[`${platform}_username`] = usernameField ? usernameField.value.trim() : "";
+      payload[`${platform}_visibility`] = visibilityField ? visibilityField.value : "friends_only";
+    });
 
     try {
       const response = await authFetch(`${API_BASE}/api/profile`, {

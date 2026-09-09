@@ -38,6 +38,51 @@ function renderUserTags(tags) {
   });
 }
 
+const SOCIAL_PLATFORM_LABELS = {
+  discord: "Discord",
+  instagram: "Instagram",
+  reddit: "Reddit",
+  tiktok: "TikTok",
+};
+
+// Renders all four platforms every time, regardless of whether the
+// reader has set them -- each row shows the actual handle, a
+// friends-only restriction notice, or an "hasn't shared yet" notice,
+// per backend/routes/users.py's per-platform "state".
+function renderSocialLinks(socialLinks) {
+  const container = document.querySelector("[data-user-social-list]");
+  if (!container) return;
+  container.innerHTML = "";
+
+  Object.entries(SOCIAL_PLATFORM_LABELS).forEach(([platform, label]) => {
+    const entry = (socialLinks || {})[platform] || { state: "unset" };
+
+    const row = document.createElement("div");
+    row.className = "user-social-row";
+
+    const name = document.createElement("span");
+    name.className = "user-social-platform";
+    name.textContent = label;
+
+    const value = document.createElement("span");
+    value.className = "user-social-value";
+
+    if (entry.state === "visible") {
+      value.textContent = entry.username;
+      value.classList.add("has-value");
+    } else if (entry.state === "hidden") {
+      value.textContent = `This reader's ${label} account is visible to friends only.`;
+      value.classList.add("is-restricted");
+    } else {
+      value.textContent = `This reader has not shared a ${label} profile yet.`;
+      value.classList.add("is-empty");
+    }
+
+    row.append(name, value);
+    container.appendChild(row);
+  });
+}
+
 function renderActivityStars(container, rating) {
   const value = Number(rating) || 0;
   container.innerHTML = "";
@@ -240,7 +285,11 @@ async function loadPublicProfile() {
   if (activityLink) activityLink.href = `/activity.html?id=${encodeURIComponent(userId)}`;
 
   try {
-    const response = await fetch(`${API_BASE}/api/users/${userId}`);
+    // authFetch (not plain fetch) so a logged-in viewer's identity is
+    // sent along -- the backend uses it to decide whether this viewer
+    // can see the profile owner's friends-only social accounts. It works
+    // fine for a logged-out viewer too; authFetch just omits the header.
+    const response = await authFetch(`${API_BASE}/api/users/${userId}`);
     if (response.status === 404) {
       if (usernameEl) usernameEl.textContent = "User not found";
       return;
@@ -258,6 +307,7 @@ async function loadPublicProfile() {
     if (cityEl) cityEl.textContent = formatOrFallback(profile.city, "Not specified");
 
     renderUserTags(profile.tag_preferences);
+    renderSocialLinks(profile.social_links);
     loadFriendAction(userId);
 
     if (aboutEl) {

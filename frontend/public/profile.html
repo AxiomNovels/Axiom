@@ -104,6 +104,57 @@
             <div class="selected-tags" data-selected-tags aria-live="polite"><p>No tag preferences added yet.</p></div>
           </div>
 
+          <div class="profile-social-section">
+            <h2 class="profile-social-heading">Social accounts</h2>
+            <p class="profile-social-intro">
+              Add your usernames so other readers can find you on other platforms. Choose who can see them - <b>friends only</b> or <b>everyone</b>. You can change your visibility settings anytime.
+            </p>
+
+            <div class="profile-social-field">
+              <label for="discord-username">Discord</label>
+              <div class="profile-social-controls">
+                <input id="discord-username" name="discord_username" type="text" placeholder="username" maxlength="80">
+                <select id="discord-visibility" name="discord_visibility">
+                  <option value="friends_only">Visible to friends only</option>
+                  <option value="everyone">Visible to everyone</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="profile-social-field">
+              <label for="instagram-username">Instagram</label>
+              <div class="profile-social-controls">
+                <input id="instagram-username" name="instagram_username" type="text" placeholder="username" maxlength="80">
+                <select id="instagram-visibility" name="instagram_visibility">
+                  <option value="friends_only">Visible to friends only</option>
+                  <option value="everyone">Visible to everyone</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="profile-social-field">
+              <label for="reddit-username">Reddit</label>
+              <div class="profile-social-controls">
+                <input id="reddit-username" name="reddit_username" type="text" placeholder="username" maxlength="80">
+                <select id="reddit-visibility" name="reddit_visibility">
+                  <option value="friends_only">Visible to friends only</option>
+                  <option value="everyone">Visible to everyone</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="profile-social-field">
+              <label for="tiktok-username">TikTok</label>
+              <div class="profile-social-controls">
+                <input id="tiktok-username" name="tiktok_username" type="text" placeholder="username" maxlength="80">
+                <select id="tiktok-visibility" name="tiktok_visibility">
+                  <option value="friends_only">Visible to friends only</option>
+                  <option value="everyone">Visible to everyone</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           <p class="profile-message is-hidden" data-profile-message role="status" aria-live="polite"></p>
 
           <div class="profile-manage-actions">
