@@ -6,6 +6,12 @@
     <title>Manage Profile | Axiom</title>
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/novel.css">
+
+    <!-- Font Awesome brand icons. No local logo files are required. -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css"
+    >
   </head>
   <body>
     <header class="site-header home-header">
@@ -13,10 +19,12 @@
         <img src="/assets/axiom-mark.png" alt="" class="brand-logo">
         <img src="/assets/axiom-wordmark.png" alt="" class="brand-wordmark">
       </a>
+
       <nav class="nav-links reader-nav" aria-label="Primary navigation">
         <a href="/finder.html">Finder</a>
         <a href="/#popular">Popular</a>
       </nav>
+
       <form class="top-search-form search-form" action="/search.html" method="get" aria-label="Search novels">
         <label for="novel-search">Search novels</label>
         <div class="search-row">
@@ -24,11 +32,13 @@
           <button type="submit" aria-label="Search">Search</button>
         </div>
       </form>
+
       <nav class="nav-links account-nav" aria-label="Account navigation">
         <div class="guest-actions" data-guest-actions>
           <a href="/login.html">Log in</a>
           <a class="nav-cta" href="/signup.html">Sign up</a>
         </div>
+
         <div class="user-actions is-hidden" data-user-actions>
           <span class="user-greeting" data-user-greeting></span>
           <button class="logout-button" type="button" data-logout-button>Log out</button>
@@ -51,10 +61,22 @@
           <div class="profile-avatar-preview" data-avatar-preview>
             <span>?</span>
           </div>
-          <button type="button" class="profile-avatar-edit-button" data-avatar-edit-button aria-label="Change avatar">
+
+          <button
+            type="button"
+            class="profile-avatar-edit-button"
+            data-avatar-edit-button
+            aria-label="Change avatar"
+          >
             <span aria-hidden="true">&#9998;</span>
           </button>
-          <input type="file" accept="image/png, image/jpeg, image/webp" data-avatar-file-input class="is-visually-hidden">
+
+          <input
+            type="file"
+            accept="image/png, image/jpeg, image/webp"
+            data-avatar-file-input
+            class="is-visually-hidden"
+          >
         </div>
 
         <div class="profile-readonly-grid">
@@ -62,6 +84,7 @@
             <span>Username</span>
             <strong data-profile-username>Loading&hellip;</strong>
           </div>
+
           <div class="profile-readonly-item">
             <span>Joined</span>
             <strong data-profile-join-date>Loading&hellip;</strong>
@@ -81,39 +104,95 @@
 
           <div class="profile-form-row">
             <label for="country">Country</label>
-            <input id="country" name="country" type="text" placeholder="e.g. United States" maxlength="120">
+            <input
+              id="country"
+              name="country"
+              type="text"
+              placeholder="e.g. United States"
+              maxlength="120"
+            >
           </div>
 
           <div class="profile-form-row">
             <label for="city">City</label>
-            <input id="city" name="city" type="text" placeholder="e.g. New York" maxlength="120">
+            <input
+              id="city"
+              name="city"
+              type="text"
+              placeholder="e.g. New York"
+              maxlength="120"
+            >
           </div>
 
           <div class="profile-form-row">
             <label for="about-me">About me</label>
-            <textarea id="about-me" name="about_me" maxlength="500" placeholder="Tell other readers a bit about yourself..."></textarea>
-            <p class="profile-about-counter" data-about-me-counter>0/500 characters</p>
+            <textarea
+              id="about-me"
+              name="about_me"
+              maxlength="500"
+              placeholder="Tell other readers a bit about yourself..."
+            ></textarea>
+            <p class="profile-about-counter" data-about-me-counter>
+              0/500 characters
+            </p>
           </div>
 
           <div class="profile-form-row profile-tags-field">
             <label for="tag-search">Tag preferences</label>
+
             <div class="tag-combobox">
-              <input id="tag-search" type="search" autocomplete="off" placeholder="Start typing a tag..." aria-autocomplete="list" aria-controls="tag-suggestions" aria-expanded="false">
-              <div class="tag-suggestions" id="tag-suggestions" role="listbox" data-tag-suggestions hidden></div>
+              <input
+                id="tag-search"
+                type="search"
+                autocomplete="off"
+                placeholder="Start typing a tag..."
+                aria-autocomplete="list"
+                aria-controls="tag-suggestions"
+                aria-expanded="false"
+              >
+
+              <div
+                class="tag-suggestions"
+                id="tag-suggestions"
+                role="listbox"
+                data-tag-suggestions
+                hidden
+              ></div>
             </div>
-            <div class="selected-tags" data-selected-tags aria-live="polite"><p>No tag preferences added yet.</p></div>
+
+            <div class="selected-tags" data-selected-tags aria-live="polite">
+              <p>No tag preferences added yet.</p>
+            </div>
           </div>
 
           <div class="profile-social-section">
             <h2 class="profile-social-heading">Social accounts</h2>
+
             <p class="profile-social-intro">
-              Add your usernames so other readers can find you on other platforms. Choose who can see them - <b>friends only</b> or <b>everyone</b>. You can change your visibility settings anytime.
+              Add your usernames so other readers can find you on other platforms.
+              Choose who can see them - <b>friends only</b> or <b>everyone</b>.
+              You can change your visibility settings anytime.
             </p>
 
             <div class="profile-social-field">
-              <label for="discord-username">Discord</label>
+              <label for="discord-username" class="profile-social-label">
+                <svg class="social-platform-icon discord-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M19.54 5.07A16.8 16.8 0 0 0 15.3 3.75l-.52 1.06a15.6 15.6 0 0 0-5.56 0L8.7 3.75a16.8 16.8 0 0 0-4.24 1.32C1.78 9.29 1.05 13.4 1.42 17.45a16.9 16.9 0 0 0 5.2 2.63l1.27-1.73a10.5 10.5 0 0 1-1.99-.96l.49-.38a12 12 0 0 0 10.22 0l.5.38c-.64.38-1.31.7-2 .96l1.27 1.73a16.9 16.9 0 0 0 5.2-2.63c.43-4.7-.74-8.77-2.04-12.38ZM8.68 15.1c-.99 0-1.8-.91-1.8-2.03s.79-2.04 1.8-2.04c1 0 1.81.92 1.8 2.04 0 1.12-.8 2.03-1.8 2.03Zm6.64 0c-.99 0-1.8-.91-1.8-2.03s.79-2.04 1.8-2.04c1 0 1.81.92 1.8 2.04 0 1.12-.8 2.03-1.8 2.03Z"
+                  />
+                </svg>
+                <span>Discord</span>
+              </label>
+
               <div class="profile-social-controls">
-                <input id="discord-username" name="discord_username" type="text" placeholder="username" maxlength="80">
+                <input
+                  id="discord-username"
+                  name="discord_username"
+                  type="text"
+                  placeholder="username"
+                  maxlength="80"
+                >
                 <select id="discord-visibility" name="discord_visibility">
                   <option value="friends_only">Visible to friends only</option>
                   <option value="everyone">Visible to everyone</option>
@@ -122,9 +201,24 @@
             </div>
 
             <div class="profile-social-field">
-              <label for="instagram-username">Instagram</label>
+              <label for="instagram-username" class="profile-social-label">
+                <svg class="social-platform-icon instagram-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M7.8 2h8.4A5.8 5.8 0 0 1 22 7.8v8.4a5.8 5.8 0 0 1-5.8 5.8H7.8A5.8 5.8 0 0 1 2 16.2V7.8A5.8 5.8 0 0 1 7.8 2Zm-.2 2A3.6 3.6 0 0 0 4 7.6v8.8A3.6 3.6 0 0 0 7.6 20h8.8a3.6 3.6 0 0 0 3.6-3.6V7.6A3.6 3.6 0 0 0 16.4 4H7.6Zm8.9 1.5a1.35 1.35 0 1 1 0 2.7 1.35 1.35 0 0 1 0-2.7ZM12 7a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"
+                  />
+                </svg>
+                <span>Instagram</span>
+              </label>
+
               <div class="profile-social-controls">
-                <input id="instagram-username" name="instagram_username" type="text" placeholder="username" maxlength="80">
+                <input
+                  id="instagram-username"
+                  name="instagram_username"
+                  type="text"
+                  placeholder="username"
+                  maxlength="80"
+                >
                 <select id="instagram-visibility" name="instagram_visibility">
                   <option value="friends_only">Visible to friends only</option>
                   <option value="everyone">Visible to everyone</option>
@@ -133,9 +227,24 @@
             </div>
 
             <div class="profile-social-field">
-              <label for="reddit-username">Reddit</label>
+              <label for="reddit-username" class="profile-social-label">
+                <svg class="social-platform-icon reddit-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M22 12.1c0-1.55-1.26-2.8-2.81-2.8-.76 0-1.45.3-1.96.8-1.29-.9-2.93-1.47-4.74-1.6l1.01-4.73 3.28.7a1.8 1.8 0 1 0 .27-1.28l-3.65-.78a.65.65 0 0 0-.76.5l-1.12 5.27c-1.87.1-3.56.67-4.89 1.57a2.8 2.8 0 1 0-1.99 4.77c0 .14-.01.28-.01.42 0 3.44 3.86 6.24 8.62 6.24s8.62-2.8 8.62-6.24c0-.14 0-.28-.01-.42A2.8 2.8 0 0 0 22 12.1ZM7.4 13.25a1.45 1.45 0 1 1 0-2.9 1.45 1.45 0 0 1 0 2.9Zm9.58 3.36c-1.27 1.27-4.3 1.37-4.98 1.37s-3.71-.1-4.98-1.37a.65.65 0 0 1 .92-.92c.77.77 2.79.99 4.06.99s3.29-.22 4.06-.99a.65.65 0 1 1 .92.92Zm-.38-3.36a1.45 1.45 0 1 1 0-2.9 1.45 1.45 0 0 1 0 2.9Z"
+                  />
+                </svg>
+                <span>Reddit</span>
+              </label>
+
               <div class="profile-social-controls">
-                <input id="reddit-username" name="reddit_username" type="text" placeholder="username" maxlength="80">
+                <input
+                  id="reddit-username"
+                  name="reddit_username"
+                  type="text"
+                  placeholder="username"
+                  maxlength="80"
+                >
                 <select id="reddit-visibility" name="reddit_visibility">
                   <option value="friends_only">Visible to friends only</option>
                   <option value="everyone">Visible to everyone</option>
@@ -144,18 +253,38 @@
             </div>
 
             <div class="profile-social-field">
-              <label for="tiktok-username">TikTok</label>
+              <label for="tiktok-username" class="profile-social-label">
+                <svg class="social-platform-icon tiktok-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M16.6 3c.35 1.82 1.38 3.27 3.4 3.8v2.34c-1.14-.03-2.3-.3-3.4-.86v5.78c0 4.18-2.86 6.94-6.72 6.94A6.2 6.2 0 0 1 3.5 14.8c0-3.66 2.8-6.45 6.5-6.45.4 0 .8.04 1.18.11v2.54a3.85 3.85 0 0 0-1.18-.18c-1.7 0-3.1 1.34-3.1 3.98 0 1.73 1.1 3.72 3.04 3.72 1.84 0 2.99-1.36 2.99-3.53V3h3.67Z"
+                  />
+                </svg>
+                <span>TikTok</span>
+              </label>
+
               <div class="profile-social-controls">
-                <input id="tiktok-username" name="tiktok_username" type="text" placeholder="username" maxlength="80">
+                <input
+                  id="tiktok-username"
+                  name="tiktok_username"
+                  type="text"
+                  placeholder="username"
+                  maxlength="80"
+                >
                 <select id="tiktok-visibility" name="tiktok_visibility">
                   <option value="friends_only">Visible to friends only</option>
                   <option value="everyone">Visible to everyone</option>
                 </select>
               </div>
             </div>
-          </div>
 
-          <p class="profile-message is-hidden" data-profile-message role="status" aria-live="polite"></p>
+
+          <p
+            class="profile-message is-hidden"
+            data-profile-message
+            role="status"
+            aria-live="polite"
+          ></p>
 
           <div class="profile-manage-actions">
             <button type="submit">Save changes</button>
@@ -165,8 +294,21 @@
     </main>
 
     <div class="modal-overlay is-hidden" data-avatar-modal>
-      <div class="modal-card avatar-editor-modal" role="dialog" aria-modal="true" aria-labelledby="avatar-editor-heading">
-        <button class="create-list-close" type="button" aria-label="Close" data-avatar-editor-close>&times;</button>
+      <div
+        class="modal-card avatar-editor-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="avatar-editor-heading"
+      >
+        <button
+          class="create-list-close"
+          type="button"
+          aria-label="Close"
+          data-avatar-editor-close
+        >
+          &times;
+        </button>
+
         <p class="eyebrow">Avatar</p>
         <h2 id="avatar-editor-heading">Edit your avatar</h2>
 
@@ -176,13 +318,31 @@
         </div>
 
         <label class="avatar-zoom-label" for="avatar-zoom">Zoom</label>
-        <input id="avatar-zoom" type="range" min="100" max="300" value="100" data-avatar-zoom>
+        <input
+          id="avatar-zoom"
+          type="range"
+          min="100"
+          max="300"
+          value="100"
+          data-avatar-zoom
+        >
 
-        <p class="avatar-editor-hint">Drag the image to reposition it.</p>
+        <p class="avatar-editor-hint">
+          Drag the image to reposition it.
+        </p>
 
         <div class="modal-actions">
-          <button class="ghost-link" type="button" data-avatar-editor-cancel>Cancel</button>
-          <button type="button" data-avatar-editor-apply>Use as avatar</button>
+          <button
+            class="ghost-link"
+            type="button"
+            data-avatar-editor-cancel
+          >
+            Cancel
+          </button>
+
+          <button type="button" data-avatar-editor-apply>
+            Use as avatar
+          </button>
         </div>
       </div>
     </div>
