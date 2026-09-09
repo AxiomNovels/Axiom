@@ -1,0 +1,170 @@
+AXIOM PROFILER QUICKSTART
+=========================
+
+1. OPEN THE BACKEND FOLDER
+--------------------------
+
+cd C:\Users\jaide\OneDrive\Documents\Axiom\backend
+
+The commands below use the project's virtual environment directly, so you do
+not need to activate it first. Replace NOVEL_ID with the novel's numeric
+database ID.
+
+
+2. PREVIEW PROFILES WITHOUT SAVING
+----------------------------------
+
+Protagonist:
+  ..\venv\Scripts\python.exe -m profiler.profile_protagonist NOVEL_ID
+
+Philosophy:
+  ..\venv\Scripts\python.exe -m profiler.profile_philosophy NOVEL_ID
+
+Storytelling:
+  ..\venv\Scripts\python.exe -m profiler.profile_storytelling NOVEL_ID
+
+All three:
+  ..\venv\Scripts\python.exe -m profiler.profile_all NOVEL_ID
+
+Without --save, the generated values are only previewed.
+
+
+3. GENERATE AND SAVE
+--------------------
+
+Save all profiles after confirmation:
+  ..\venv\Scripts\python.exe -m profiler.profile_all NOVEL_ID --save
+
+Save automatically without confirmation:
+  ..\venv\Scripts\python.exe -m profiler.profile_all NOVEL_ID --save --yes
+
+When running all three with --save, each profiler may request its own
+confirmation.
+
+
+4. AVAILABLE PROFILERS
+----------------------
+
+PROTAGONIST
+Command:
+  ..\venv\Scripts\python.exe -m profiler.profile_protagonist NOVEL_ID [OPTIONS]
+
+Generates:
+  - Impulsivity
+  - Ego
+  - Kinship and friendship
+  - Romantic attachment
+  - Lust
+  - Selflessness
+
+PHILOSOPHY
+Command:
+  ..\venv\Scripts\python.exe -m profiler.profile_philosophy NOVEL_ID [OPTIONS]
+
+Generates:
+  - Freedom
+  - Survival
+  - Existentialism
+  - Moral ambiguity
+  - Self-improvement
+  - Determinism
+  - Revenge
+  - Romance
+
+STORYTELLING
+Command:
+  ..\venv\Scripts\python.exe -m profiler.profile_storytelling NOVEL_ID [OPTIONS]
+
+Generates:
+  - Political intrigue
+  - Psychological warfare
+  - Kingdom building
+  - Action
+  - Slice of life
+  - Mystery
+  - Worldbuilding
+
+RUN ALL
+Command:
+  ..\venv\Scripts\python.exe -m profiler.profile_all NOVEL_ID [OPTIONS]
+
+Runs protagonist, philosophy, and storytelling in sequence. If one profiler
+fails, the remaining profilers will not run.
+
+
+5. SHARED FLAGS
+---------------
+
+--save
+  Writes the generated values to Supabase after previewing them.
+
+--yes
+  Skips confirmation prompts. Use with --save.
+
+--comments FILE
+  Uses a UTF-8 text file containing one reader comment per line.
+
+--no-fetch-comments
+  Generates values using only the synopsis and genres/tags.
+
+-h, --help
+  Displays the command's available options.
+
+If --comments and --no-fetch-comments are both supplied, the comments file
+takes priority.
+
+
+6. PROTAGONIST-SPECIFIC FLAGS
+-----------------------------
+
+These flags work with profile_protagonist and profile_all.
+
+--protagonist "NAME"
+  Supplies the protagonist's name instead of detecting it automatically.
+
+--minimum-name-confidence NUMBER
+  Sets the minimum confidence allowed for automatic name detection. The
+  default is 75, and the value must be between 0 and 100.
+
+
+7. EXAMPLES
+-----------
+
+Preview all profiles for novel 7:
+  ..\venv\Scripts\python.exe -m profiler.profile_all 7
+
+Generate and save all profiles automatically:
+  ..\venv\Scripts\python.exe -m profiler.profile_all 7 --save --yes
+
+Specify the protagonist:
+  ..\venv\Scripts\python.exe -m profiler.profile_protagonist 7 --protagonist "Fang Yuan" --save
+
+Specify the protagonist while running all profilers:
+  ..\venv\Scripts\python.exe -m profiler.profile_all 7 --protagonist "Fang Yuan" --save
+
+Allow lower-confidence protagonist detection:
+  ..\venv\Scripts\python.exe -m profiler.profile_all 7 --minimum-name-confidence 60 --save
+
+Use a local comments file:
+  ..\venv\Scripts\python.exe -m profiler.profile_all 7 --comments ".\comments.txt" --save
+
+Use only the database synopsis and tags:
+  ..\venv\Scripts\python.exe -m profiler.profile_all 7 --no-fetch-comments --save
+
+Display command help:
+  ..\venv\Scripts\python.exe -m profiler.profile_all --help
+
+
+8. REQUIRED ENVIRONMENT VARIABLES
+---------------------------------
+
+The following values must exist in backend\.env:
+
+SUPABASE_URL=...
+SUPABASE_PUBLISHABLE_KEY=...
+SUPABASE_SECRET_KEY=...
+GEMINI_API_KEY=...
+
+An optional Gemini model can also be configured:
+
+GEMINI_MODEL=gemini-3.5-flash-lite
