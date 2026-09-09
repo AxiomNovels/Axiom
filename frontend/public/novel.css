@@ -2551,3 +2551,43 @@ body.modal-open { overflow:hidden; }
     width: auto;
   }
 }
+
+/* =========================================================
+   SOCIAL PLATFORM LABELS + ICONS
+   ========================================================= */
+
+.profile-social-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.social-platform-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 1.25rem;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.discord-icon {
+  color: #7980c7; /* muted Discord periwinkle */
+}
+
+.instagram-icon {
+  color: #c47791; /* muted Instagram rose */
+}
+
+.reddit-icon {
+  color: #c66a5d; /* subdued Reddit coral */
+}
+
+.tiktok-icon {
+  color: #a56bc7; /* Axiom-compatible TikTok purple */
+  filter: drop-shadow(0 0 4px rgba(165, 107, 199, 0.28));
+}
+
