@@ -37,6 +37,12 @@ metadata with `http://localhost:8000/api/search/options`.
 
 ## Generate novel profiles
 
+From `backend/`, generate all three profiles with one command:
+
+```bash
+python -m profiler.profile_all NOVEL_ID --save
+```
+
 From `backend/`, preview automatically generated philosophy and storytelling
 values for a novel:
 
