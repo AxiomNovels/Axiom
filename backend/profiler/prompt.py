@@ -7,6 +7,16 @@ MEASURES = (
     "selflessness",
 )
 
+PHILOSOPHY_MEASURES = (
+    "freedom", "survival", "existentialism", "moral_ambiguity",
+    "self_improvement", "determinism", "revenge", "romance",
+)
+
+STORYTELLING_MEASURES = (
+    "political_intrigue", "psychological_warfare", "kingdom_building",
+    "action", "slice_of_life", "mystery", "worldbuilding",
+)
+
 
 RUBRIC = """
 SCORING RULES
@@ -127,4 +137,68 @@ or the author. If the story has an ensemble cast or the evidence is ambiguous, c
 the most central viewpoint character but lower confidence. Do not invent a surname or
 expand a partial name unless the supplied evidence supports it. Keep the evidence
 summary brief and avoid quotations.
+"""
+
+
+PHILOSOPHY_RUBRIC = """
+Use absolute 0-100 scales and scores in increments of 10. Do not use 50 as a
+default for uncertainty. A 0 requires explicit, meaningful evidence for the low
+pole; sparse evidence normally belongs near 20 and lowers confidence.
+
+freedom: 0 collective needs are paramount -> 100 individual autonomy is paramount
+survival: 0 basic existence is provided for -> 100 survival is a constant struggle
+existentialism: 0 purpose is externally predefined -> 100 meaning is self-created
+moral_ambiguity: 0 right and wrong are clear -> 100 moral ambiguity is pervasive
+self_improvement: 0 growth is irrelevant -> 100 deliberate development is defining
+determinism: 0 fate determines outcomes -> 100 free will and agency determine them
+revenge: 0 forgiveness is strongly favored -> 100 vengeance is central
+romance: 0 romantic attachment is scorned -> 100 romance is a defining theme
+
+For every scale: 20 is light or weakly evidenced, 40 is recurring but secondary,
+50 is substantial alongside other themes, 60-70 is a major influence, 80-90 is
+central across most arcs, and 100 is defining throughout the novel.
+""".strip()
+
+
+STORYTELLING_RUBRIC = """
+Use absolute 0-100 prominence scales and scores in increments of 10. A 0 requires
+explicit absence or deliberate avoidance; silence in a synopsis is not enough.
+Sparse evidence normally belongs near 20 and lowers confidence.
+
+political_intrigue: power struggles, alliances, governance, diplomacy, institutions
+psychological_warfare: deception, manipulation, prediction, intimidation, battles of will
+kingdom_building: creating or managing an organization, territory, settlement, or civilization
+action: physical conflict, combat, pursuit, danger, and fast-moving set pieces
+slice_of_life: everyday routines, relationships, small moments, and life between conflicts
+mystery: unanswered questions, investigation, hidden information, and gradual revelation
+worldbuilding: cultures, history, geography, institutions, magic, technology, or social systems
+
+For every measure: 20 is light or peripheral, 40 is recurring but secondary, 50 is
+substantial alongside other elements, 60-70 is a major focus, 80-90 dominates most
+arcs or the reading experience, and 100 fundamentally defines the novel's structure.
+""".strip()
+
+
+def build_novel_profile_prompt(novel: dict, comments: list[str], profile_type: str) -> str:
+    rubrics = {"philosophy": PHILOSOPHY_RUBRIC, "storytelling": STORYTELLING_RUBRIC}
+    if profile_type not in rubrics:
+        raise ValueError(f"Unsupported profile type: {profile_type}")
+    genres = ", ".join(novel.get("genres") or []) or "Not provided"
+    synopsis = (novel.get("synopsis") or "Not provided")[:12_000]
+    evidence = "\n".join(f"- {comment}" for comment in comments) or "No reader comments provided."
+    return f"""Create a cautious baseline {profile_type} profile for a novel catalog.
+
+Novel: {novel.get('title', 'Unknown')}
+Genres/tags: {genres}
+Synopsis:
+{synopsis}
+
+Selected public reader comments:
+{evidence}
+
+{rubrics[profile_type]}
+
+Treat comments as fallible opinions and do not invent plot facts. Score narrative
+evidence rather than keyword frequency. Return every requested score, an overall
+confidence score, and a brief evidence summary that identifies uncertainty.
 """

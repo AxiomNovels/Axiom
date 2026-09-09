@@ -35,13 +35,29 @@ IDENTIFICATION_SCHEMA = {
 }
 
 
-def validate_profile(data: dict) -> dict:
+def response_schema(measures) -> dict:
+    return {
+        "type": "OBJECT",
+        "properties": {
+            "scores": {
+                "type": "OBJECT",
+                "properties": {measure: {"type": "INTEGER", "minimum": 0, "maximum": 100} for measure in measures},
+                "required": list(measures),
+            },
+            "confidence": {"type": "INTEGER", "minimum": 0, "maximum": 100},
+            "evidence_summary": {"type": "STRING"},
+        },
+        "required": ["scores", "confidence", "evidence_summary"],
+    }
+
+
+def validate_profile(data: dict, measures=MEASURES) -> dict:
     if not isinstance(data, dict) or not isinstance(data.get("scores"), dict):
         raise ValueError("Gemini response is missing the scores object")
 
     scores = data["scores"]
-    if set(scores) != set(MEASURES):
-        raise ValueError("Gemini response does not contain exactly the six profile measures")
+    if set(scores) != set(measures):
+        raise ValueError("Gemini response does not contain exactly the requested profile measures")
 
     for measure, value in scores.items():
         if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= 100:
@@ -56,7 +72,7 @@ def validate_profile(data: dict) -> dict:
         raise ValueError("Gemini response is missing an evidence summary")
 
     return {
-        "scores": {measure: scores[measure] for measure in MEASURES},
+        "scores": {measure: scores[measure] for measure in measures},
         "confidence": confidence,
         "evidence_summary": summary.strip(),
     }
@@ -140,6 +156,14 @@ def request_structured(
 def generate_profile(prompt: str, timeout: int = 90) -> dict:
     return validate_profile(
         request_structured(prompt, RESPONSE_SCHEMA, max_output_tokens=700, timeout=timeout)
+    )
+
+
+def generate_novel_profile(prompt: str, measures, timeout: int = 90) -> dict:
+    measures = tuple(measures)
+    return validate_profile(
+        request_structured(prompt, response_schema(measures), max_output_tokens=900, timeout=timeout),
+        measures,
     )
 
 

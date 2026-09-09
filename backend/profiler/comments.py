@@ -62,3 +62,23 @@ def select_comments(
             break
 
     return selected
+
+
+def select_story_comments(comments: list[str], limit: int = 60, max_characters: int = 18_000) -> list[str]:
+    """Deduplicate a bounded reader-feedback sample for whole-novel profiles."""
+    unique = []
+    seen = set()
+    character_count = 0
+    for comment in comments:
+        cleaned = re.sub(r"\s+", " ", comment).strip()[:600]
+        key = cleaned.casefold()
+        if len(cleaned) < 12 or key in seen:
+            continue
+        if unique and character_count + len(cleaned) > max_characters:
+            continue
+        seen.add(key)
+        unique.append(cleaned)
+        character_count += len(cleaned)
+        if len(unique) >= limit or character_count >= max_characters:
+            break
+    return unique

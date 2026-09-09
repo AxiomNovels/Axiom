@@ -2,9 +2,9 @@ import pytest
 
 import profiler.sources as profile_sources
 
-from profiler.comments import select_comments
+from profiler.comments import select_comments, select_story_comments
 from profiler.gemini import validate_identification, validate_profile
-from profiler.prompt import MEASURES, build_prompt
+from profiler.prompt import MEASURES, STORYTELLING_MEASURES, build_novel_profile_prompt, build_prompt
 from profiler.resolver import resolve_protagonist_name
 from profiler.sources.webnovel import parse_webnovel_reviews, validate_webnovel_url
 from profiler.sources.royalroad import parse_royalroad_reviews, validate_royalroad_url
@@ -76,6 +76,26 @@ def test_validate_profile_rejects_out_of_range_score():
             "confidence": 75,
             "evidence_summary": "Invalid score.",
         })
+
+
+def test_storytelling_prompt_and_dynamic_validation_use_all_seven_measures():
+    prompt = build_novel_profile_prompt(
+        {"title": "Example", "synopsis": "A political mystery.", "genres": ["Mystery"]},
+        [],
+        "storytelling",
+    )
+    assert "silence in a synopsis is not enough" in prompt
+    result = validate_profile({
+        "scores": {measure: 20 for measure in STORYTELLING_MEASURES},
+        "confidence": 60,
+        "evidence_summary": "The synopsis provides limited evidence.",
+    }, STORYTELLING_MEASURES)
+    assert set(result["scores"]) == set(STORYTELLING_MEASURES)
+
+
+def test_select_story_comments_deduplicates_and_bounds_feedback():
+    comments = ["Political schemes drive the plot.", "Political schemes drive the plot.", "Too short"]
+    assert select_story_comments(comments) == ["Political schemes drive the plot."]
 
 
 def test_parse_webnovel_reviews_deduplicates_review_nodes():

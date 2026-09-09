@@ -35,6 +35,19 @@ On first setup, replace the placeholder Supabase values in `backend/.env`.
 Verify the backend with `http://localhost:8000/api/health`, then verify finder
 metadata with `http://localhost:8000/api/search/options`.
 
+## Generate novel profiles
+
+From `backend/`, preview automatically generated philosophy and storytelling
+values for a novel:
+
+```bash
+python -m profiler.profile_story NOVEL_ID
+```
+
+Add `--save` to confirm before writing both profiles to Supabase. Use
+`--profile philosophy` or `--profile storytelling` to generate only one, and
+add `--yes` with `--save` for a non-interactive run.
+
 To list a tree structure of all files (ignoring those in .gitignore):
 git ls-files -co --exclude-standard
 
