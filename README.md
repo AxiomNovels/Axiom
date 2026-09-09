@@ -43,16 +43,16 @@ From `backend/`, generate all three profiles with one command:
 python -m profiler.profile_all NOVEL_ID --save
 ```
 
-From `backend/`, preview automatically generated philosophy and storytelling
-values for a novel:
+Each profile also has its own command:
 
 ```bash
-python -m profiler.profile_story NOVEL_ID
+python -m profiler.profile_protagonist NOVEL_ID --save
+python -m profiler.profile_philosophy NOVEL_ID --save
+python -m profiler.profile_storytelling NOVEL_ID --save
 ```
 
-Add `--save` to confirm before writing both profiles to Supabase. Use
-`--profile philosophy` or `--profile storytelling` to generate only one, and
-add `--yes` with `--save` for a non-interactive run.
+Omit `--save` for a preview, or add `--yes` with `--save` for a
+non-interactive run.
 
 To list a tree structure of all files (ignoring those in .gitignore):
 git ls-files -co --exclude-standard

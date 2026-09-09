@@ -32,13 +32,14 @@ def module_command(module: str, args: argparse.Namespace) -> list[str]:
 
 def main() -> None:
     args = parse_args()
-    protagonist_command = module_command("profiler.profile_novel", args)
+    protagonist_command = module_command("profiler.profile_protagonist", args)
     protagonist_command.extend(["--minimum-name-confidence", str(args.minimum_name_confidence)])
     if args.protagonist:
         protagonist_command.extend(["--protagonist", args.protagonist])
 
     subprocess.run(protagonist_command, check=True)
-    subprocess.run(module_command("profiler.profile_story", args), check=True)
+    subprocess.run(module_command("profiler.profile_philosophy", args), check=True)
+    subprocess.run(module_command("profiler.profile_storytelling", args), check=True)
 
 
 if __name__ == "__main__":
