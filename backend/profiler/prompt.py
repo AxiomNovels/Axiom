@@ -1,3 +1,16 @@
+'''
+To run:
+python profile_novel.py NOVEL_ID
+
+flags:
+--save
+
+to specify the profile:
+--profile philosophy 
+--profile storytelling
+(default option does the protagonist profile)
+'''
+
 MEASURES = (
     "impulsivity",
     "arrogance_pride",
