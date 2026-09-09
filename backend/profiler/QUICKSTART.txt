@@ -4,11 +4,7 @@ AXIOM PROFILER QUICKSTART
 1. OPEN THE BACKEND FOLDER
 --------------------------
 
-cd C:\Users\jaide\OneDrive\Documents\Axiom\backend
-
-The commands below use the project's virtual environment directly, so you do
-not need to activate it first. Replace NOVEL_ID with the novel's numeric
-database ID.
+cd backend
 
 
 2. PREVIEW PROFILES WITHOUT SAVING
