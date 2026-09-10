@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 
-from core.auth import get_current_user
+from core.auth import get_current_user, get_optional_current_user
 from core.database import create_service_client
 from models.review import ReviewUpsert
 
@@ -33,6 +33,43 @@ def _attach_public_profiles(rows: list[dict], client) -> list[dict]:
     return rows
 
 
+def _attach_like_data(rows: list[dict], client, viewer_id: str | None) -> list[dict]:
+    """Attach like_count (public) and viewer_has_liked (only meaningful
+    for a logged-in viewer) to each review, using one batched query
+    instead of one per review.
+    """
+    review_ids = [row["id"] for row in rows if row.get("id")]
+    if not review_ids:
+        return rows
+
+    try:
+        response = (
+            client.table("review_likes")
+            .select("review_id, user_id")
+            .in_("review_id", review_ids)
+            .execute()
+        )
+        like_rows = response.data or []
+    except Exception:
+        # Likes are secondary to the review itself -- don't fail the
+        # whole reviews request if this lookup has trouble.
+        like_rows = []
+
+    counts: dict[str, int] = {}
+    liked_by_viewer: set[str] = set()
+    for like in like_rows:
+        review_id = like["review_id"]
+        counts[review_id] = counts.get(review_id, 0) + 1
+        if viewer_id and like["user_id"] == viewer_id:
+            liked_by_viewer.add(review_id)
+
+    for row in rows:
+        row["like_count"] = counts.get(row["id"], 0)
+        row["viewer_has_liked"] = row["id"] in liked_by_viewer
+
+    return rows
+
+
 def _review_payload(rows: list[dict]) -> dict:
     ratings = [float(row["rating"]) for row in rows]
     average = round(sum(ratings) / len(ratings), 2) if ratings else None
@@ -44,7 +81,8 @@ def _review_payload(rows: list[dict]) -> dict:
 
 
 @router.get("/{novel_id}/reviews")
-def list_reviews(novel_id: int):
+def list_reviews(novel_id: int, auth=Depends(get_optional_current_user)):
+    viewer_id, _viewer_client = auth
     try:
         client = create_service_client()
         response = (
@@ -57,15 +95,14 @@ def list_reviews(novel_id: int):
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
 
-    return _review_payload(_attach_public_profiles(response.data or [], client))
+    rows = response.data or []
+    rows = _attach_public_profiles(rows, client)
+    rows = _attach_like_data(rows, client, viewer_id)
+    return _review_payload(rows)
 
 
 @router.put("/{novel_id}/reviews")
-def save_review(
-    novel_id: int,
-    payload: ReviewUpsert,
-    auth=Depends(get_current_user),
-):
+def save_review(novel_id: int, payload: ReviewUpsert, auth=Depends(get_current_user)):
     user_id, client = auth
     review = {
         "user_id": user_id,
@@ -73,13 +110,8 @@ def save_review(
         "rating": payload.rating,
         "comment": payload.comment,
     }
-
     try:
-        response = (
-            client.table("reviews")
-            .upsert(review, on_conflict="novel_id,user_id")
-            .execute()
-        )
+        response = client.table("reviews").upsert(review, on_conflict="novel_id,user_id").execute()
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
 
@@ -92,14 +124,7 @@ def save_review(
 def delete_review(novel_id: int, auth=Depends(get_current_user)):
     user_id, client = auth
     try:
-        response = (
-            client.table("reviews")
-            .delete()
-            .eq("novel_id", novel_id)
-            .eq("user_id", user_id)
-            .execute()
-        )
+        client.table("reviews").delete().eq("novel_id", novel_id).eq("user_id", user_id).execute()
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
-
     return Response(status_code=204)

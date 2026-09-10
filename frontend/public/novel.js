@@ -435,6 +435,86 @@ function renderStaticStars(container, rating) {
   }
 }
 
+function createThumbsUpIcon() {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("class", "review-like-icon");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute(
+    "d",
+    "M2 22h3.5a1 1 0 0 0 1-1V11a1 1 0 0 0-1-1H2Zm7.5-.4c.4.26.97.4 1.6.4h6.9a2 2 0 0 0 1.94-1.52l1.72-7A2 2 0 0 0 19.72 11H14.9l.62-3.6c.2-1.16-.35-2.3-1.4-2.85a1.9 1.9 0 0 0-2.55.72L8.5 10.6a2 2 0 0 0-.3 1.05V20a1.6 1.6 0 0 0 1.3 1.6Z"
+  );
+  svg.appendChild(path);
+  return svg;
+}
+
+// Toggleable like button shown on every review comment. The comment's
+// own author sees a disabled version of the same button (you can never
+// like your own review); everyone else can toggle their like on and off,
+// mirroring the filled/hollow thumbs-up pattern YouTube uses.
+function createLikeControl(review) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "review-like";
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "review-like-button";
+  button.appendChild(createThumbsUpIcon());
+
+  const count = document.createElement("span");
+  count.className = "review-like-count";
+  count.textContent = String(review.like_count || 0);
+
+  const isOwnReview = review.user_id === currentUserId();
+
+  if (isOwnReview) {
+    button.disabled = true;
+    button.classList.add("is-own");
+    button.title = "You can't like your own review";
+    button.setAttribute("aria-label", "You can't like your own review");
+  } else {
+    button.classList.toggle("is-liked", Boolean(review.viewer_has_liked));
+    button.setAttribute("aria-pressed", String(Boolean(review.viewer_has_liked)));
+    button.setAttribute("aria-label", review.viewer_has_liked ? "Unlike this review" : "Like this review");
+
+    button.addEventListener("click", async () => {
+      if (!getAccessToken()) {
+        window.location.href = "/login.html";
+        return;
+      }
+      const currentlyLiked = button.classList.contains("is-liked");
+      button.disabled = true;
+      try {
+        const response = await authFetch(`${API_BASE}/api/reviews/${review.id}/like`, {
+          method: currentlyLiked ? "DELETE" : "POST",
+        });
+        if (response.status === 401) {
+          window.location.href = "/login.html";
+          return;
+        }
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(typeof result.detail === "string" ? result.detail : "Couldn't update your like.");
+        }
+        review.like_count = result.like_count;
+        review.viewer_has_liked = result.liked;
+        button.classList.toggle("is-liked", result.liked);
+        button.setAttribute("aria-pressed", String(result.liked));
+        button.setAttribute("aria-label", result.liked ? "Unlike this review" : "Like this review");
+        count.textContent = String(result.like_count ?? 0);
+      } catch (error) {
+        alert(error.message || "Couldn't update your like. Please try again.");
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
+
+  wrapper.append(button, count);
+  return wrapper;
+}
+
 function setupReviewRatingPicker(stars, valueField, output, clearButton, initialRating) {
   let selectedRating = Number(initialRating) || 0;
   let previewRating = selectedRating;
@@ -610,7 +690,10 @@ function renderReviews(novelId, payload) {
     identity.append(nameLink, date);
     const reviewMeta = document.createElement("div"); reviewMeta.className = "review-card-meta";
     const stars = document.createElement("span"); stars.className = "review-card-stars"; renderStaticStars(stars, review.rating); stars.setAttribute("aria-label", `${review.rating} out of 5 stars`);
-    reviewMeta.appendChild(stars);
+    const topRow = document.createElement("div");
+    topRow.className = "review-card-meta-top";
+    topRow.append(stars, createLikeControl(review));
+    reviewMeta.appendChild(topRow);
     if (review.user_id === currentUserId()) {
       article.classList.add("is-own-review");
       const actions = document.createElement("div"); actions.className = "review-card-actions";
@@ -644,7 +727,7 @@ function renderReviews(novelId, payload) {
 
 async function loadReviews(novelId) {
   try {
-    const response = await fetch(`${API_BASE}/api/novels/${novelId}/reviews`);
+    const response = await authFetch(`${API_BASE}/api/novels/${novelId}/reviews`);
     if (!response.ok) throw new Error("Reviews request failed");
     renderReviews(novelId, await response.json());
   } catch {

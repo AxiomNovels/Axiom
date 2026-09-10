@@ -13,6 +13,7 @@ from routes.reading_lists import router as reading_lists_router
 from routes.reading_progress import router as reading_progress_router
 from routes.users import router as users_router
 from routes.reviews import router as reviews_router
+from routes.review_likes import router as review_likes_router
 from core.config import FRONTEND_ORIGIN
 
 
@@ -86,6 +87,7 @@ app.include_router(reading_progress_router)
 app.include_router(users_router)
 app.include_router(inbox_router)
 app.include_router(friendships_router)
+app.include_router(review_likes_router)
 
 
 @app.get("/api/health")
