@@ -37,9 +37,12 @@ def main() -> None:
     if args.protagonist:
         protagonist_command.extend(["--protagonist", args.protagonist])
 
-    subprocess.run(protagonist_command, check=True)
-    subprocess.run(module_command("profiler.profile_philosophy", args), check=True)
-    subprocess.run(module_command("profiler.profile_storytelling", args), check=True)
+    try:
+        subprocess.run(protagonist_command, check=True)
+        subprocess.run(module_command("profiler.profile_philosophy", args), check=True)
+        subprocess.run(module_command("profiler.profile_storytelling", args), check=True)
+    except subprocess.CalledProcessError:
+        raise SystemExit("Profile generation stopped because one profiler failed.") from None
 
 
 if __name__ == "__main__":

@@ -5,12 +5,13 @@ from profiler.prompt import PHILOSOPHY_MEASURES
 
 
 def main() -> None:
-    run_profile(
-        "philosophy",
-        "philosophy_profiles",
-        PHILOSOPHY_MEASURES,
-        parse_profile_args("Generate one AI philosophy baseline"),
-    )
+    try:
+        run_profile(
+            "philosophy", "philosophy_profiles", PHILOSOPHY_MEASURES,
+            parse_profile_args("Generate one AI philosophy baseline"),
+        )
+    except RuntimeError as error:
+        raise SystemExit(f"Error: {error}") from None
 
 
 if __name__ == "__main__":

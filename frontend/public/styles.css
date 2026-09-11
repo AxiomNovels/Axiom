@@ -3481,3 +3481,21 @@ button {
 @media (max-width: 900px) {
   .finder-fields.three-column { grid-template-columns: 1fr; width: 100%; margin-left: 0; }
 }
+
+/* Paired tag searches keep selections under their respective field. */
+.finder-tag-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-left: 56px;
+}
+.finder-tag-fields > div { min-width: 0; }
+.finder-tag-fields .tag-combobox { max-width: none; margin-left: 0; }
+.finder-tag-fields .selected-tags { margin: 12px 0 0; }
+.finder-tag-fields .selected-tags:empty { display: none; }
+.finder-tag-fields .selected-tag { max-width: 100%; }
+.finder-tag-fields .selected-tag > span { overflow-wrap: anywhere; min-width: 0; }
+.finder-tag-fields .tag-remove { flex-shrink: 0; }
+@media (max-width: 700px) {
+  .finder-tag-fields { grid-template-columns: 1fr; gap: 20px; margin-left: 0; }
+}

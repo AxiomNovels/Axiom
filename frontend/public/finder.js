@@ -240,65 +240,88 @@ function syncTags() {
   document.querySelector("[data-excluded-tags]").value = [...selectedTags.exclude].join(",");
 }
 
+const tagFields = [...document.querySelectorAll("[data-tag-field]")];
+
 function renderSelectedTags() {
-  const container = document.querySelector("[data-selected-tags]");
-  container.innerHTML = "";
-  const tags = [...selectedTags.include, ...selectedTags.exclude];
-  if (!tags.length) {
-    container.innerHTML = "<p>No tags added yet.</p>";
-    syncTags();
-    return;
-  }
-  tags.forEach((tag) => {
-    const chip = document.createElement("div");
-    chip.className = "selected-tag";
-    chip.dataset.state = selectedTags.exclude.has(tag) ? "exclude" : "include";
-    const name = document.createElement("span"); name.textContent = tag;
-    const toggle = document.createElement("button"); toggle.type = "button"; toggle.className = "tag-toggle";
-    toggle.textContent = selectedTags.exclude.has(tag) ? "Excluded" : "Included";
-    toggle.addEventListener("click", () => {
-      if (selectedTags.include.delete(tag)) selectedTags.exclude.add(tag);
-      else { selectedTags.exclude.delete(tag); selectedTags.include.add(tag); }
-      renderSelectedTags();
+  tagFields.forEach((field) => {
+    const mode = field.dataset.tagField;
+    const container = field.querySelector("[data-selected-tags]");
+    container.replaceChildren();
+    selectedTags[mode].forEach((tag) => {
+      const chip = document.createElement("div");
+      chip.className = "selected-tag";
+      chip.dataset.state = mode;
+      const name = document.createElement("span");
+      name.textContent = tag;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "tag-remove";
+      remove.textContent = "×";
+      remove.setAttribute("aria-label", `Remove ${tag} from ${mode === "include" ? "included" : "excluded"} tags`);
+      remove.addEventListener("click", () => {
+        selectedTags[mode].delete(tag);
+        renderSelectedTags();
+        field.querySelector("input").focus();
+      });
+      chip.append(name, remove);
+      container.appendChild(chip);
     });
-    const remove = document.createElement("button"); remove.type = "button"; remove.className = "tag-remove"; remove.textContent = "Ã—"; remove.setAttribute("aria-label", `Remove ${tag}`);
-    remove.addEventListener("click", () => { selectedTags.include.delete(tag); selectedTags.exclude.delete(tag); renderSelectedTags(); renderSuggestions(); });
-    chip.append(name, toggle, remove); container.appendChild(chip);
   });
   syncTags();
 }
 
-function addTag(tag) {
-  if (!selectedTags.include.has(tag) && !selectedTags.exclude.has(tag)) selectedTags.include.add(tag);
-  const input = document.getElementById("tag-search"); input.value = ""; input.focus();
-  renderSelectedTags(); renderSuggestions();
+function closeSuggestions(field) {
+  field.querySelector("[data-tag-suggestions]").hidden = true;
+  field.querySelector("input").setAttribute("aria-expanded", "false");
 }
 
-function renderSuggestions() {
-  const input = document.getElementById("tag-search");
-  const list = document.querySelector("[data-tag-suggestions]");
+function addTag(tag, field) {
+  const mode = field.dataset.tagField;
+  selectedTags[mode === "include" ? "exclude" : "include"].delete(tag);
+  selectedTags[mode].add(tag);
+  const input = field.querySelector("input");
+  input.value = "";
+  input.focus();
+  renderSelectedTags();
+  closeSuggestions(field);
+}
+
+function renderSuggestions(field) {
+  const input = field.querySelector("input");
+  const list = field.querySelector("[data-tag-suggestions]");
   const query = input.value.trim().toLowerCase();
-  if (!query) { list.hidden = true; input.setAttribute("aria-expanded", "false"); return; }
-  const matches = allTags.filter((tag) => tag.toLowerCase().includes(query) && !selectedTags.include.has(tag) && !selectedTags.exclude.has(tag)).slice(0, 8);
-  list.innerHTML = "";
+  if (!query) { closeSuggestions(field); return; }
+  const matches = allTags.filter((tag) => tag.toLowerCase().includes(query) && !selectedTags[field.dataset.tagField].has(tag)).slice(0, 8);
+  list.replaceChildren();
   matches.forEach((tag) => {
-    const option = document.createElement("button"); option.type = "button"; option.role = "option"; option.textContent = tag;
-    option.addEventListener("click", () => addTag(tag)); list.appendChild(option);
+    const option = document.createElement("button");
+    option.type = "button";
+    option.role = "option";
+    option.textContent = tag;
+    option.addEventListener("click", () => addTag(tag, field));
+    list.appendChild(option);
   });
-  if (!matches.length) { const empty = document.createElement("p"); empty.textContent = "No matching tags"; list.appendChild(empty); }
-  list.hidden = false; input.setAttribute("aria-expanded", "true");
+  if (!matches.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "No matching tags";
+    list.appendChild(empty);
+  }
+  list.hidden = false;
+  input.setAttribute("aria-expanded", "true");
 }
 
 async function loadOptions() {
-  const tagInput = document.getElementById("tag-search");
+  const tagInputs = tagFields.map((field) => field.querySelector("input"));
   const status = document.querySelector("select[name='status']");
   try {
     const response = await fetch(`${API_BASE}/api/search/options`);
     if (!response.ok) throw new Error("Options request failed");
     const options = await response.json();
     allTags = options.tags || [];
-    tagInput.disabled = !allTags.length;
-    tagInput.placeholder = allTags.length ? "Start typing a tag..." : "No tags are available yet";
+    tagInputs.forEach((input, index) => {
+      input.disabled = !allTags.length;
+      input.placeholder = allTags.length ? `Search tags to ${tagFields[index].dataset.tagField}...` : "No tags are available yet";
+    });
     (options.statuses || []).forEach((value) => {
       const option = document.createElement("option");
       option.value = value;
@@ -306,23 +329,46 @@ async function loadOptions() {
       status.appendChild(option);
     });
   } catch {
-    tagInput.disabled = true;
-    tagInput.placeholder = "Couldn't load tags";
+    tagInputs.forEach((input) => {
+      input.disabled = true;
+      input.placeholder = "Couldn't load tags";
+    });
   }
 }
 
-const tagInput = document.getElementById("tag-search");
-tagInput.addEventListener("input", renderSuggestions);
-tagInput.addEventListener("focus", renderSuggestions);
-tagInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    const first = document.querySelector("[data-tag-suggestions] button");
-    if (first) { event.preventDefault(); first.click(); }
-  }
-  if (event.key === "Escape") { document.querySelector("[data-tag-suggestions]").hidden = true; tagInput.setAttribute("aria-expanded", "false"); }
+tagFields.forEach((field) => {
+  const input = field.querySelector("input");
+  const list = field.querySelector("[data-tag-suggestions]");
+  input.addEventListener("input", () => renderSuggestions(field));
+  input.addEventListener("focus", () => {
+    tagFields.filter((other) => other !== field).forEach(closeSuggestions);
+    renderSuggestions(field);
+  });
+  field.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      input.focus();
+      closeSuggestions(field);
+    }
+    if (event.key === "Enter" && event.target === input && !list.hidden) {
+      event.preventDefault();
+      list.querySelector("button")?.click();
+    }
+    if (["ArrowDown", "ArrowUp"].includes(event.key) && !list.hidden) {
+      const options = [...list.querySelectorAll("button")];
+      if (!options.length) return;
+      event.preventDefault();
+      const index = options.indexOf(document.activeElement);
+      options[(index + (event.key === "ArrowDown" ? 1 : options.length - 1)) % options.length].focus();
+    }
+  });
+  field.addEventListener("focusout", (event) => {
+    if (!field.contains(event.relatedTarget)) closeSuggestions(field);
+  });
 });
 document.addEventListener("click", (event) => {
-  if (!event.target.closest(".tag-combobox")) { document.querySelector("[data-tag-suggestions]").hidden = true; tagInput.setAttribute("aria-expanded", "false"); }
+  tagFields.forEach((field) => {
+    if (!field.contains(event.target)) closeSuggestions(field);
+  });
 });
 
 const finderForm = document.querySelector("[data-finder-form]");
@@ -347,7 +393,7 @@ finderForm.addEventListener("reset", () => {
   setTimeout(() => {
     document.querySelector("[data-rating-clear]")?.click();
     renderSelectedTags();
-    renderSuggestions();
+    tagFields.forEach(closeSuggestions);
 
     document.querySelectorAll("[data-profile-range]").forEach((range) => {
       const field = range.closest(".profile-filter");

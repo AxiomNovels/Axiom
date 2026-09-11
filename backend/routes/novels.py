@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from services.recommendation_service import recommend_novels
 from core.auth import get_current_user
 from core.database import create_service_client, supabase
 from scraper.royalroad import scrape_royalroad
@@ -165,6 +166,33 @@ def get_novel(novel_id: int):
         raise HTTPException(status_code=404, detail="Novel not found")
 
     return response.data
+
+
+@router.get("/{novel_id}/similar")
+def get_similar_novels(novel_id: int):
+    source = get_novel(novel_id)
+    if not source:
+        raise HTTPException(status_code=404, detail="Novel not found")
+    columns = (
+        "id, title, author, cover_image_url, genres, "
+        "protagonist_profiles(*), philosophy_profiles(*), storytelling_style_profiles(*)"
+    )
+    candidates = []
+    try:
+        # Explicit pages avoid silently limiting recommendations to the first
+        # Supabase response page. Stable ID order keeps page boundaries intact.
+        offset = 0
+        while True:
+            page = (supabase.table("novels").select(columns)
+                    .neq("id", novel_id).order("id")
+                    .range(offset, offset + 499).execute().data or [])
+            candidates.extend(page)
+            if len(page) < 500:
+                break
+            offset += 500
+    except Exception as error:
+        raise HTTPException(status_code=500, detail="Recommendations are temporarily unavailable") from error
+    return recommend_novels(source, candidates)
 
 
 @router.post("/scrape")

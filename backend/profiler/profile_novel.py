@@ -39,12 +39,15 @@ def fetch_novel(novel_id: int) -> dict:
         .table("novels")
         .select("id,title,synopsis,genres,reading_links,protagonist_profiles(protagonist_name)")
         .eq("id", novel_id)
-        .single()
+        .limit(1)
         .execute()
     )
     if not response.data:
-        raise RuntimeError(f"Novel {novel_id} was not found")
-    return response.data
+        raise RuntimeError(
+            f"Novel ID {novel_id} was not found in the configured Supabase database. "
+            "Check the novel ID and your backend/.env connection."
+        )
+    return response.data[0]
 
 
 def save_profile(novel_id: int, protagonist_name: str, result: dict) -> None:

@@ -64,19 +64,31 @@
         </section>
 
         <section class="finder-section">
-          <div class="finder-section-title"><span>02</span><div><h2>Tags</h2><p>Included tags must all be present. Excluded tags remove a series.</p></div></div>
+          <div class="finder-section-title"><span>02</span><div><h2>Tags</h2><p>Choose what you want to read and what to leave out.</p></div></div>
           <div class="tag-mode" role="group" aria-label="Tag matching mode">
             <span>Match included tags</span>
             <label><input type="radio" name="tag_mode" value="and" checked> All (AND)</label>
             <label><input type="radio" name="tag_mode" value="or"> Any (OR)</label>
           </div>
-          <div class="tag-combobox">
-            <label for="tag-search">Add a tag</label>
-            <input id="tag-search" type="search" autocomplete="off" placeholder="Start typing a tag..." aria-autocomplete="list" aria-controls="tag-suggestions" aria-expanded="false">
-            <div class="tag-suggestions" id="tag-suggestions" role="listbox" data-tag-suggestions hidden></div>
+          <div class="finder-tag-fields">
+            <div data-tag-field="include">
+              <div class="tag-combobox">
+                <label for="tag-search">Include tags</label>
+                <input id="tag-search" type="search" autocomplete="off" placeholder="Search tags to include..." aria-autocomplete="list" aria-controls="tag-suggestions" aria-expanded="false">
+                <div class="tag-suggestions" id="tag-suggestions" role="listbox" aria-label="Tags to include" data-tag-suggestions hidden></div>
+              </div>
+              <div class="selected-tags" data-selected-tags aria-live="polite"></div>
+            </div>
+            <div data-tag-field="exclude">
+              <div class="tag-combobox">
+                <label for="excluded-tag-search">Exclude tags</label>
+                <input id="excluded-tag-search" type="search" autocomplete="off" placeholder="Search tags to exclude..." aria-autocomplete="list" aria-controls="excluded-tag-suggestions" aria-expanded="false">
+                <div class="tag-suggestions" id="excluded-tag-suggestions" role="listbox" aria-label="Tags to exclude" data-tag-suggestions hidden></div>
+              </div>
+              <div class="selected-tags" data-selected-tags aria-live="polite"></div>
+            </div>
           </div>
-          <div class="selected-tags" data-selected-tags aria-live="polite"><p>No tags added yet.</p></div>
-          <p class="tag-help">Added tags are included by default. Use a tag's menu to exclude it instead.</p>
+          <p class="tag-help">Series with any excluded tag are always hidden.</p>
           <input type="hidden" name="include_tags" data-included-tags>
           <input type="hidden" name="exclude_tags" data-excluded-tags>
         </section>

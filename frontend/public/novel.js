@@ -763,6 +763,75 @@ async function refreshReadingListControls(novelId) {
   }
 }
 
+async function loadSimilarNovels(novelId) {
+  const section = document.getElementById("similar-section");
+  const grid = document.getElementById("similar-novels");
+  section.hidden = false;
+  grid.setAttribute("aria-busy", "true");
+  const message = document.createElement("p");
+  message.className = "similar-message";
+  message.textContent = "Finding similar stories…";
+  grid.replaceChildren(message);
+  try {
+    const response = await fetch(`${API_BASE}/api/novels/${encodeURIComponent(novelId)}/similar`);
+    if (!response.ok) throw new Error("Recommendations request failed");
+    const novels = await response.json();
+    grid.replaceChildren();
+    if (!novels.length) {
+      message.textContent = "No similar stories yet. Check back as the catalogue grows.";
+      grid.appendChild(message);
+    }
+    novels.slice(0, 5).forEach((novel) => {
+      const card = document.createElement("a");
+      card.className = "similar-card";
+      card.href = `/novel.html?id=${encodeURIComponent(novel.id)}`;
+      const cover = document.createElement("div");
+      cover.className = "similar-cover";
+      cover.setAttribute("aria-hidden", "true");
+      const fallback = document.createElement("span");
+      fallback.textContent = novel.title || "Untitled";
+      cover.appendChild(fallback);
+      if (novel.cover_image_url) {
+        const image = document.createElement("img");
+        image.alt = "";
+        image.loading = "lazy";
+        image.referrerPolicy = "no-referrer";
+        image.src = novel.cover_image_url;
+        image.addEventListener("error", () => image.remove(), { once: true });
+        cover.appendChild(image);
+      }
+      const copy = document.createElement("div");
+      copy.className = "similar-copy";
+      const title = document.createElement("h3");
+      title.textContent = novel.title || "Untitled";
+      const author = document.createElement("p");
+      author.textContent = novel.author || "Unknown author";
+      copy.append(title, author);
+      const tags = document.createElement("div");
+      tags.className = "similar-tags";
+      (novel.shared_tags || []).forEach((tag) => {
+        const chip = document.createElement("span");
+        chip.textContent = tag;
+        tags.appendChild(chip);
+      });
+      copy.appendChild(tags);
+      card.append(cover, copy);
+      grid.appendChild(card);
+    });
+  } catch {
+    message.textContent = "Similar novels are temporarily unavailable.";
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "similar-retry";
+    retry.textContent = "Try again";
+    retry.addEventListener("click", () => loadSimilarNovels(novelId));
+    message.append(" ", retry);
+    grid.replaceChildren(message);
+  } finally {
+    grid.setAttribute("aria-busy", "false");
+  }
+}
+
 async function loadNovel() {
   console.log("[novel.js] loadNovel() starting");
 
@@ -790,6 +859,7 @@ async function loadNovel() {
     renderNovel(novel);
     refreshReadingListControls(novelId);
     loadReviews(novelId);
+    loadSimilarNovels(novelId);
     console.log("[novel.js] render complete");
   } catch (error) {
     console.error("[novel.js] failed to load novel:", error);
