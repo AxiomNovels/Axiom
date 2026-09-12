@@ -1268,251 +1268,131 @@ def extract_reading_url(
 
     return source_url
 
-def debug_author_and_tags(
+def extract_chapter_count(
     soup: BeautifulSoup,
-) -> None:
+) -> int | None:
     """
-    Diagnose how WebNovel exposes the author and tags
-    in the HTML returned to our scraper.
+    Extract the total number of published chapters from a
+    WebNovel book page.
+
+    WebNovel exposes the chapter count in the page data and
+    also renders it as visible text such as:
+
+        1,516 Chapters
+
+    Prefer structured data when available, then fall back to
+    the visible page text.
     """
 
-    print()
-    print("=" * 70)
-    print("WEBNOVEL AUTHOR / TAG DIAGNOSTIC")
-    print("=" * 70)
-
     # ---------------------------------------------------------
-    # AUTHOR
+    # 1. Look through WebNovel's g_data.book data.
+    #
+    # Different WebNovel page versions can use different field
+    # names, so check the common chapter-count fields.
     # ---------------------------------------------------------
 
-    print()
-    print("=" * 70)
-    print("AUTHOR CANDIDATES")
-    print("=" * 70)
+    possible_keys = [
+        "chapterCount",
+        "chapterNum",
+        "chapterNumTotal",
+        "totalChapter",
+        "totalChapters",
+        "chapterTotal",
+    ]
 
-    found_author = False
+    for script in soup.find_all("script"):
 
-    for index, text_node in enumerate(
-        soup.find_all(
-            string=re.compile(
-                r"Author",
-                re.IGNORECASE,
-            )
-        )
-    ):
-        text = clean_text(str(text_node))
+        text = script.get_text()
 
         if not text:
             continue
 
-        found_author = True
+        if "g_data.book" not in text:
+            continue
 
-        print()
-        print(f"CANDIDATE #{index}")
-        print("TEXT:", text)
+        for key in possible_keys:
 
-        parent = text_node.parent
-
-        if parent:
-            print("PARENT TAG:", parent.name)
-            print(
-                "PARENT ATTRIBUTES:",
-                parent.attrs,
+            # Numeric value:
+            #
+            # "chapterCount":1516
+            #
+            match = re.search(
+                rf'"{re.escape(key)}"\s*:\s*(\d+)',
+                text,
             )
-            print(
-                "PARENT TEXT:",
-                clean_text(
-                    parent.get_text(
-                        " ",
-                        strip=True,
+
+            if match:
+                try:
+                    count = int(
+                        match.group(1)
                     )
-                ),
-            )
-            print(
-                "PARENT HTML:",
-                str(parent)[:3000],
+
+                    if count >= 0:
+                        return count
+
+                except ValueError:
+                    pass
+
+            # String value:
+            #
+            # "chapterCount":"1516"
+            #
+            match = re.search(
+                rf'"{re.escape(key)}"\s*:\s*"([\d,]+)"',
+                text,
             )
 
-            # Look at the parent and nearby elements.
-            grandparent = parent.parent
-
-            if grandparent:
-                print()
-                print("GRANDPARENT TAG:", grandparent.name)
-                print(
-                    "GRANDPARENT ATTRIBUTES:",
-                    grandparent.attrs,
-                )
-                print(
-                    "GRANDPARENT TEXT:",
-                    clean_text(
-                        grandparent.get_text(
-                            " ",
-                            strip=True,
+            if match:
+                try:
+                    count = int(
+                        match.group(1).replace(
+                            ",",
+                            "",
                         )
-                    ),
-                )
-                print(
-                    "GRANDPARENT HTML:",
-                    str(grandparent)[:5000],
-                )
-
-    if not found_author:
-        print("NO AUTHOR TEXT FOUND")
-
-    # ---------------------------------------------------------
-    # TITLE FALLBACK INVESTIGATION
-    # ---------------------------------------------------------
-
-    print()
-    print("=" * 70)
-    print("TITLE ELEMENT")
-    print("=" * 70)
-
-    if soup.title:
-        print(
-            "TITLE:",
-            clean_text(
-                soup.title.get_text()
-            ),
-        )
-
-    # ---------------------------------------------------------
-    # TAG SECTION
-    # ---------------------------------------------------------
-
-    print()
-    print("=" * 70)
-    print("TAG CANDIDATES")
-    print("=" * 70)
-
-    found_tags = False
-
-    for index, node in enumerate(
-        soup.find_all(
-            string=re.compile(
-                r"REINCARNATION|VILLAIN|CULTIVATION|TRANSMIGRATION",
-                re.IGNORECASE,
-            )
-        )
-    ):
-        text = clean_text(str(node))
-
-        if not text:
-            continue
-
-        found_tags = True
-
-        print()
-        print(f"CANDIDATE #{index}")
-        print("TEXT:", text)
-
-        parent = node.parent
-
-        if parent:
-            print("PARENT TAG:", parent.name)
-            print(
-                "PARENT ATTRIBUTES:",
-                parent.attrs,
-            )
-            print(
-                "PARENT TEXT:",
-                clean_text(
-                    parent.get_text(
-                        " ",
-                        strip=True,
                     )
-                ),
-            )
-            print(
-                "PARENT HTML:",
-                str(parent)[:3000],
-            )
 
-            grandparent = parent.parent
+                    if count >= 0:
+                        return count
 
-            if grandparent:
-                print()
-                print(
-                    "GRANDPARENT TAG:",
-                    grandparent.name,
-                )
-                print(
-                    "GRANDPARENT ATTRIBUTES:",
-                    grandparent.attrs,
-                )
-                print(
-                    "GRANDPARENT TEXT:",
-                    clean_text(
-                        grandparent.get_text(
-                            " ",
-                            strip=True,
-                        )
-                    ),
-                )
-                print(
-                    "GRANDPARENT HTML:",
-                    str(grandparent)[:5000],
-                )
-
-    if not found_tags:
-        print("NO TAG TEXT FOUND")
+                except ValueError:
+                    pass
 
     # ---------------------------------------------------------
-    # [Input] INVESTIGATION
+    # 2. Fall back to visible page text.
+    #
+    # WebNovel book pages commonly render:
+    #
+    #     Fantasy 1,516 Chapters 2.5M Views
+    #
     # ---------------------------------------------------------
 
-    print()
-    print("=" * 70)
-    print("[INPUT] CANDIDATES")
-    print("=" * 70)
+    text = soup.get_text(
+        " ",
+        strip=True,
+    )
 
-    found_input = False
+    if text:
 
-    for index, node in enumerate(
-        soup.find_all(
-            string=re.compile(
-                r"\[Input\]",
-                re.IGNORECASE,
-            )
+        match = re.search(
+            r"\b([\d,]+)\s+Chapters?\b",
+            text,
+            flags=re.IGNORECASE,
         )
-    ):
-        text = clean_text(str(node))
 
-        if not text:
-            continue
+        if match:
 
-        found_input = True
-
-        print()
-        print(f"CANDIDATE #{index}")
-        print("TEXT:", text)
-
-        parent = node.parent
-
-        if parent:
-            print("PARENT TAG:", parent.name)
-            print(
-                "PARENT ATTRIBUTES:",
-                parent.attrs,
-            )
-            print(
-                "PARENT TEXT:",
-                clean_text(
-                    parent.get_text(
-                        " ",
-                        strip=True,
+            try:
+                return int(
+                    match.group(1).replace(
+                        ",",
+                        "",
                     )
-                ),
-            )
-            print(
-                "PARENT HTML:",
-                str(parent)[:3000],
-            )
+                )
 
-    if not found_input:
-        print("NO [Input] TEXT FOUND")
+            except ValueError:
+                pass
 
+    return None
 
 def parse_webnovel(
     html: str,
@@ -1548,7 +1428,7 @@ def parse_webnovel(
     title = extract_title(soup)
     author = extract_author(soup)
     status = extract_status(soup)
-
+    chapter_count = extract_chapter_count(soup)
     tags = extract_tags(soup)
     genres = extract_genres(soup)
     synopsis = extract_synopsis(soup)
@@ -1569,6 +1449,7 @@ def parse_webnovel(
         "title": title,
         "author": author,
         "status": status,
+        "chapter_count": chapter_count,
         "genres": genres,
         "tags": tags,
         "synopsis": synopsis,
@@ -1652,6 +1533,7 @@ def scrape_webnovels(
                     "title": None,
                     "author": None,
                     "status": None,
+                    "chapter_count": None,
                     "tags": [],
                     "synopsis": None,
                     "cover_image_url": None,
@@ -1668,6 +1550,7 @@ if __name__ == "__main__":
     URLS = [
         "https://www.webnovel.com/book/reverend-insanity_7996858406002505",
         "https://www.webnovel.com/book/22965486906528105",
+        "https://www.webnovel.com/book/shadow-slave_22196546206090805",
     ]
 
     novels = scrape_webnovels(

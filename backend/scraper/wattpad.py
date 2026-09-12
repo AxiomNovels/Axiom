@@ -906,6 +906,125 @@ def extract_reading_url(
 
     return source_url
 
+def extract_part_count(
+    tree: HTMLParser,
+    remix_story: dict | None = None,
+) -> int | None:
+    """
+    Extract the total number of Wattpad story parts.
+
+    Wattpad calls chapters "parts".
+
+    Extraction order:
+
+        1. Embedded Remix story data
+        2. Visible page text such as "42 Parts"
+
+    Different Wattpad versions may use different field names
+    for the count, so several common names are checked.
+    """
+
+    # ---------------------------------------------------------
+    # 1. Check the embedded Remix story data.
+    #
+    # Wattpad's exact field name can vary between versions,
+    # so check several possible names.
+    # ---------------------------------------------------------
+
+    if remix_story:
+
+        possible_keys = [
+            "part_count",
+            "partCount",
+            "parts_count",
+            "partsCount",
+            "chapter_count",
+            "chapterCount",
+            "total_parts",
+            "totalParts",
+            "total_chapters",
+            "totalChapters",
+        ]
+
+        for key in possible_keys:
+
+            value = remix_story.get(key)
+
+            if value is None:
+                continue
+
+            # Already numeric.
+            if isinstance(
+                value,
+                int,
+            ):
+                if value >= 0:
+                    return value
+
+            # Numeric string.
+            if isinstance(
+                value,
+                str,
+            ):
+                value = value.strip()
+
+                if re.fullmatch(
+                    r"\d[\d,]*",
+                    value,
+                ):
+                    try:
+                        count = int(
+                            value.replace(
+                                ",",
+                                "",
+                            )
+                        )
+
+                        if count >= 0:
+                            return count
+
+                    except ValueError:
+                        pass
+
+    # ---------------------------------------------------------
+    # 2. Search the visible Wattpad page.
+    #
+    # Wattpad displays the count as something like:
+    #
+    #     42 Parts
+    #
+    # or:
+    #
+    #     1,234 Parts
+    # ---------------------------------------------------------
+
+    text = tree.text(
+        separator=" ",
+        strip=True,
+    )
+
+    if text:
+
+        match = re.search(
+            r"\b([\d,]+)\s+Parts?\b",
+            text,
+            flags=re.IGNORECASE,
+        )
+
+        if match:
+
+            try:
+                return int(
+                    match.group(1).replace(
+                        ",",
+                        "",
+                    )
+                )
+
+            except ValueError:
+                pass
+
+    return None
 
 def parse_wattpad(
     html: str,
@@ -934,6 +1053,11 @@ def parse_wattpad(
 
     remix_story = extract_remix_story_data(
         tree
+    )
+
+    part_count = extract_part_count(
+        tree,
+        remix_story=remix_story,
     )
 
     if remix_story:
@@ -1008,6 +1132,7 @@ def parse_wattpad(
         "title": title,
         "author": author,
         "status": status,
+        "chapter_count": part_count,
         "genres": genres,
         "tags": tags,
         "synopsis": synopsis,
@@ -1060,9 +1185,10 @@ def scrape_wattpad_many(
 
             print()
             print("Successfully scraped:")
-            print(f"  title:  {novel['title']}")
-            print(f"  author: {novel['author']}")
-            print(f"  status: {novel['status']}")
+            print(f"  title:    {novel['title']}")
+            print(f"  author:   {novel['author']}")
+            print(f"  status:   {novel['status']}")
+            print(f"  chapters: {novel['chapter_count']}")
 
         except Exception as exc:
             print()
@@ -1101,6 +1227,7 @@ if __name__ == "__main__":
         print(f"Author:   {novel['author']}")
         print(f"ID:       {novel.get('story_id')}")
         print(f"Status:   {novel.get('status')}")
+        print(f"Chapters: {novel.get('chapter_count')}")
         print(f"Genres:   {novel.get('genres')}")
         print(f"Tags:     {novel.get('tags')}")
         print(f"Synopsis: {novel.get('synopsis')}")

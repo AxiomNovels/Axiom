@@ -496,6 +496,106 @@ def extract_synopsis(description_node) -> str | None:
 
     return "\n\n".join(synopsis) or None
 
+def extract_chapter_count(
+    tree: HTMLParser,
+) -> int | None:
+    """
+    Extract the total number of chapters from a Royal Road
+    fiction page.
+
+    Royal Road displays the chapter count as text such as:
+
+        100 Chapters
+
+    or:
+
+        1,234 Chapters
+
+    Prefer the story-specific statistics area when available,
+    then fall back to searching the page text.
+    """
+
+    # ---------------------------------------------------------
+    # 1. Look for the story statistics / metadata area first.
+    #
+    # Royal Road's page structure can change, so don't depend
+    # on one exact CSS class.
+    # ---------------------------------------------------------
+
+    selectors = [
+        ".fiction-stats",
+        ".stats",
+        "[class*='fiction-stats']",
+        "[class*='stats']",
+    ]
+
+    for selector in selectors:
+
+        for node in tree.css(selector):
+
+            text = clean_text(node)
+
+            if not text:
+                continue
+
+            match = re.search(
+                r"\b([\d,]+)\s+Chapters?\b",
+                text,
+                flags=re.IGNORECASE,
+            )
+
+            if match:
+                try:
+                    return int(
+                        match.group(1).replace(
+                            ",",
+                            "",
+                        )
+                    )
+
+                except ValueError:
+                    pass
+
+    # ---------------------------------------------------------
+    # 2. Fall back to the entire page text.
+    #
+    # Example:
+    #
+    #     Chapters 150
+    #
+    #     or
+    #
+    #     150 Chapters
+    # ---------------------------------------------------------
+
+    text = tree.text(
+        separator=" ",
+        strip=True,
+    )
+
+    if text:
+
+        match = re.search(
+            r"\b([\d,]+)\s+Chapters?\b",
+            text,
+            flags=re.IGNORECASE,
+        )
+
+        if match:
+
+            try:
+                return int(
+                    match.group(1).replace(
+                        ",",
+                        "",
+                    )
+                )
+
+            except ValueError:
+                pass
+
+    return None
+
 
 def parse_royalroad(
     html: str,
@@ -505,6 +605,10 @@ def parse_royalroad(
 
     title = extract_title(tree)
 
+    chapter_count = extract_chapter_count(
+        tree
+    )
+
     return {
         "source": "royalroad",
         "source_url": source_url,
@@ -512,6 +616,7 @@ def parse_royalroad(
         "title": title,
         "author": extract_author(tree),
         "status": extract_status(tree),
+        "chapter_count": chapter_count,
         "genres": extract_genres(tree),
         "tags": extract_tags(tree),
         "synopsis": extract_synopsis(
@@ -550,6 +655,7 @@ def scrape_royalroads(
                 f"SUCCESS: {novel['title']} "
                 f"| genres={novel['genres']} "
                 f"| tags={novel['tags']}"
+                f"| chapters={novel['chapter_count']} "
             )
 
         except Exception as exc:
@@ -565,6 +671,7 @@ def scrape_royalroads(
                     "title": None,
                     "author": None,
                     "status": None,
+                    "chapter_count": None,
                     "genres": [],
                     "tags": [],
                     "synopsis": None,
