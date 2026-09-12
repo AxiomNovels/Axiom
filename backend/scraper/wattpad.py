@@ -119,6 +119,45 @@ def clean_synopsis(
         paragraphs
     ) or None
 
+def parse_abbreviated_number(
+    value: str,
+    suffix: str | None,
+) -> int | None:
+    """
+    Convert abbreviated Wattpad numbers such as:
+
+        1,234
+        850K
+        2.5M
+        1.2B
+
+    into integers.
+    """
+
+    try:
+        number = float(
+            value.replace(",", "")
+        )
+    except ValueError:
+        return None
+
+    multipliers = {
+        "": 1,
+        "K": 1_000,
+        "M": 1_000_000,
+        "B": 1_000_000_000,
+    }
+
+    multiplier = multipliers.get(
+        (suffix or "").upper()
+    )
+
+    if multiplier is None:
+        return None
+
+    return int(
+        number * multiplier
+    )
 
 def extract_remix_context(
     tree: HTMLParser,
@@ -1053,6 +1092,115 @@ def extract_part_count(
 
     return None
 
+def extract_view_count(
+    tree: HTMLParser,
+    remix_story: dict | None = None,
+) -> int | None:
+    """
+    Extract the total number of Wattpad story reads/views.
+
+    Wattpad currently labels this statistic as "Reads"
+    rather than "Views".
+
+    Examples of the rendered text:
+
+        WpView Reads 295,624 295,624 295K
+        WpVote Votes 13,649 13,649 13.6K
+
+    The exact count is preferred over the abbreviated value.
+    """
+
+    text = tree.text(
+        separator=" ",
+        strip=True,
+    )
+
+    if not text:
+        return None
+
+    # ---------------------------------------------------------
+    # Wattpad's current format:
+    #
+    #     Reads 295,624 295,624 295K
+    #
+    # Capture the first numeric value immediately following
+    # "Reads". This gives us the exact count rather than the
+    # abbreviated 295K representation.
+    # ---------------------------------------------------------
+
+    match = re.search(
+        r"\bReads?\s+([\d,]+)\b",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    if match:
+        try:
+            return int(
+                match.group(1).replace(
+                    ",",
+                    "",
+                )
+            )
+        except ValueError:
+            pass
+
+    # ---------------------------------------------------------
+    # Fallback for older/different Wattpad wording:
+    #
+    #     Views 295,624
+    # ---------------------------------------------------------
+
+    match = re.search(
+        r"\bViews?\s+([\d,]+)\b",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    if match:
+        try:
+            return int(
+                match.group(1).replace(
+                    ",",
+                    "",
+                )
+            )
+        except ValueError:
+            pass
+
+    # ---------------------------------------------------------
+    # Final fallback: abbreviated values such as:
+    #
+    #     Reads 295K
+    #     Reads 2.5M
+    # ---------------------------------------------------------
+
+    match = re.search(
+        r"\bReads?\s+([\d,.]+)\s*([KMB])\b",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    if match:
+        return parse_abbreviated_number(
+            match.group(1),
+            match.group(2),
+        )
+
+    match = re.search(
+        r"\bViews?\s+([\d,.]+)\s*([KMB])\b",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    if match:
+        return parse_abbreviated_number(
+            match.group(1),
+            match.group(2),
+        )
+
+    return None
+
 def parse_wattpad(
     html: str,
     source_url: str,
@@ -1083,6 +1231,11 @@ def parse_wattpad(
     )
 
     part_count = extract_part_count(
+        tree,
+        remix_story=remix_story,
+    )
+
+    view_count = extract_view_count(
         tree,
         remix_story=remix_story,
     )
@@ -1160,6 +1313,7 @@ def parse_wattpad(
         "author": author,
         "status": status,
         "chapter_count": part_count,
+        "view_count": view_count,
         "genres": genres,
         "tags": tags,
         "synopsis": synopsis,
@@ -1216,6 +1370,7 @@ def scrape_wattpad_many(
             print(f"  author:   {novel['author']}")
             print(f"  status:   {novel['status']}")
             print(f"  chapters: {novel['chapter_count']}")
+            print(f"  views:    {novel['view_count']}")
 
         except Exception as exc:
             print()
@@ -1255,6 +1410,7 @@ if __name__ == "__main__":
         print(f"ID:       {novel.get('story_id')}")
         print(f"Status:   {novel.get('status')}")
         print(f"Chapters: {novel.get('chapter_count')}")
+        print(f"Views:    {novel.get('view_count')}")
         print(f"Genres:   {novel.get('genres')}")
         print(f"Tags:     {novel.get('tags')}")
         print(f"Synopsis: {novel.get('synopsis')}")

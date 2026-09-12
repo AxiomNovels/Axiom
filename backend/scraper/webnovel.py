@@ -1429,6 +1429,63 @@ def extract_chapter_count(
 
     return None
 
+def extract_view_count(
+    soup: BeautifulSoup,
+) -> int | None:
+    """
+    Extract the total number of views from a WebNovel book page.
+
+    WebNovel commonly displays abbreviated values such as:
+
+        2.5M Views
+        850K Views
+        1.2B Views
+
+    Return the normalized count as an integer.
+    """
+
+    text = soup.get_text(
+        " ",
+        strip=True,
+    )
+
+    if not text:
+        return None
+
+    match = re.search(
+        r"\b([\d,.]+)\s*([KMB])?\s+Views?\b",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    if not match:
+        return None
+
+    number = match.group(1).replace(
+        ",",
+        "",
+    )
+
+    suffix = (
+        match.group(2) or ""
+    ).upper()
+
+    try:
+        value = float(number)
+    except ValueError:
+        return None
+
+    multipliers = {
+        "": 1,
+        "K": 1_000,
+        "M": 1_000_000,
+        "B": 1_000_000_000,
+    }
+
+    return int(
+        value * multipliers[suffix]
+    )
+
 def parse_webnovel(
     html: str,
     source_url: str,
@@ -1464,6 +1521,7 @@ def parse_webnovel(
     author = extract_author(soup)
     status = extract_status(soup)
     chapter_count = extract_chapter_count(soup)
+    view_count = extract_view_count(soup)
     tags = extract_tags(soup)
     genres = extract_genres(soup)
     synopsis = extract_synopsis(soup)
@@ -1485,6 +1543,7 @@ def parse_webnovel(
         "author": author,
         "status": status,
         "chapter_count": chapter_count,
+        "view_count": view_count,
         "genres": genres,
         "tags": tags,
         "synopsis": synopsis,
@@ -1569,6 +1628,7 @@ def scrape_webnovels(
                     "author": None,
                     "status": None,
                     "chapter_count": None,
+                    "view_count": None,
                     "tags": [],
                     "synopsis": None,
                     "cover_image_url": None,
