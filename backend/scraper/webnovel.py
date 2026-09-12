@@ -1098,17 +1098,52 @@ def extract_synopsis(
 
     return None
 
+def normalize_tags(
+    tags: list[str],
+) -> list[str]:
+    """
+    Normalize WebNovel tags so that the first character is
+    uppercase and all subsequent characters are lowercase.
+
+    Examples:
+
+        ACTION          -> Action
+        Fantasy         -> Fantasy
+        reincarnation   -> Reincarnation
+        TIME TRAVEL     -> Time travel
+    """
+
+    normalized = []
+
+    for tag in tags:
+
+        if not tag:
+            continue
+
+        tag = clean_text(tag)
+
+        if not tag:
+            continue
+
+        tag = tag.upper()
+
+        if tag not in normalized:
+            normalized.append(tag)
+
+    return normalized
 
 def extract_tags(
     soup: BeautifulSoup,
 ) -> list[str]:
     """
-    Extract WebNovel tags from g_data.book.bookInfo.tagInfos.
+    Extract and normalize WebNovel tags.
     """
 
-    return extract_tags_from_gdata(
+    tags = extract_tags_from_gdata(
         soup
     )
+
+    return normalize_tags(tags)
 
 def extract_genres(
     soup: BeautifulSoup,

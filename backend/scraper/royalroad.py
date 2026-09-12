@@ -347,6 +347,38 @@ def extract_genres(tree: HTMLParser) -> list[str]:
 
     return genres
 
+def normalize_tags(
+    tags: list[str],
+) -> list[str]:
+    """
+    Normalize Royal Road tags so that the first character is
+    uppercase and all subsequent characters are lowercase.
+
+    Examples:
+
+        ACTION          -> Action
+        Fantasy         -> Fantasy
+        CULTIVATION     -> Cultivation
+    """
+
+    normalized = []
+
+    for tag in tags:
+
+        if not tag:
+            continue
+
+        tag = tag.strip()
+
+        if not tag:
+            continue
+
+        tag = tag.upper()
+
+        if tag not in normalized:
+            normalized.append(tag)
+
+    return normalized
 
 def extract_tags(tree: HTMLParser) -> list[str]:
     genre_names = {
@@ -363,6 +395,7 @@ def extract_tags(tree: HTMLParser) -> list[str]:
         if tag not in tags:
             tags.append(tag)
 
+    tags = normalize_tags(tags)
     return tags
 
 

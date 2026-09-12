@@ -780,6 +780,32 @@ def extract_synopsis(
 
     return None
 
+def normalize_tags(
+    tags: list[str],
+) -> list[str]:
+    """
+    Normalize Wattpad tags so that the first character is
+    uppercase and all subsequent characters are lowercase.
+    """
+
+    normalized = []
+
+    for tag in tags:
+
+        if not tag:
+            continue
+
+        tag = tag.strip()
+
+        if not tag:
+            continue
+
+        tag = tag.upper()
+
+        if tag not in normalized:
+            normalized.append(tag)
+
+    return normalized
 
 def extract_tags(
     tree: HTMLParser,
@@ -820,6 +846,7 @@ def extract_tags(
         if tag not in tags:
             tags.append(tag)
 
+    tags = normalize_tags(tags)
     return tags
 
 
