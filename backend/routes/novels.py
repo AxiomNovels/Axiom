@@ -13,7 +13,7 @@ from scraper.webnovel import scrape_webnovel
 router = APIRouter(prefix="/api/novels", tags=["novels"])
 
 # The list endpoint deliberately omits the larger profile payloads.
-NOVEL_LIST_COLUMNS = "id, title, author, cover_image_url, synopsis, status, genres"
+NOVEL_LIST_COLUMNS = "id, title, author, cover_image_url, synopsis, status, genres, chapter_count, view_count"
 
 # The profile tables are embedded through their novel_id foreign keys.
 NOVEL_DETAIL_COLUMNS = (

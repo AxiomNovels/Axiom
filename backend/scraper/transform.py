@@ -26,6 +26,29 @@ def clean_string(value: Any) -> str | None:
     return value or None
 
 
+def clean_count(value: Any) -> int | None:
+    """
+    Convert a scraped chapter/view count into a clean non-negative int.
+
+    Every scraper (royalroad.py, webnovel.py, wattpad.py) already parses
+    these as plain ints when it can find them, but this stays defensive
+    against None, numeric strings, floats, or a negative/garbage value
+    slipping through -- novels.chapter_count and novels.view_count are
+    both nullable, so "we don't know" is represented as None rather than
+    a misleading 0.
+    """
+
+    if value is None:
+        return None
+
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return None
+
+    return number if number >= 0 else None
+
+
 def normalize_status(value: Any) -> str:
     """
     Normalize a source status to an Axiom status.
@@ -149,6 +172,14 @@ def transform_royalroad(payload: dict) -> dict:
         payload.get("tags")
     )
 
+    chapter_count = clean_count(
+        payload.get("chapter_count")
+    )
+
+    view_count = clean_count(
+        payload.get("view_count")
+    )
+
     reading_links = normalize_reading_links(
         source=payload.get("source"),
         reading_url=clean_string(
@@ -163,6 +194,8 @@ def transform_royalroad(payload: dict) -> dict:
         "synopsis": synopsis,
         "status": status,
         "genres": genres,
+        "chapter_count": chapter_count,
+        "view_count": view_count,
         "reading_links": reading_links,
     }
 
@@ -204,6 +237,14 @@ def transform_wattpad(payload: dict) -> dict:
         payload.get("tags")
     )
 
+    chapter_count = clean_count(
+        payload.get("chapter_count")
+    )
+
+    view_count = clean_count(
+        payload.get("view_count")
+    )
+
     reading_links = normalize_reading_links(
         source=payload.get("source"),
         reading_url=clean_string(
@@ -218,6 +259,8 @@ def transform_wattpad(payload: dict) -> dict:
         "synopsis": synopsis,
         "status": status,
         "genres": genres,
+        "chapter_count": chapter_count,
+        "view_count": view_count,
         "reading_links": reading_links,
     }
 
@@ -259,6 +302,14 @@ def transform_webnovel(payload: dict) -> dict:
         payload.get("tags")
     )
 
+    chapter_count = clean_count(
+        payload.get("chapter_count")
+    )
+
+    view_count = clean_count(
+        payload.get("view_count")
+    )
+
     reading_links = normalize_reading_links(
         source=payload.get("source"),
         reading_url=clean_string(
@@ -273,6 +324,8 @@ def transform_webnovel(payload: dict) -> dict:
         "synopsis": synopsis,
         "status": status,
         "genres": genres,
+        "chapter_count": chapter_count,
+        "view_count": view_count,
         "reading_links": reading_links,
     }
 

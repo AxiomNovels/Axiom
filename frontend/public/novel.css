@@ -151,6 +151,26 @@
   margin-top: 0.25rem;
 }
 
+.novel-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-height: 0;
+  margin-top: 0.6rem;
+}
+
+.novel-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .novel-status-badge {
   display: inline-block;
   text-transform: capitalize;

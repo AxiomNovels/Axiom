@@ -14,51 +14,6 @@ URLS = [
   "https://www.wattpad.com/story/246002648",
   "https://www.wattpad.com/story/192690761",
   "https://www.wattpad.com/story/254314754",
-  "https://www.wattpad.com/story/392848764",
-  "https://www.wattpad.com/story/89141665",
-  "https://www.wattpad.com/story/120255658-cognitive-deviance",
-  "https://www.wattpad.com/story/210056770",
-  "https://www.wattpad.com/story/177895996",
-  "https://www.wattpad.com/story/276427858",
-  "https://www.wattpad.com/story/283980611",
-  "https://www.wattpad.com/story/124816840",
-  "https://www.wattpad.com/story/350925259",
-  "https://www.wattpad.com/story/133085783",
-  "https://www.wattpad.com/story/278770795-the-university-of-gangsters",
-  "https://www.wattpad.com/story/212695496",
-  "https://www.wattpad.com/story/394887764",
-  "https://www.wattpad.com/story/333100433",
-  "https://www.wattpad.com/story/72534980",
-  "https://www.wattpad.com/story/50519321",
-  "https://www.wattpad.com/story/139779570",
-  "https://www.wattpad.com/story/3169587",
-  "https://www.wattpad.com/story/69648678",
-  "https://www.wattpad.com/story/38446006",
-  "https://www.wattpad.com/story/126462571",
-  "https://www.wattpad.com/story/343606089",
-  "https://www.wattpad.com/story/411669919-the-monster-she-calmed",
-  "https://www.wattpad.com/story/311006502",
-  "https://www.wattpad.com/story/17572328",
-  "https://www.wattpad.com/story/112634081-tales-of-the-pearly-city-pearly-tales-vol-1",
-  "https://www.wattpad.com/story/228962490",
-  "https://www.wattpad.com/story/26538982",
-  "https://www.wattpad.com/story/5971819-my-perfect-bride",
-  "https://www.wattpad.com/story/408146181",
-  "https://www.wattpad.com/story/231112966",
-  "https://www.wattpad.com/story/337320320",
-  "https://www.wattpad.com/story/266012174",
-  "https://www.wattpad.com/story/95059501",
-  "https://www.wattpad.com/story/35650795",
-  "https://www.wattpad.com/story/150504152",
-  "https://www.wattpad.com/story/189297945",
-  "https://www.wattpad.com/story/19230171",
-  "https://www.wattpad.com/story/353325140-dead-man%27s-match",
-  "https://www.wattpad.com/story/145519856",
-  "https://www.wattpad.com/story/354353384",
-  "https://www.wattpad.com/story/65343138",
-  "https://www.wattpad.com/story/393915235",
-  "https://www.wattpad.com/story/356017567",
-  "https://www.wattpad.com/story/220648404"
 ]
 
 
@@ -111,6 +66,8 @@ def main():
         print(f"  author:            {novel['author']}")
         print(f"  story_id:          {novel['story_id']}")
         print(f"  status:            {novel['status']}")
+        print(f"  chapter_count:      {novel['chapter_count']}")
+        print(f"  view_count:         {novel['view_count']}")
         print(f"  tags:               {novel['tags']}")
         print(
             f"  cover_image_url:    "
