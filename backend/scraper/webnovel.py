@@ -514,6 +514,178 @@ def extract_tags_from_gdata(
 
     return []
 
+def extract_genres_from_jsonld(
+    soup: BeautifulSoup,
+) -> list[str]:
+    """
+    Extract genres from WebNovel's JSON-LD.
+
+    WebNovel's JSON-LD can be malformed because review text may
+    contain invalid control characters. Therefore, do NOT attempt
+    to json.loads() the entire script.
+
+    The JSON-LD genre field may be either:
+
+        "genre": "Anime &amp; Comics"
+
+    or:
+
+        "genre": [
+            "Action",
+            "Fantasy"
+        ]
+
+    Always return a normalized list[str].
+    """
+
+    genres = []
+
+    for script in soup.find_all(
+        "script",
+        attrs={
+            "type": "application/ld+json"
+        },
+    ):
+        text = script.get_text()
+
+        if not text:
+            continue
+
+        # -----------------------------------------------------
+        # Find the "genre" property.
+        #
+        # We deliberately only look at the genre property rather
+        # than parsing the entire JSON-LD document.
+        # -----------------------------------------------------
+
+        match = re.search(
+            r'"genre"\s*:\s*('
+            r'"(?:\\.|[^"\\])*"'
+            r'|'
+            r'\[(?:.|\n)*?\]'
+            r')',
+            text,
+        )
+
+        if not match:
+            continue
+
+        value = match.group(1).strip()
+
+        # -----------------------------------------------------
+        # Genre is a JSON string.
+        # -----------------------------------------------------
+
+        if value.startswith('"'):
+
+            genre_match = re.match(
+                r'"((?:\\.|[^"\\])*)"',
+                value,
+            )
+
+            if genre_match:
+                genre = genre_match.group(1)
+
+                genre = clean_jsonld_string(
+                    genre
+                )
+
+                if genre:
+                    genres.append(
+                        genre
+                    )
+
+        # -----------------------------------------------------
+        # Genre is a JSON array.
+        #
+        # Example:
+        #
+        # "genre": [
+        #     "Action",
+        #     "Fantasy"
+        # ]
+        # -----------------------------------------------------
+
+        elif value.startswith("["):
+
+            genre_matches = re.findall(
+                r'"((?:\\.|[^"\\])*)"',
+                value,
+            )
+
+            for genre in genre_matches:
+
+                genre = clean_jsonld_string(
+                    genre
+                )
+
+                if genre:
+                    genres.append(
+                        genre
+                    )
+
+        # -----------------------------------------------------
+        # Remove duplicates while preserving order.
+        # -----------------------------------------------------
+
+        cleaned = []
+
+        for genre in genres:
+
+            if genre not in cleaned:
+                cleaned.append(
+                    genre
+                )
+
+        if cleaned:
+            return cleaned
+
+    return []
+
+
+def clean_jsonld_string(
+    value: str | None,
+) -> str | None:
+    """
+    Clean a string extracted from malformed WebNovel JSON-LD.
+
+    Handles HTML entities such as:
+
+        Anime &amp; Comics
+
+    and WebNovel-style escaping.
+    """
+
+    if not value:
+        return None
+
+    # WebNovel sometimes contains escaped whitespace.
+    value = re.sub(
+        r"\\(?=\s)",
+        "",
+        value,
+    )
+
+    value = value.replace(
+        "\\'",
+        "'",
+    )
+
+    value = value.replace(
+        '\\"',
+        '"',
+    )
+
+    # Decode HTML entities such as &amp;.
+    from html import unescape
+
+    value = unescape(
+        value
+    )
+
+    return clean_text(
+        value
+    )
 
 def extract_title(
     soup: BeautifulSoup,
@@ -938,6 +1110,16 @@ def extract_tags(
         soup
     )
 
+def extract_genres(
+    soup: BeautifulSoup,
+) -> list[str]:
+    """
+    Extract WebNovel genres from g_data.book.bookInfo.
+    """
+
+    return extract_genres_from_jsonld(
+        soup
+    )
 
 def extract_cover(
     soup: BeautifulSoup,
@@ -1366,39 +1548,9 @@ def parse_webnovel(
     title = extract_title(soup)
     author = extract_author(soup)
     status = extract_status(soup)
-    print()
-    print("=" * 70)
-    print("TAG DEBUG")
-    print("=" * 70)
-
-    for script_index, script in enumerate(
-        soup.find_all("script")
-    ):
-        text = script.get_text()
-
-        if not text:
-            continue
-
-        if "g_data.book" not in text:
-            continue
-
-        print(
-            f"\nSCRIPT #{script_index}"
-        )
-
-        for keyword in [
-            "tagInfos",
-            "enTagName",
-            '"tags"',
-            "tagName",
-            "tagList",
-        ]:
-            print(
-                f"  {keyword}: "
-                f"{keyword in text}"
-            )
 
     tags = extract_tags(soup)
+    genres = extract_genres(soup)
     synopsis = extract_synopsis(soup)
     cover_image_url = extract_cover(
         soup,
@@ -1417,6 +1569,7 @@ def parse_webnovel(
         "title": title,
         "author": author,
         "status": status,
+        "genres": genres,
         "tags": tags,
         "synopsis": synopsis,
         "cover_image_url": cover_image_url,

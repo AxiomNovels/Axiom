@@ -79,6 +79,7 @@ def clean_text(node) -> str | None:
 
     return text.strip() or None
 
+
 def clean_synopsis(
     node: HTMLParser,
 ) -> str | None:
@@ -117,6 +118,7 @@ def clean_synopsis(
     return "\n\n".join(
         paragraphs
     ) or None
+
 
 def extract_remix_context(
     tree: HTMLParser,
@@ -164,6 +166,7 @@ def extract_remix_context(
 
     return None
 
+
 def find_story_data(
     value,
 ) -> dict | None:
@@ -197,6 +200,7 @@ def find_story_data(
                 return result
 
     return None
+
 
 def extract_remix_story_data(
     tree: HTMLParser,
@@ -300,80 +304,381 @@ def extract_author(
 
     return author
 
-def debug_cover_candidates(
+
+def extract_jsonld_data(
     tree: HTMLParser,
-    title: str,
-) -> None:
-    print()
-    print("=" * 70)
-    print("COVER IMAGE CANDIDATES")
-    print("=" * 70)
+) -> list:
+    """
+    Extract JSON-LD objects from the page.
 
-    print("\nALL IMAGES:")
+    Wattpad may expose structured story metadata through
+    application/ld+json scripts.
+    """
 
-    images = tree.css("img")
+    results = []
 
-    print("Found:", len(images))
+    for script in tree.css(
+        "script[type='application/ld+json']"
+    ):
+        text = script.text()
 
-    for index, image in enumerate(images):
-        src = image.attributes.get("src")
-        srcset = image.attributes.get("srcset")
-        alt = image.attributes.get("alt")
-        width = image.attributes.get("width")
-        height = image.attributes.get("height")
+        if not text:
+            continue
 
-        print()
-        print(f"IMAGE #{index}")
-        print("ALT:", alt)
-        print("SRC:", src)
-        print("SRCSET:", srcset)
-        print("WIDTH:", width)
-        print("HEIGHT:", height)
-        print("ATTRIBUTES:", image.attributes)
+        text = text.strip()
 
-def debug_synopsis_candidates(
-    tree: HTMLParser,
-) -> None:
-    print()
-    print("=" * 70)
-    print("SYNOPSIS CANDIDATES")
-    print("=" * 70)
+        if not text:
+            continue
 
-    # Look for elements containing the description meta text.
-    meta = tree.css_first(
-        "meta[name='description']"
+        try:
+            data = json.loads(text)
+
+        except json.JSONDecodeError:
+            # Some sites contain malformed JSON-LD.
+            # Ignore it and continue searching other scripts.
+            continue
+
+        if isinstance(data, list):
+            results.extend(data)
+
+        else:
+            results.append(data)
+
+    return results
+
+
+def find_genre_values(
+    value,
+) -> list[str]:
+    """
+    Recursively find genre/category values inside structured data.
+    """
+
+    genres = []
+
+    if isinstance(value, dict):
+
+        for key, child in value.items():
+
+            key_lower = key.lower()
+
+            if key_lower in {
+                "genre",
+                "genres",
+            }:
+
+                if isinstance(child, str):
+
+                    child = child.strip()
+
+                    if child:
+                        genres.append(child)
+
+                elif isinstance(child, list):
+
+                    for item in child:
+
+                        if isinstance(item, str):
+
+                            item = item.strip()
+
+                            if item:
+                                genres.append(item)
+
+            # Continue recursively through nested data.
+            genres.extend(
+                find_genre_values(child)
+            )
+
+    elif isinstance(value, list):
+
+        for child in value:
+
+            genres.extend(
+                find_genre_values(child)
+            )
+
+    return genres
+
+
+def normalize_genre_value(
+    value: str,
+) -> str | None:
+    """
+    Normalize a single Wattpad genre value.
+
+    Wattpad JSON-LD may expose genres as URLs such as:
+
+        https://www.wattpad.com/stories/fantasy
+
+    Convert those URLs into human-readable genre names:
+
+        Fantasy
+
+    Plain genre strings are preserved.
+    """
+
+    if not value:
+        return None
+
+    value = str(value).strip()
+
+    if not value:
+        return None
+
+    # ---------------------------------------------------------
+    # Wattpad genre URL
+    # ---------------------------------------------------------
+
+    match = re.match(
+        r"^https?://(?:www\.)?wattpad\.com/stories/([^/?#]+)/?$",
+        value,
+        flags=re.IGNORECASE,
     )
 
-    meta_text = None
+    if match:
+        slug = match.group(1)
+
+        # Convert:
+        #
+        # dark-fantasy -> Dark Fantasy
+        # science-fiction -> Science Fiction
+        # young-adult -> Young Adult
+        #
+        # Preserve normal capitalization through title().
+        genre = re.sub(
+            r"[-_]+",
+            " ",
+            slug,
+        )
+
+        genre = genre.strip()
+
+        if not genre:
+            return None
+
+        return genre.title()
+
+    # ---------------------------------------------------------
+    # Plain genre value
+    # ---------------------------------------------------------
+
+    value = value.replace(
+        "&amp;",
+        "&",
+    )
+
+    value = value.replace(
+        "&#39;",
+        "'",
+    )
+
+    value = value.replace(
+        "&quot;",
+        '"',
+    )
+
+    return value.strip() or None
+
+
+def normalize_genres(
+    genres,
+) -> list[str]:
+    """
+    Normalize and deduplicate Wattpad genre values while
+    preserving their original order.
+    """
+
+    normalized = []
+
+    for genre in genres:
+
+        if genre is None:
+            continue
+
+        genre = normalize_genre_value(
+            str(genre)
+        )
+
+        if not genre:
+            continue
+
+        # Case-insensitive duplicate detection.
+        if any(
+            existing.lower() == genre.lower()
+            for existing in normalized
+        ):
+            continue
+
+        normalized.append(genre)
+
+    return normalized
+
+
+def extract_genres_from_jsonld(
+    tree: HTMLParser,
+) -> list[str]:
+    """
+    Extract genres from Wattpad's JSON-LD structured data.
+    """
+
+    jsonld_objects = extract_jsonld_data(tree)
+
+    genres = []
+
+    for obj in jsonld_objects:
+        genres.extend(
+            find_genre_values(obj)
+        )
+
+    return normalize_genres(genres)
+
+
+def extract_genres(
+    tree: HTMLParser,
+    remix_story: dict | None = None,
+) -> list[str]:
+    """
+    Extract Wattpad story genres/categories.
+
+    Extraction order:
+
+        1. JSON-LD structured data
+        2. Remix story data
+        3. meta[name='genre']
+        4. meta[property='article:section']
+        5. Other genre/category metadata
+
+    Tags are intentionally NOT treated as genres.
+    """
+
+    genres = []
+
+    # ---------------------------------------------------------
+    # 1. JSON-LD
+    # ---------------------------------------------------------
+
+    genres.extend(
+        extract_genres_from_jsonld(tree)
+    )
+
+    if genres:
+        return normalize_genres(genres)
+
+    # ---------------------------------------------------------
+    # 2. Remix story data
+    # ---------------------------------------------------------
+
+    if remix_story:
+
+        for key in (
+            "genre",
+            "genres",
+            "category",
+            "categories",
+        ):
+
+            value = remix_story.get(key)
+
+            if isinstance(value, str):
+
+                value = value.strip()
+
+                if value:
+                    genres.append(value)
+
+            elif isinstance(value, list):
+
+                for item in value:
+
+                    if isinstance(item, str):
+                        item = item.strip()
+
+                        if item:
+                            genres.append(item)
+
+        genres = normalize_genres(genres)
+
+        if genres:
+            return genres
+
+    # ---------------------------------------------------------
+    # 3. Explicit genre meta tag
+    # ---------------------------------------------------------
+
+    meta = tree.css_first(
+        "meta[name='genre']"
+    )
 
     if meta:
-        meta_text = (
-            meta.attributes.get("content") or ""
+
+        content = (
+            meta.attributes.get("content")
+            or ""
         ).strip()
 
-    print("\nMETA DESCRIPTION:")
-    print(meta_text)
+        if content:
+            genres.extend(
+                re.split(
+                    r"\s*,\s*",
+                    content,
+                )
+            )
 
-    print("\nELEMENTS CONTAINING META DESCRIPTION TEXT:")
+    genres = normalize_genres(genres)
 
-    if meta_text:
-        # Use a reasonably distinctive portion of the
-        # description to search the DOM.
-        search_text = meta_text[:80]
+    if genres:
+        return genres
 
-        for index, node in enumerate(tree.css("*")):
+    # ---------------------------------------------------------
+    # 4. Article section
+    # ---------------------------------------------------------
+
+    meta = tree.css_first(
+        "meta[property='article:section']"
+    )
+
+    if meta:
+
+        content = (
+            meta.attributes.get("content")
+            or ""
+        ).strip()
+
+        if content:
+            genres.append(content)
+
+    genres = normalize_genres(genres)
+
+    if genres:
+        return genres
+
+    # ---------------------------------------------------------
+    # 5. Generic genre/category attributes
+    # ---------------------------------------------------------
+
+    selectors = [
+        "[data-testid*='genre']",
+        "[data-testid*='category']",
+        "[class*='genre']",
+        "[class*='Genre']",
+        "[class*='category']",
+        "[class*='Category']",
+    ]
+
+    for selector in selectors:
+
+        for node in tree.css(selector):
+
             text = clean_text(node)
 
-            if not text:
-                continue
+            if text:
+                genres.append(text)
 
-            if search_text.lower() in text.lower():
-                print()
-                print(f"CANDIDATE #{index}")
-                print("TAG:", node.tag)
-                print("TEXT:", text[:3000])
-                print("ATTRIBUTES:", node.attributes)
-                print("HTML:", node.html[:3000])
+    return normalize_genres(
+        genres
+    )
+
 
 def extract_synopsis(
     tree: HTMLParser,
@@ -610,9 +915,11 @@ def parse_wattpad(
     Parse a Wattpad story page into normalized source data.
 
     Wattpad embeds structured story metadata in its Remix
-    context. That data is preferred over DOM scraping because
-    it provides the actual story record rather than text from
-    related/recommended stories.
+    context. That data is preferred over DOM scraping.
+
+    Genre extraction is performed independently because genre
+    information may exist in JSON-LD or page metadata even when
+    the Remix story record does not contain it.
     """
 
     tree = HTMLParser(html)
@@ -625,7 +932,9 @@ def parse_wattpad(
     # Primary extraction: embedded Remix story data
     # ---------------------------------------------------------
 
-    remix_story = extract_remix_story_data(tree)
+    remix_story = extract_remix_story_data(
+        tree
+    )
 
     if remix_story:
 
@@ -641,49 +950,55 @@ def parse_wattpad(
             "reading_url"
         )
 
-        # Make sure story_id is an integer when possible.
-        remix_story_id = remix_story.get("story_id")
+        remix_story_id = remix_story.get(
+            "story_id"
+        )
 
         if remix_story_id:
+
             try:
-                story_id = int(remix_story_id)
-            except (TypeError, ValueError):
+                story_id = int(
+                    remix_story_id
+                )
+
+            except (
+                TypeError,
+                ValueError,
+            ):
                 pass
 
-        return {
-            "source": "wattpad",
-            "source_url": source_url,
-            "story_id": story_id,
-            "title": title,
-            "author": author,
-            "status": status,
-            "tags": tags,
-            "synopsis": synopsis,
-            "cover_image_url": cover_image_url,
-            "reading_url": reading_url,
-        }
+    else:
+
+        # -----------------------------------------------------
+        # DOM fallback
+        # -----------------------------------------------------
+
+        images = tree.css("img")
+
+        title = extract_title(tree)
+        author = extract_author(tree)
+        status = extract_status(tree)
+        tags = extract_tags(tree)
+        synopsis = extract_synopsis(tree)
+
+        cover_image_url = extract_cover(
+            images,
+            story_id=story_id,
+            title=title,
+        )
+
+        reading_url = extract_reading_url(
+            tree,
+            source_url,
+        )
 
     # ---------------------------------------------------------
-    # Fallback: existing DOM extraction
+    # Genre extraction is independent of the above path.
     # ---------------------------------------------------------
 
-    images = tree.css("img")
-
-    title = extract_title(tree)
-    author = extract_author(tree)
-    status = extract_status(tree)
-    tags = extract_tags(tree)
-    synopsis = extract_synopsis(tree)
-
-    cover_image_url = extract_cover(
-        images,
-        story_id=story_id,
-        title=title,
-    )
-
-    reading_url = extract_reading_url(
+    genres = extract_genres(
         tree,
-        source_url,
+        remix_story=remix_story,
     )
 
     return {
@@ -693,6 +1008,7 @@ def parse_wattpad(
         "title": title,
         "author": author,
         "status": status,
+        "genres": genres,
         "tags": tags,
         "synopsis": synopsis,
         "cover_image_url": cover_image_url,
@@ -760,11 +1076,12 @@ if __name__ == "__main__":
     urls = [
         "https://www.wattpad.com/story/"
         "150854149-reincarnated-as-a-demon%27s-wife",
+
         "https://www.wattpad.com/story/"
         "399857198-saanvi-daughter-of-vaikuntha",
-        "https://www.wattpad.com/story/"
-        "414644283-the-villainess-who-only-wished-for-her-cat%27s",
 
+        "https://www.wattpad.com/story/"
+        "248229220-bound-to-earth",
     ]
 
     novels = scrape_wattpad_many(urls)
@@ -773,6 +1090,7 @@ if __name__ == "__main__":
     print("=" * 70)
     print("SCRAPING COMPLETE")
     print("=" * 70)
+
     print(f"Successfully scraped: {len(novels)}")
     print(f"Failed:               {len(urls) - len(novels)}")
 
@@ -781,5 +1099,8 @@ if __name__ == "__main__":
         print("-" * 70)
         print(f"Title:    {novel['title']}")
         print(f"Author:   {novel['author']}")
-        print(f"ID:       {novel['story_id']}")
-        print(f"Synopsis: {novel['synopsis']}")
+        print(f"ID:       {novel.get('story_id')}")
+        print(f"Status:   {novel.get('status')}")
+        print(f"Genres:   {novel.get('genres')}")
+        print(f"Tags:     {novel.get('tags')}")
+        print(f"Synopsis: {novel.get('synopsis')}")

@@ -1,5 +1,5 @@
 import re
-from urllib.parse import urljoin
+from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
 from selectolax.parser import HTMLParser
@@ -7,13 +7,11 @@ from selectolax.parser import HTMLParser
 
 BASE_URL = "https://www.royalroad.com"
 
-
 HEADERS = {
-    "User-Agent": "Axiom-catalog-research/0.1 (personal project)",
+    "User-Agent": "Axiom-catalog-research/0.2 (personal project)",
     "Accept": "text/html,application/xhtml+xml",
     "Accept-Language": "en-US,en;q=0.9",
 }
-
 
 STATUS_MAP = {
     "ONGOING": "ongoing",
@@ -23,6 +21,24 @@ STATUS_MAP = {
     "STUB": "stub",
 }
 
+ROYAL_ROAD_GENRES = (
+    "Action",
+    "Adventure",
+    "Comedy",
+    "Contemporary",
+    "Drama",
+    "Fantasy",
+    "Historical",
+    "Horror",
+    "Mystery",
+    "Psychological",
+    "Romance",
+    "Satire",
+    "Sci-fi",
+    "Short Story",
+    "Tragedy",
+    "Thriller",
+)
 
 PROMOTIONAL_KEYWORDS = (
     "available on amazon",
@@ -31,6 +47,7 @@ PROMOTIONAL_KEYWORDS = (
     "buy the book",
     "audiobook",
     "kindle edition",
+    "kindle unlimited",
     "kickstarter",
     "patreon",
     "paypal",
@@ -39,75 +56,16 @@ PROMOTIONAL_KEYWORDS = (
     "cover by",
 )
 
-
-def normalize_url(
-    url: str,
-) -> str:
-    """
-    Normalize a Royal Road fiction URL.
-
-    Removes surrounding whitespace and ensures the URL
-    points to Royal Road.
-    """
-
-    value = str(url).strip()
-
-    if not value:
-        raise ValueError(
-            "Royal Road URL cannot be empty."
-        )
-
-    if "royalroad.com" not in value.lower():
-        raise ValueError(
-            f"Could not understand Royal Road URL: {value}"
-        )
-
-    return value
+COMMERCIAL_DOMAINS = (
+    "amazon.",
+    "audible.",
+    "patreon.",
+    "kickstarter.",
+    "paypal.",
+)
 
 
-def fetch(
-    url: str,
-) -> str:
-    """
-    Fetch a public Royal Road page and return its HTML.
-    """
-
-    response = httpx.get(
-        url,
-        headers=HEADERS,
-        follow_redirects=True,
-        timeout=20,
-    )
-
-    response.raise_for_status()
-
-    content_type = response.headers.get(
-        "content-type",
-        "",
-    )
-
-    if (
-        "text/html"
-        not in content_type.lower()
-    ):
-        raise ValueError(
-            "Expected HTML from Royal Road, got: "
-            f"{content_type}"
-        )
-
-    return response.text
-
-
-def clean_text(
-    node,
-) -> str | None:
-    """
-    Normalize whitespace in a Selectolax node.
-
-    This is intended for short fields such as titles,
-    authors, tags, and status labels.
-    """
-
+def clean_text(node) -> str | None:
     if node is None:
         return None
 
@@ -116,28 +74,329 @@ def clean_text(
         strip=True,
     )
 
-    text = re.sub(
-        r"\s+",
-        " ",
-        text,
-    )
+    text = re.sub(r"\s+", " ", text)
 
     return text.strip() or None
 
 
-def clean_synopsis_node(
-    node,
+def absolute_url(url: str | None) -> str | None:
+    if not url:
+        return None
+
+    return urljoin(BASE_URL, url)
+
+
+def extract_fiction_id(source_url: str) -> int:
+    match = re.search(
+        r"/fiction/(\d+)",
+        source_url,
+        re.IGNORECASE,
+    )
+
+    if not match:
+        raise ValueError(
+            f"Could not extract Royal Road fiction ID from: {source_url}"
+        )
+
+    return int(match.group(1))
+
+
+def normalize_url(url: str) -> str:
+    value = str(url).strip()
+
+    if not value:
+        raise ValueError("Royal Road URL cannot be empty.")
+
+    parsed = urlparse(value)
+
+    if parsed.scheme not in {"http", "https"}:
+        raise ValueError(f"Invalid Royal Road URL scheme: {value}")
+
+    if (parsed.hostname or "").lower() not in {
+        "royalroad.com",
+        "www.royalroad.com",
+    }:
+        raise ValueError(
+            f"URL is not a Royal Road fiction URL: {value}"
+        )
+
+    fiction_id = extract_fiction_id(value)
+
+    match = re.search(
+        r"/fiction/\d+(?:/([^/?#]+))?",
+        parsed.path,
+        re.IGNORECASE,
+    )
+
+    slug = match.group(1) if match else None
+
+    path = f"/fiction/{fiction_id}"
+
+    if slug:
+        path += f"/{slug}"
+
+    return urljoin(BASE_URL, path)
+
+
+def fetch(url: str) -> str:
+    with httpx.Client(
+        headers=HEADERS,
+        follow_redirects=True,
+        timeout=20,
+    ) as client:
+        response = client.get(url)
+        response.raise_for_status()
+
+    content_type = response.headers.get("content-type", "")
+
+    if "text/html" not in content_type.lower():
+        raise ValueError(
+            f"Expected HTML from Royal Road, got: {content_type}"
+        )
+
+    return response.text
+
+
+def extract_title(tree: HTMLParser) -> str:
+    for node in (
+        tree.css_first("h1"),
+        tree.css_first("meta[property='og:title']"),
+        tree.css_first("title"),
+    ):
+        if node is None:
+            continue
+
+        if node.tag == "meta":
+            title = node.attributes.get("content")
+        else:
+            title = clean_text(node)
+
+        if not title:
+            continue
+
+        title = re.sub(
+            r"\s*\|\s*Royal Road\s*$",
+            "",
+            title,
+            flags=re.IGNORECASE,
+        ).strip()
+
+        if title:
+            return title
+
+    raise ValueError(
+        "Could not find Royal Road fiction title"
+    )
+
+
+def extract_author(tree: HTMLParser) -> str:
+    for selector in (
+        "h4 a[href*='/profile/']",
+        "h3 a[href*='/profile/']",
+        "a[href*='/profile/']",
+    ):
+        for node in tree.css(selector):
+            author = clean_text(node)
+
+            if author:
+                return author
+
+    raise ValueError(
+        "Could not find Royal Road author"
+    )
+
+
+def extract_cover(
+    tree: HTMLParser,
+    title: str,
 ) -> str | None:
-    """
-    Extract text from a Selectolax node while preserving
-    paragraph boundaries.
+    title_casefold = title.casefold()
+    partial_match = None
 
-    Whitespace inside each paragraph is normalized, while
-    separate paragraphs remain separated by a blank line.
-    """
+    for image in tree.css("img"):
+        alt = image.attributes.get("alt", "").strip()
 
+        src = (
+            image.attributes.get("src")
+            or image.attributes.get("data-src")
+            or image.attributes.get("data-original")
+        )
+
+        if not src:
+            continue
+
+        url = absolute_url(src)
+
+        if not url:
+            continue
+
+        if alt.casefold() == title_casefold:
+            return url
+
+        if (
+            partial_match is None
+            and alt
+            and title_casefold in alt.casefold()
+        ):
+            partial_match = url
+
+    og_image = tree.css_first(
+        "meta[property='og:image']"
+    )
+
+    if og_image is not None:
+        url = absolute_url(
+            og_image.attributes.get("content")
+        )
+
+        if url:
+            return url
+
+    for image in tree.css("img"):
+        src = (
+            image.attributes.get("src")
+            or image.attributes.get("data-src")
+            or image.attributes.get("data-original")
+        )
+
+        if not src:
+            continue
+
+        url = absolute_url(src)
+
+        if (
+            url
+            and "royalroadcdn.com" in url.lower()
+            and "/covers-" in url.lower()
+        ):
+            return url
+
+    return partial_match
+
+
+def extract_status(tree: HTMLParser) -> str | None:
+    for node in tree.css("span.label, .label"):
+        text = clean_text(node)
+
+        if not text:
+            continue
+
+        status = STATUS_MAP.get(text.upper())
+
+        if status:
+            return status
+
+    for node in tree.css("div, span, p, li"):
+        text = clean_text(node)
+
+        if not text or len(text) > 250:
+            continue
+
+        match = re.search(
+            r"\b(ONGOING|COMPLETED|HIATUS|DROPPED|STUB)\b",
+            text,
+            re.IGNORECASE,
+        )
+
+        if match:
+            return STATUS_MAP.get(
+                match.group(1).upper()
+            )
+
+    return None
+
+
+def extract_tag_links(tree: HTMLParser) -> list[str]:
+    tags = []
+
+    for node in tree.css("a"):
+        href = node.attributes.get("href", "")
+
+        if not href:
+            continue
+
+        params = parse_qs(urlparse(href).query)
+
+        if not any(
+            key.casefold() == "tagsadd"
+            for key in params
+        ):
+            continue
+
+        text = clean_text(node)
+
+        if text and text not in tags:
+            tags.append(text)
+
+    return tags
+
+
+def extract_genres(tree: HTMLParser) -> list[str]:
+    genre_lookup = {
+        genre.casefold(): genre
+        for genre in ROYAL_ROAD_GENRES
+    }
+
+    genres = []
+
+    for tag in extract_tag_links(tree):
+        genre = genre_lookup.get(tag.casefold())
+
+        if genre and genre not in genres:
+            genres.append(genre)
+
+    return genres
+
+
+def extract_tags(tree: HTMLParser) -> list[str]:
+    genre_names = {
+        genre.casefold()
+        for genre in ROYAL_ROAD_GENRES
+    }
+
+    tags = []
+
+    for tag in extract_tag_links(tree):
+        if tag.casefold() in genre_names:
+            continue
+
+        if tag not in tags:
+            tags.append(tag)
+
+    return tags
+
+
+def extract_description_node(tree: HTMLParser):
+    for selector in (
+        "div.description",
+        ".description",
+        "[class*='description']",
+    ):
+        node = tree.css_first(selector)
+
+        if node is not None:
+            return node
+
+    return None
+
+
+def clean_synopsis_node(node) -> str | None:
     if node is None:
         return None
+
+    paragraphs = node.css("p")
+
+    if paragraphs:
+        parts = []
+
+        for paragraph in paragraphs:
+            text = clean_text(paragraph)
+
+            if text:
+                parts.append(text)
+
+        if parts:
+            return "\n\n".join(parts)
 
     text = node.text(
         separator="\n",
@@ -147,12 +406,9 @@ def clean_synopsis_node(
     if not text:
         return None
 
-    paragraphs = []
+    parts = []
 
-    for paragraph in re.split(
-        r"\n+",
-        text,
-    ):
+    for paragraph in re.split(r"\n+", text):
         paragraph = re.sub(
             r"\s+",
             " ",
@@ -160,496 +416,120 @@ def clean_synopsis_node(
         ).strip()
 
         if paragraph:
-            paragraphs.append(
-                paragraph
-            )
+            parts.append(paragraph)
 
-    return "\n\n".join(
-        paragraphs
-    ) or None
+    return "\n\n".join(parts) or None
 
 
-def absolute_url(
-    url: str | None,
-) -> str | None:
-    """
-    Convert a relative URL into an absolute URL.
-    """
+def is_description_separator(text: str) -> bool:
+    text = text.strip()
 
-    if not url:
-        return None
-
-    return urljoin(
-        BASE_URL,
-        url,
-    )
-
-
-def extract_fiction_id(
-    source_url: str,
-) -> int:
-    """
-    Extract the numeric Royal Road fiction ID.
-    """
-
-    match = re.search(
-        r"/fiction/(\d+)",
-        source_url,
-    )
-
-    if not match:
-        raise ValueError(
-            "Could not extract Royal Road fiction ID "
-            f"from: {source_url}"
-        )
-
-    return int(
-        match.group(1)
-    )
-
-
-def extract_title(
-    tree: HTMLParser,
-) -> str:
-    """
-    Extract the fiction title.
-    """
-
-    title_node = tree.css_first(
-        "h1"
-    )
-
-    title = clean_text(
-        title_node
-    )
-
-    if not title:
-        raise ValueError(
-            "Could not find Royal Road fiction title"
-        )
-
-    return title
-
-
-def extract_author(
-    tree: HTMLParser,
-) -> str:
-    """
-    Extract the author's Royal Road username.
-    """
-
-    author_node = tree.css_first(
-        "h4 a[href*='/profile/']"
-    )
-
-    author = clean_text(
-        author_node
-    )
-
-    if not author:
-        raise ValueError(
-            "Could not find Royal Road author"
-        )
-
-    return author
-
-
-def extract_cover(
-    tree: HTMLParser,
-    title: str,
-) -> str | None:
-    """
-    Extract the fiction cover URL.
-
-    Prefer an image whose alt text exactly matches
-    the fiction title.
-    """
-
-    for image in tree.css(
-        "img"
-    ):
-        alt = (
-            image.attributes.get(
-                "alt",
-                "",
-            ).strip()
-        )
-
-        if alt.lower() == title.lower():
-
-            src = image.attributes.get(
-                "src"
-            )
-
-            if src:
-                return absolute_url(
-                    src
-                )
-
-    # Fallback: partial title match.
-    for image in tree.css(
-        "img"
-    ):
-        alt = (
-            image.attributes.get(
-                "alt",
-                "",
-            ).strip()
-        )
-
-        if title.lower() in alt.lower():
-
-            src = image.attributes.get(
-                "src"
-            )
-
-            if src:
-                return absolute_url(
-                    src
-                )
-
-    return None
-
-
-def extract_status(
-    tree: HTMLParser,
-) -> str | None:
-    """
-    Extract the Royal Road fiction status.
-
-    Status is useful metadata but should not make the entire scrape fail.
-    Royal Road pages may omit the expected status label or present a label
-    not represented in STATUS_MAP.
-
-    Returns a normalized status when recognized, otherwise None.
-    """
-
-    for node in tree.css(
-        "span.label.label-default."
-        "label-sm.bg-blue-hoki"
-    ):
-        text = clean_text(node)
-
-        if not text:
-            continue
-
-        normalized = text.upper()
-
-        if normalized in STATUS_MAP:
-            return STATUS_MAP[normalized]
-
-    # Broader fallback: inspect all label elements.
-    for node in tree.css(
-        "span.label"
-    ):
-        text = clean_text(node)
-
-        if not text:
-            continue
-
-        normalized = text.upper()
-
-        if normalized in STATUS_MAP:
-            return STATUS_MAP[normalized]
-
-    # Status is optional metadata. Do not reject an otherwise valid fiction.
-    return None
-
-
-def extract_tags(
-    tree: HTMLParser,
-) -> list[str]:
-    """
-    Extract Royal Road fiction tags.
-
-    All source tags are preserved.
-    """
-
-    tags = []
-
-    for node in tree.css(
-        "a"
-    ):
-
-        href = node.attributes.get(
-            "href",
-            "",
-        )
-
-        text = clean_text(
-            node
-        )
-
-        if not text:
-            continue
-
-        if "tagsAdd=" not in href:
-            continue
-
-        if text not in tags:
-            tags.append(
-                text
-            )
-
-    return tags
-
-
-def is_description_separator(
-    text: str,
-) -> bool:
-    """
-    Detect common divider lines used to separate a synopsis
-    from author notes or promotional content.
-    """
-
-    if not text:
-        return False
-
-    normalized = text.strip()
-
-    if len(normalized) >= 5:
-
-        if set(normalized) <= {
+    return (
+        len(text) >= 3
+        and set(text) <= {
             "*",
             "-",
             "_",
             "=",
             " ",
-        }:
-            return True
-
-    return False
-
-
-def has_commercial_link(
-    paragraph,
-) -> bool:
-    """
-    Determine whether a paragraph contains a known
-    commercial or promotional link.
-    """
-
-    commercial_domains = (
-        "amazon.",
-        "audible.",
-        "patreon.",
-        "kickstarter.",
-        "paypal.",
+        }
     )
 
-    for link in paragraph.css(
-        "a"
-    ):
 
-        href = link.attributes.get(
-            "href",
-            "",
+def has_commercial_link(paragraph) -> bool:
+    for link in paragraph.css("a"):
+        href = (
+            link.attributes.get("href", "")
+            or ""
         ).lower()
 
         if any(
             domain in href
-            for domain in commercial_domains
+            for domain in COMMERCIAL_DOMAINS
         ):
             return True
 
     return False
 
 
-def extract_synopsis(
-    description_node,
-) -> str | None:
-    """
-    Extract the actual synopsis from a Royal Road description
-    while preserving paragraph breaks.
+def is_promotional_text(text: str) -> bool:
+    text = text.casefold()
 
-    Royal Road may place author announcements,
-    advertisements, or commercial links before or after the
-    actual synopsis.
+    return any(
+        keyword in text
+        for keyword in PROMOTIONAL_KEYWORDS
+    )
 
-    The synopsis is processed paragraph by paragraph.
-    """
 
+def extract_synopsis(description_node) -> str | None:
     if description_node is None:
         return None
 
-    hidden_content = description_node.css_first(
-        ".hidden-content"
-    )
-
-    # Use hidden-content if it exists because Royal Road
-    # commonly stores the full description there.
     content_node = (
-        hidden_content
+        description_node.css_first(".hidden-content")
         or description_node
     )
 
-    paragraphs = content_node.css(
-        "p"
-    )
-
-    # ---------------------------------------------------------
-    # No paragraph elements.
-    #
-    # Still preserve any line breaks that exist in the source.
-    # ---------------------------------------------------------
+    paragraphs = content_node.css("p")
 
     if not paragraphs:
-        return clean_synopsis_node(
-            content_node
-        )
+        return clean_synopsis_node(content_node)
 
-    synopsis_parts = []
+    synopsis = []
 
     for paragraph in paragraphs:
-
-        text = clean_synopsis_node(
-            paragraph
-        )
+        text = clean_synopsis_node(paragraph)
 
         if not text:
             continue
 
-        normalized = text.lower()
-
-        # ---------------------------------------------
-        # Separator lines often indicate that author
-        # notes or promotional material follow.
-        # ---------------------------------------------
-
-        if is_description_separator(
-            text
-        ):
+        if is_description_separator(text):
             break
 
-        # ---------------------------------------------
-        # Commercial links
-        # ---------------------------------------------
-
-        if has_commercial_link(
-            paragraph
-        ):
+        if has_commercial_link(paragraph):
             continue
 
-        # ---------------------------------------------
-        # Promotional language
-        # ---------------------------------------------
-
-        if any(
-            keyword in normalized
-            for keyword in PROMOTIONAL_KEYWORDS
-        ):
+        if is_promotional_text(text):
             continue
 
-        synopsis_parts.append(
-            text
-        )
+        synopsis.append(text)
 
-    if not synopsis_parts:
-        return None
-
-    # Preserve paragraph boundaries.
-    return "\n\n".join(
-        synopsis_parts
-    )
-
-
-def extract_reading_url(
-    source_url: str,
-) -> str:
-    """
-    Return the Royal Road fiction page as the reading URL.
-
-    The fiction page is a stable canonical reading entry point.
-    """
-
-    return source_url
+    return "\n\n".join(synopsis) or None
 
 
 def parse_royalroad(
     html: str,
     source_url: str,
 ) -> dict:
-    """
-    Parse a Royal Road fiction page into normalized source data.
-    """
+    tree = HTMLParser(html)
 
-    tree = HTMLParser(
-        html
-    )
-
-    fiction_id = extract_fiction_id(
-        source_url
-    )
-
-    title = extract_title(
-        tree
-    )
-
-    author = extract_author(
-        tree
-    )
-
-    status = extract_status(
-        tree
-    )
-
-    tags = extract_tags(
-        tree
-    )
-
-    # ---------------------------------------------------------
-    # Extract the actual description node before passing it
-    # into extract_synopsis().
-    # ---------------------------------------------------------
-
-    description_node = tree.css_first(
-        "div.description"
-    )
-
-    synopsis = extract_synopsis(
-        description_node
-    )
-
-    cover_image_url = extract_cover(
-        tree,
-        title,
-    )
-
-    reading_url = extract_reading_url(
-        source_url
-    )
+    title = extract_title(tree)
 
     return {
         "source": "royalroad",
         "source_url": source_url,
-        "fiction_id": fiction_id,
+        "fiction_id": extract_fiction_id(source_url),
         "title": title,
-        "author": author,
-        "status": status,
-        "tags": tags,
-        "synopsis": synopsis,
-        "cover_image_url": cover_image_url,
-        "reading_url": reading_url,
+        "author": extract_author(tree),
+        "status": extract_status(tree),
+        "genres": extract_genres(tree),
+        "tags": extract_tags(tree),
+        "synopsis": extract_synopsis(
+            extract_description_node(tree)
+        ),
+        "cover_image_url": extract_cover(
+            tree,
+            title,
+        ),
+        "reading_url": source_url,
     }
 
 
-def scrape_royalroad(
-    url: str,
-) -> dict:
-    """
-    Fetch and parse one Royal Road fiction.
-    """
-
-    source_url = normalize_url(
-        url
-    )
-
-    html = fetch(
-        source_url
-    )
+def scrape_royalroad(url: str) -> dict:
+    source_url = normalize_url(url)
 
     return parse_royalroad(
-        html=html,
+        html=fetch(source_url),
         source_url=source_url,
     )
 
@@ -657,57 +537,35 @@ def scrape_royalroad(
 def scrape_royalroads(
     urls: list[str],
 ) -> list[dict]:
-    """
-    Fetch and parse multiple Royal Road fictions.
-
-    A failure on one fiction does not stop the remaining
-    fictions.
-
-    Each failed fiction receives an error record.
-    """
-
     results = []
 
-    for value in urls:
-
-        print()
-        print("=" * 70)
-        print("ROYAL ROAD")
-        print("=" * 70)
-        print("INPUT:", value)
+    for url in urls:
+        print(f"\nROYAL ROAD: {url}")
 
         try:
-
-            novel = scrape_royalroad(
-                value
-            )
-
-            results.append(
-                novel
-            )
+            novel = scrape_royalroad(url)
+            results.append(novel)
 
             print(
-                "SUCCESS:",
-                novel.get("title")
-                or novel.get("fiction_id"),
+                f"SUCCESS: {novel['title']} "
+                f"| genres={novel['genres']} "
+                f"| tags={novel['tags']}"
             )
 
         except Exception as exc:
-
             print(
-                "FAILED:",
-                type(exc).__name__,
-                str(exc),
+                f"FAILED: {type(exc).__name__}: {exc}"
             )
 
             results.append(
                 {
                     "source": "royalroad",
-                    "source_url": str(value),
+                    "source_url": str(url),
                     "fiction_id": None,
                     "title": None,
                     "author": None,
                     "status": None,
+                    "genres": [],
                     "tags": [],
                     "synopsis": None,
                     "cover_image_url": None,
@@ -720,36 +578,16 @@ def scrape_royalroads(
 
 
 if __name__ == "__main__":
-
     URLS = [
-        (
-            "https://www.royalroad.com/fiction/"
-            "36735/the-perfect-run"
-        ),
-        (
-            "https://www.royalroad.com/fiction/"
-            "21220/mother-of-learning"
-        ),
-        (
-            "https://www.royalroad.com/fiction/16344/the-last-philosopher"
-        ),
+        "https://www.royalroad.com/fiction/36735/the-perfect-run",
+        "https://www.royalroad.com/fiction/21220/mother-of-learning",
+        "https://www.royalroad.com/fiction/16344/the-last-philosopher",
     ]
 
-    novels = scrape_royalroads(
-        URLS
-    )
-
-    print()
-    print("=" * 70)
-    print("RESULTS")
-    print("=" * 70)
+    novels = scrape_royalroads(URLS)
 
     for novel in novels:
-
         print()
 
         for key, value in novel.items():
-
-            print(
-                f"{key}: {value}"
-            )
+            print(f"{key}: {value}")
