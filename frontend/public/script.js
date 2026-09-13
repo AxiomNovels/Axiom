@@ -1,6 +1,32 @@
 const API_BASE = "http://localhost:8000";
 const COVER_CLASSES = ["cover-one", "cover-two", "cover-three", "cover-four", "cover-five"];
 
+// Shared by the novel page, upload preview, and search results to show
+// chapter counts and view counts compactly (e.g. 123456 -> "123.4K").
+// Values are truncated rather than rounded up at one decimal place, so
+// 123456 reads as "123.4K" and not "123.5K" -- matching how most sites
+// display view/read counts (never rounding a count up past what it
+// actually is). Numbers under 1,000 are shown in full with no decimal.
+const COMPACT_NUMBER_UNITS = [
+  { threshold: 1_000_000_000, suffix: "B" },
+  { threshold: 1_000_000, suffix: "M" },
+  { threshold: 1_000, suffix: "K" },
+];
+
+function formatCompactNumber(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0) return null;
+
+  for (const { threshold, suffix } of COMPACT_NUMBER_UNITS) {
+    if (number >= threshold) {
+      const truncated = Math.floor((number / threshold) * 10) / 10;
+      return `${truncated}${suffix}`;
+    }
+  }
+
+  return String(Math.trunc(number));
+}
+
 function getStoredUser() {
   try {
     return JSON.parse(localStorage.getItem("axiomUser"));

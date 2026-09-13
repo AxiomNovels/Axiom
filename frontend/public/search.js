@@ -37,11 +37,21 @@ function resultCard(novel, index) {
   const genres = novel.genres || [];
   const tags = genres.slice(0, 6).map((tag) => `<span>${tag}</span>`).join("");
   const remainingTags = genres.length > 6 ? `<span class="more-tags">+${genres.length - 6}</span>` : "";
-  copy.innerHTML = `<div class="result-title-row"><div><h3></h3><p class="result-author"></p></div><span class="result-status"></span></div><div class="result-rating"></div><p class="result-synopsis"></p><div class="result-tags">${tags}${remainingTags}</div>`;
+  copy.innerHTML = `<div class="result-title-row"><div><h3></h3><p class="result-author"></p></div><span class="result-status"></span></div><div class="result-rating"></div><div class="result-stats"></div><p class="result-synopsis"></p><div class="result-tags">${tags}${remainingTags}</div>`;
   copy.querySelector("h3").textContent = novel.title; copy.querySelector(".result-author").textContent = `by ${novel.author || "Unknown"}`;
   copy.querySelector(".result-status").textContent = novel.status || "Unknown"; copy.querySelector(".result-synopsis").textContent = novel.synopsis || "No synopsis available.";
   const rating = copy.querySelector(".result-rating");
   rating.textContent = novel.average_rating == null ? "Not yet rated" : `★ ${Number(novel.average_rating).toFixed(1)} · ${novel.review_count} ${novel.review_count === 1 ? "review" : "reviews"}`;
+  // Chapter/view counts are optional per novel -- only the stats that
+  // actually exist are shown, compactly (e.g. "128.4K views").
+  const statParts = [];
+  const viewCount = Number(novel.view_count);
+  if (Number.isFinite(viewCount) && viewCount >= 0) statParts.push(`${formatCompactNumber(viewCount)} views`);
+  const chapterCount = Number(novel.chapter_count);
+  if (Number.isFinite(chapterCount) && chapterCount >= 0) statParts.push(`${formatCompactNumber(chapterCount)} ${chapterCount === 1 ? "chapter" : "chapters"}`);
+  const statsEl = copy.querySelector(".result-stats");
+  statsEl.textContent = statParts.join(" · ");
+  if (!statParts.length) statsEl.remove();
   link.append(cover, copy); return link;
 }
 

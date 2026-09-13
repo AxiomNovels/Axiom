@@ -3478,6 +3478,13 @@ button {
   font-weight: 700;
 }
 
+.result-stats {
+  margin-top: 4px;
+  color: var(--dim);
+  font-size: .78rem;
+  font-weight: 700;
+}
+
 @media (max-width: 900px) {
   .finder-fields.three-column { grid-template-columns: 1fr; width: 100%; margin-left: 0; }
 }

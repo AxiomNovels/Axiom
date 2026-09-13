@@ -166,6 +166,32 @@ function setupSynopsis(synopsis) {
   });
 }
 
+// Chapter count and view count are both optional (a source page may not
+// expose one, or scraping it may have failed) -- each stat is only shown
+// when a non-negative number is actually present, so the row simply
+// shrinks rather than showing a misleading "0 chapters".
+function renderNovelStats(novel) {
+  const container = document.getElementById("novel-stats");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const stats = [
+    { value: novel.chapter_count, singular: "chapter", plural: "chapters" },
+    { value: novel.view_count, singular: "view", plural: "views" },
+  ];
+
+  stats.forEach(({ value, singular, plural }) => {
+    const number = Number(value);
+    if (!Number.isFinite(number) || number < 0) return;
+
+    const chip = document.createElement("span");
+    chip.className = "novel-stat-chip";
+    chip.textContent = `${formatCompactNumber(number)} ${number === 1 ? singular : plural}`;
+    chip.title = `${number.toLocaleString()} ${number === 1 ? singular : plural}`;
+    container.appendChild(chip);
+  });
+}
+
 function renderNovel(novel) {
   document.title = `${novel.title} | Axiom`;
 
@@ -186,6 +212,7 @@ function renderNovel(novel) {
   }
   if (authorEl) authorEl.textContent = novel.author ? `by ${novel.author}` : "";
   if (statusEl) statusEl.textContent = novel.status;
+  renderNovelStats(novel);
   setupSynopsis(novel.synopsis);
 
   if (coverEl) {
