@@ -41,3 +41,29 @@ def test_shared_tags_and_minimal_payload():
     result = recommend_novels(novel(1, ["Fantasy"]), [novel(2, ["Fantasy", "Drama"], synopsis="Long text")])
     assert result[0]["shared_tags"] == ["Fantasy"]
     assert "synopsis" not in result[0]
+
+
+def test_protagonist_match_outweighs_other_profiles_with_equal_tags():
+    source = novel(1, ["Fantasy"], protagonist_profiles={"impulsivity": 100},
+                   philosophy_profiles={"freedom": 100}, storytelling_style_profiles={"action": 100})
+    character_match = novel(2, ["Fantasy"], protagonist_profiles={"impulsivity": 100},
+                            philosophy_profiles={"freedom": 0}, storytelling_style_profiles={"action": 0})
+    other_match = novel(3, ["Fantasy"], protagonist_profiles={"impulsivity": 0},
+                        philosophy_profiles={"freedom": 100}, storytelling_style_profiles={"action": 100})
+    assert [row["id"] for row in recommend_novels(source, [other_match, character_match])] == [2, 3]
+
+
+def test_shared_tags_are_capped_at_three():
+    tags = ["Fantasy", "Mystery", "Adventure", "Drama"]
+    result = recommend_novels(novel(1, tags), [novel(2, tags)])
+    assert result[0]["shared_tags"] == ["Adventure", "Drama", "Fantasy"]
+
+
+def test_tags_and_protagonist_have_equal_weight():
+    source = novel(1, ["Fantasy"], protagonist_profiles={"impulsivity": 100})
+    tags_only = novel(2, ["Fantasy"], protagonist_profiles={"impulsivity": 0})
+    protagonist_only = novel(3, ["Drama"], protagonist_profiles={"impulsivity": 100})
+    for first, second in [(tags_only, protagonist_only), (protagonist_only, tags_only)]:
+        first["title"], second["title"] = "A", "Z"
+        result = recommend_novels(source, [second, first])
+        assert result[0]["id"] == first["id"]

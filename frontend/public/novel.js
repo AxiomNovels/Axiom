@@ -809,7 +809,7 @@ async function loadSimilarNovels(novelId) {
       copy.append(title, author);
       const tags = document.createElement("div");
       tags.className = "similar-tags";
-      (novel.shared_tags || []).forEach((tag) => {
+      (novel.shared_tags || []).slice(0, 3).forEach((tag) => {
         const chip = document.createElement("span");
         chip.textContent = tag;
         tags.appendChild(chip);

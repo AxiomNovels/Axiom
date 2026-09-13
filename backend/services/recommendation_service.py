@@ -6,9 +6,9 @@ from services.search_service import (
 )
 
 PROFILE_GROUPS = (
-    ("protagonist_profiles", PROFILE_MEASURES),
-    ("philosophy_profiles", PHILOSOPHY_MEASURES),
-    ("storytelling_style_profiles", STORYTELLING_MEASURES),
+    ("protagonist_profiles", PROFILE_MEASURES, 0.40),
+    ("philosophy_profiles", PHILOSOPHY_MEASURES, 0.10),
+    ("storytelling_style_profiles", STORYTELLING_MEASURES, 0.10),
 )
 CARD_FIELDS = ("id", "title", "author", "cover_image_url")
 
@@ -30,7 +30,7 @@ def _scores(novel, table, keys):
 
 
 def recommend_novels(source, candidates, limit=5):
-    """Weight tags at 40%, profiles at 20% each when source data exists.
+    """Weight protagonist and tags at 40% each, and other profiles at 10% each.
 
     Missing candidate dimensions contribute zero, rather than rewarding sparse
     profiles. Source dimensions without data are omitted from the denominator.
@@ -38,8 +38,8 @@ def recommend_novels(source, candidates, limit=5):
     Zero-evidence candidates are omitted. Ties resolve by title then ID.
     """
     source_tags = _tags(source)
-    profiles = [(table, keys, _scores(source, table, keys)) for table, keys in PROFILE_GROUPS]
-    denominator = (0.4 if source_tags else 0) + sum(0.2 for _, _, values in profiles if values)
+    profiles = [(table, keys, weight, _scores(source, table, keys)) for table, keys, weight in PROFILE_GROUPS]
+    denominator = (0.40 if source_tags else 0) + sum(weight for _, _, weight, values in profiles if values)
     if not denominator:
         return []
     ranked = []
@@ -51,15 +51,15 @@ def recommend_novels(source, candidates, limit=5):
         seen.add(identity)
         tags = _tags(novel)
         shared = source_tags & tags
-        score = 0.4 * len(shared) / len(source_tags | tags) if source_tags else 0
-        for table, keys, values in profiles:
+        score = 0.40 * len(shared) / len(source_tags | tags) if source_tags else 0
+        for table, keys, weight, values in profiles:
             if values:
                 other = _scores(novel, table, keys)
-                score += 0.2 * sum(1 - abs(value - other[key]) / 100 for key, value in values.items() if key in other) / len(values)
+                score += weight * sum(1 - abs(value - other[key]) / 100 for key, value in values.items() if key in other) / len(values)
         if score <= 0:
             continue
         card = {key: novel.get(key) for key in CARD_FIELDS}
-        card["shared_tags"] = sorted({str(tag).strip() for tag in novel.get("genres") or [] if str(tag).strip().casefold() in shared}, key=str.casefold)[:2]
+        card["shared_tags"] = sorted({str(tag).strip() for tag in novel.get("genres") or [] if str(tag).strip().casefold() in shared}, key=str.casefold)[:3]
         ranked.append((score / denominator, card))
     ranked.sort(key=lambda item: (-item[0], (item[1]["title"] or "").casefold(), str(item[1]["id"])))
     return [card for _, card in ranked[:limit]]
