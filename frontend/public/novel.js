@@ -808,7 +808,7 @@ async function loadSimilarNovels(novelId) {
       message.textContent = "No similar stories yet. Check back as the catalogue grows.";
       grid.appendChild(message);
     }
-    novels.slice(0, 5).forEach((novel) => {
+    novels.slice(0, 6).forEach((novel) => {
       const card = document.createElement("a");
       card.className = "similar-card";
       card.href = `/novel.html?id=${encodeURIComponent(novel.id)}`;

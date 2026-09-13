@@ -5,12 +5,12 @@ def novel(identity, tags=None, **extra):
     return {"id": identity, "title": f"Novel {identity}", "genres": tags or [], **extra}
 
 
-def test_tag_overlap_ranking_excludes_source_and_limits_to_five():
+def test_tag_overlap_ranking_excludes_source_and_limits_to_six():
     source = novel(1, ["Fantasy", "Mystery"])
     candidates = [source, novel(2, ["Drama"]), novel(3, [" fantasy ", "MYSTERY"])]
     candidates += [novel(i, ["Fantasy"]) for i in range(4, 10)]
     result = recommend_novels(source, candidates)
-    assert len(result) == 5
+    assert len(result) == 6
     assert result[0]["id"] == 3
     assert all(row["id"] not in (1, 2) for row in result)
 
@@ -27,11 +27,11 @@ def test_missing_values_do_not_count_as_zero_or_outscore_complete_profiles():
     complete = novel(2, philosophy_profiles={"freedom": 10, "survival": 70})
     sparse = novel(3, philosophy_profiles={"freedom": 0})
     absent = novel(4, philosophy_profiles={"freedom": None})
-    assert [row["id"] for row in recommend_novels(source, [sparse, absent, complete])] == [2, 3]
+    assert [row["id"] for row in recommend_novels(source, [sparse, absent, complete])] == [2, 3, 4]
 
 
-def test_no_evidence_returns_empty_and_ties_are_stable():
-    assert recommend_novels(novel(1), [novel(2)]) == []
+def test_no_evidence_uses_catalogue_and_ties_are_stable():
+    assert [row["id"] for row in recommend_novels(novel(1), [novel(2)])] == [2]
     source = novel(1, ["Fantasy"])
     candidates = [novel(3, ["Fantasy"]), novel(2, ["Fantasy"])]
     assert recommend_novels(source, candidates) == recommend_novels(source, list(reversed(candidates)))
@@ -67,3 +67,14 @@ def test_tags_and_protagonist_have_equal_weight():
         first["title"], second["title"] = "A", "Z"
         result = recommend_novels(source, [second, first])
         assert result[0]["id"] == first["id"]
+
+
+def test_fills_six_slots_after_matches_without_duplicates():
+    source = novel(1, ["Fantasy"])
+    candidates = [source, novel(2, ["Fantasy"])] + [novel(i, ["Drama"]) for i in range(3, 9)]
+    result = recommend_novels(source, candidates + candidates)
+    assert len(result) == 6
+    assert result[0]["id"] == 2
+    assert len({row["id"] for row in result}) == 6
+    assert all(row["id"] != 1 for row in result)
+    assert all(row["shared_tags"] == [] for row in result[1:])

@@ -34,7 +34,7 @@ def test_similar_endpoint_searches_beyond_first_page(monkeypatch):
     monkeypatch.setattr(routes, "supabase", Catalogue(rows, pages))
     response = TestClient(app).get("/api/novels/1/similar")
     assert response.status_code == 200
-    assert len(response.json()) == 5
+    assert len(response.json()) == 6
     assert response.json()[0]["id"] == 502
     assert pages == [(0, 499), (500, 999)]
 
