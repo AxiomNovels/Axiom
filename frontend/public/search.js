@@ -34,9 +34,9 @@ function resultCard(novel, index) {
   if (novel.cover_image_url) { const image = document.createElement("img"); image.referrerPolicy = "no-referrer"; image.src = novel.cover_image_url; image.alt = `${novel.title} cover`; image.addEventListener("error", () => { image.remove(); cover.textContent = novel.title || "Axiom"; }, { once: true }); cover.appendChild(image); }
   else cover.textContent = novel.title;
   const copy = document.createElement("div");
-  const genres = novel.genres || [];
-  const tags = genres.slice(0, 6).map((tag) => `<span>${tag}</span>`).join("");
-  const remainingTags = genres.length > 6 ? `<span class="more-tags">+${genres.length - 6}</span>` : "";
+  const tagList = novel.tags || [];
+  const tags = tagList.slice(0, 6).map((tag) => `<span>${tag}</span>`).join("");
+  const remainingTags = tagList.length > 6 ? `<span class="more-tags">+${tagList.length - 6}</span>` : "";
   copy.innerHTML = `<div class="result-title-row"><div><h3></h3><p class="result-author"></p></div><span class="result-status"></span></div><div class="result-rating"></div><div class="result-stats"></div><p class="result-synopsis"></p><div class="result-tags">${tags}${remainingTags}</div>`;
   copy.querySelector("h3").textContent = novel.title; copy.querySelector(".result-author").textContent = `by ${novel.author || "Unknown"}`;
   copy.querySelector(".result-status").textContent = novel.status || "Unknown"; copy.querySelector(".result-synopsis").textContent = novel.synopsis || "No synopsis available.";

@@ -13,7 +13,7 @@ from scraper.webnovel import scrape_webnovel
 router = APIRouter(prefix="/api/novels", tags=["novels"])
 
 # The list endpoint deliberately omits the larger profile payloads.
-NOVEL_LIST_COLUMNS = "id, title, author, cover_image_url, synopsis, status, genres, chapter_count, view_count"
+NOVEL_LIST_COLUMNS = "id, title, author, cover_image_url, synopsis, status, genres, tags, chapter_count, view_count"
 
 # The profile tables are embedded through their novel_id foreign keys.
 NOVEL_DETAIL_COLUMNS = (
@@ -174,7 +174,7 @@ def get_similar_novels(novel_id: int):
     if not source:
         raise HTTPException(status_code=404, detail="Novel not found")
     columns = (
-        "id, title, author, cover_image_url, genres, "
+        "id, title, author, cover_image_url, genres, tags, "
         "protagonist_profiles(*), philosophy_profiles(*), storytelling_style_profiles(*)"
     )
     candidates = []

@@ -15,7 +15,11 @@ def novel_relevance(novel, query):
 
     title = " ".join(searchable_text(novel.get("title")))
     author = " ".join(searchable_text(novel.get("author")))
+    # Genres (small, canonical) and tags (larger, free-form) are both
+    # relevant to a keyword search -- e.g. "reincarnation" only lives in
+    # tags, while "fantasy" only lives in genres.
     genres = " ".join(searchable_text(" ".join(novel.get("genres") or [])))
+    tags = " ".join(searchable_text(" ".join(novel.get("tags") or [])))
     synopsis = " ".join(searchable_text(novel.get("synopsis")))
 
     score = 0
@@ -34,6 +38,7 @@ def novel_relevance(novel, query):
     title_terms = title.split()
     author_terms = author.split()
     genre_terms = genres.split()
+    tag_terms = tags.split()
     synopsis_terms = synopsis.split()
 
     for term in query_terms:
@@ -46,10 +51,12 @@ def novel_relevance(novel, query):
             score += 22
         if term in genre_terms:
             score += 16
+        if term in tag_terms:
+            score += 16
         if term in synopsis_terms:
             score += 5
 
-    all_terms = title_terms + author_terms + genre_terms + synopsis_terms
+    all_terms = title_terms + author_terms + genre_terms + tag_terms + synopsis_terms
     matched_terms = sum(term in all_terms for term in query_terms)
     score += matched_terms * 8
     if matched_terms == len(query_terms):
@@ -135,7 +142,7 @@ def filter_novels(novels, include_tags=None, exclude_tags=None, status=None, pro
 
     for novel in novels:
         review_summary(novel)
-        tags = {str(tag).strip().lower() for tag in (novel.get("genres") or [])}
+        tags = {str(tag).strip().lower() for tag in (novel.get("tags") or [])}
         if included and tag_mode == "or" and not included.intersection(tags):
             continue
         if included and tag_mode != "or" and not included.issubset(tags):

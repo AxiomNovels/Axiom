@@ -197,6 +197,23 @@
   background: rgba(127, 127, 127, 0.15);
 }
 
+.novel-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-content: center;
+  justify-content: flex-start;
+  margin-top: 0.6rem;
+}
+
+.story-tag-chip {
+  font-size: 0.78rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1px dashed var(--line);
+  color: var(--dim);
+}
+
 .novel-reading-links {
   display: flex;
   flex-wrap: wrap;
@@ -831,6 +848,8 @@ body.modal-open { overflow:hidden; }
 .novel-heading h1.is-ultra-long-title { max-width:none; font-size:clamp(1.65rem,1.9vw,2.05rem); line-height:1.08; text-wrap:pretty; }
 .genre-tag.is-extra-tag { display:none; }
 .novel-genres.is-expanded .genre-tag.is-extra-tag { display:inline-flex; }
+.story-tag-chip.is-extra-tag { display:none; }
+.novel-tags.is-expanded .story-tag-chip.is-extra-tag { display:inline-flex; }
 .genre-toggle { width:auto; min-height:27px; border:1px dashed var(--line); border-radius:999px; background:transparent; box-shadow:none; color:var(--focus); font-size:.75rem; padding:0 .65rem; }
 .reading-list-controls { position:relative; width:auto; }
 .reading-list-picker { position:relative; width:max-content; max-width:100%; }

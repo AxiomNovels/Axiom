@@ -132,6 +132,16 @@ def validate_novel(novel: dict) -> None:
         raise ValueError("genres must be a list")
 
     # --------------------------------------------------
+    # Validate tags
+    #
+    # Optional for backward compatibility with any staged rows produced
+    # before scraper/transform.py started returning it.
+    # --------------------------------------------------
+
+    if "tags" in novel and not isinstance(novel["tags"], list):
+        raise ValueError("tags must be a list")
+
+    # --------------------------------------------------
     # Validate reading links
     # --------------------------------------------------
 

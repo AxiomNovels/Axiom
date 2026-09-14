@@ -14,7 +14,11 @@ CARD_FIELDS = ("id", "title", "author", "cover_image_url")
 
 
 def _tags(novel):
-    return {str(tag).strip().casefold() for tag in novel.get("genres") or [] if str(tag).strip()}
+    # Similarity is deliberately based on the free-form "tags" field
+    # (e.g. "Reincarnation", "System") rather than the small, canonical
+    # "genres" field (e.g. "Fantasy") -- tags are far more discriminating
+    # for "novels like this one" than a handful of broad genre buckets.
+    return {str(tag).strip().casefold() for tag in novel.get("tags") or [] if str(tag).strip()}
 
 
 def _scores(novel, table, keys):
@@ -55,7 +59,7 @@ def recommend_novels(source, candidates, limit=6):
                 other = _scores(novel, table, keys)
                 score += weight * sum(1 - abs(value - other[key]) / 100 for key, value in values.items() if key in other) / len(values)
         card = {key: novel.get(key) for key in CARD_FIELDS}
-        card["shared_tags"] = sorted({str(tag).strip() for tag in novel.get("genres") or [] if str(tag).strip().casefold() in shared}, key=str.casefold)[:3]
+        card["shared_tags"] = sorted({str(tag).strip() for tag in novel.get("tags") or [] if str(tag).strip().casefold() in shared}, key=str.casefold)[:3]
         ranked.append((score / denominator if denominator else 0, card))
     ranked.sort(key=lambda item: (-item[0], (item[1]["title"] or "").casefold(), str(item[1]["id"])))
     return [card for _, card in ranked[:limit]]

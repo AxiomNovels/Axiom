@@ -13,6 +13,7 @@ function getUploadElements() {
     statusEl: document.querySelector("[data-upload-status]"),
     chaptersEl: document.querySelector("[data-upload-chapters]"),
     viewsEl: document.querySelector("[data-upload-views]"),
+    genresEl: document.querySelector("[data-upload-genres]"),
     tagsEl: document.querySelector("[data-upload-tags]"),
     synopsisEl: document.querySelector("[data-upload-synopsis]"),
     successEl: document.querySelector("[data-upload-success]"),
@@ -57,7 +58,8 @@ function renderPreview(elements, novel) {
   elements.statusEl.textContent = novel.status || "Unknown";
   describeCount(elements.chaptersEl, novel.chapter_count);
   describeCount(elements.viewsEl, novel.view_count);
-  elements.tagsEl.textContent = (novel.genres || []).join(", ") || "None";
+  elements.genresEl.textContent = (novel.genres || []).join(", ") || "None";
+  elements.tagsEl.textContent = (novel.tags || []).join(", ") || "None";
   elements.synopsisEl.textContent = novel.synopsis || "No synopsis available.";
 
   elements.coverEl.innerHTML = "";

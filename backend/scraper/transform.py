@@ -72,36 +72,44 @@ def normalize_status(value: Any) -> str:
     return "ongoing"
 
 
-def normalize_genres(tags: Any) -> list[str]:
+def normalize_string_list(values: Any) -> list[str]:
     """
-    Convert source tags into the genres array expected by Axiom.
+    Clean and dedupe a list of strings, preserving order.
 
-    For the first pass, preserve the source tags rather than
-    trying to make subjective genre decisions.
-
-    Explicit tag -> genre mapping can be introduced later.
+    Used for both of a scraper's list fields: the canonical genre
+    classification (payload["genres"], e.g. "Fantasy", "Romance") and the
+    free-form community tags (payload["tags"], e.g. "Reincarnation",
+    "System") -- the cleaning rules are identical for both, only the
+    source field differs.
     """
 
-    if not tags:
+    if not values:
         return []
 
-    if not isinstance(tags, list):
+    if not isinstance(values, list):
         raise ValueError(
-            "Expected source tags to be a list"
+            "Expected a list of strings"
         )
 
-    genres = []
+    cleaned = []
 
-    for tag in tags:
-        tag = clean_string(tag)
+    for value in values:
+        value = clean_string(value)
 
-        if not tag:
+        if not value:
             continue
 
-        if tag not in genres:
-            genres.append(tag)
+        if value not in cleaned:
+            cleaned.append(value)
 
-    return genres
+    return cleaned
+
+
+# Kept as an alias: earlier versions of this module only had a
+# `normalize_genres` name, and it was (incorrectly) fed each scraper's
+# `tags` field. The cleaning logic hasn't changed, only which raw field
+# each list is built from -- see transform_royalroad/_wattpad/_webnovel.
+normalize_genres = normalize_string_list
 
 
 def normalize_reading_links(
@@ -168,7 +176,14 @@ def transform_royalroad(payload: dict) -> dict:
         payload.get("status")
     )
 
-    genres = normalize_genres(
+    # This scraper returns two distinct lists: "genres" (canonical
+    # classification, e.g. "Fantasy") and "tags" (free-form community
+    # tags, e.g. "Reincarnation") -- each maps to its own column.
+    genres = normalize_string_list(
+        payload.get("genres")
+    )
+
+    tags = normalize_string_list(
         payload.get("tags")
     )
 
@@ -194,6 +209,7 @@ def transform_royalroad(payload: dict) -> dict:
         "synopsis": synopsis,
         "status": status,
         "genres": genres,
+        "tags": tags,
         "chapter_count": chapter_count,
         "view_count": view_count,
         "reading_links": reading_links,
@@ -233,7 +249,14 @@ def transform_wattpad(payload: dict) -> dict:
         payload.get("status")
     )
 
-    genres = normalize_genres(
+    # This scraper returns two distinct lists: "genres" (canonical
+    # classification, e.g. "Fantasy") and "tags" (free-form community
+    # tags, e.g. "Reincarnation") -- each maps to its own column.
+    genres = normalize_string_list(
+        payload.get("genres")
+    )
+
+    tags = normalize_string_list(
         payload.get("tags")
     )
 
@@ -259,6 +282,7 @@ def transform_wattpad(payload: dict) -> dict:
         "synopsis": synopsis,
         "status": status,
         "genres": genres,
+        "tags": tags,
         "chapter_count": chapter_count,
         "view_count": view_count,
         "reading_links": reading_links,
@@ -298,7 +322,14 @@ def transform_webnovel(payload: dict) -> dict:
         payload.get("status")
     )
 
-    genres = normalize_genres(
+    # This scraper returns two distinct lists: "genres" (canonical
+    # classification, e.g. "Fantasy") and "tags" (free-form community
+    # tags, e.g. "Reincarnation") -- each maps to its own column.
+    genres = normalize_string_list(
+        payload.get("genres")
+    )
+
+    tags = normalize_string_list(
         payload.get("tags")
     )
 
@@ -324,6 +355,7 @@ def transform_webnovel(payload: dict) -> dict:
         "synopsis": synopsis,
         "status": status,
         "genres": genres,
+        "tags": tags,
         "chapter_count": chapter_count,
         "view_count": view_count,
         "reading_links": reading_links,

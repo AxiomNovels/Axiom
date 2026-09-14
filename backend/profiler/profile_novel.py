@@ -37,7 +37,7 @@ def fetch_novel(novel_id: int) -> dict:
     response = (
         database_client()
         .table("novels")
-        .select("id,title,synopsis,genres,reading_links,protagonist_profiles(protagonist_name)")
+        .select("id,title,synopsis,genres,tags,reading_links,protagonist_profiles(protagonist_name)")
         .eq("id", novel_id)
         .limit(1)
         .execute()

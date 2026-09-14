@@ -103,6 +103,7 @@ opportunities, resources, or safety; 80 others' welfare usually outweighs ambiti
 
 def build_prompt(novel: dict, protagonist_name: str, comments: list[str]) -> str:
     genres = ", ".join(novel.get("genres") or []) or "Not provided"
+    tags = ", ".join(novel.get("tags") or []) or "Not provided"
     synopsis = (novel.get("synopsis") or "Not provided")[:12_000]
     evidence = "\n".join(f"- {comment}" for comment in comments) or "No reader comments provided."
 
@@ -110,7 +111,8 @@ def build_prompt(novel: dict, protagonist_name: str, comments: list[str]) -> str
 
 Novel: {novel.get('title', 'Unknown')}
 Protagonist: {protagonist_name}
-Genres/tags: {genres}
+Genres: {genres}
+Tags: {tags}
 Synopsis:
 {synopsis}
 
@@ -130,6 +132,7 @@ briefly identify the strongest evidence and any important uncertainty.
 
 def build_identification_prompt(novel: dict, comments: list[str]) -> str:
     genres = ", ".join(novel.get("genres") or []) or "Not provided"
+    tags = ", ".join(novel.get("tags") or []) or "Not provided"
     synopsis = (novel.get("synopsis") or "Not provided")[:12_000]
     evidence = "\n".join(f"- {comment[:500]}" for comment in comments[:12])
     if not evidence:
@@ -138,7 +141,8 @@ def build_identification_prompt(novel: dict, comments: list[str]) -> str:
     return f"""Identify the primary protagonist of this novel.
 
 Novel: {novel.get('title', 'Unknown')}
-Genres/tags: {genres}
+Genres: {genres}
+Tags: {tags}
 Synopsis:
 {synopsis}
 
@@ -197,12 +201,14 @@ def build_novel_profile_prompt(novel: dict, comments: list[str], profile_type: s
     if profile_type not in rubrics:
         raise ValueError(f"Unsupported profile type: {profile_type}")
     genres = ", ".join(novel.get("genres") or []) or "Not provided"
+    tags = ", ".join(novel.get("tags") or []) or "Not provided"
     synopsis = (novel.get("synopsis") or "Not provided")[:12_000]
     evidence = "\n".join(f"- {comment}" for comment in comments) or "No reader comments provided."
     return f"""Create a cautious baseline {profile_type} profile for a novel catalog.
 
 Novel: {novel.get('title', 'Unknown')}
-Genres/tags: {genres}
+Genres: {genres}
+Tags: {tags}
 Synopsis:
 {synopsis}
 

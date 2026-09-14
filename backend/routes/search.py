@@ -51,7 +51,7 @@ def search_options():
         # even while optional profile migrations are still being applied.
         novels = (
             supabase.table("novels")
-            .select("genres, status")
+            .select("tags, status")
             .execute()
             .data
             or []
@@ -59,7 +59,7 @@ def search_options():
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
     return {
-        "tags": sorted({tag for novel in novels for tag in (novel.get("genres") or [])}, key=str.lower),
+        "tags": sorted({tag for novel in novels for tag in (novel.get("tags") or [])}, key=str.lower),
         "statuses": sorted({novel.get("status") for novel in novels if novel.get("status")}, key=str.lower),
         "profile_measures": list(PROFILE_MEASURES),
     }

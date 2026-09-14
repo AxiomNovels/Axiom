@@ -192,6 +192,38 @@ function renderNovelStats(novel) {
   });
 }
 
+// Shared by the genres row and the tags row: renders up to 5 chips plus
+// a "+N more" toggle for the rest. `chipClassName` controls the pill
+// style (genre-tag vs story-tag-chip); the "is-extra-tag" / "is-expanded"
+// pattern is shared so both rows expand independently of one another.
+function renderChipList(container, values, chipClassName) {
+  if (!container) return;
+  container.innerHTML = "";
+  const items = values || [];
+
+  items.forEach((value, index) => {
+    const chip = document.createElement("span");
+    chip.className = chipClassName;
+    if (index >= 5) chip.classList.add("is-extra-tag");
+    chip.textContent = value;
+    container.appendChild(chip);
+  });
+
+  if (items.length > 5) {
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "genre-toggle";
+    toggle.textContent = `+${items.length - 5} more`;
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.addEventListener("click", () => {
+      const expanded = container.classList.toggle("is-expanded");
+      toggle.textContent = expanded ? "Show less" : `+${items.length - 5} more`;
+      toggle.setAttribute("aria-expanded", String(expanded));
+    });
+    container.appendChild(toggle);
+  }
+}
+
 function renderNovel(novel) {
   document.title = `${novel.title} | Axiom`;
 
@@ -201,6 +233,7 @@ function renderNovel(novel) {
   // const synopsisEl = document.getElementById("novel-synopsis");
   const coverEl = document.getElementById("novel-cover");
   const genresEl = document.getElementById("novel-genres");
+  const tagsEl = document.getElementById("novel-tags");
   const linksEl = document.getElementById("novel-reading-links");
 
   if (titleEl) {
@@ -232,30 +265,8 @@ function renderNovel(novel) {
     }
   }
 
-  if (genresEl) {
-    genresEl.innerHTML = "";
-    const genres = novel.genres || [];
-    genres.forEach((genre, index) => {
-      const tag = document.createElement("span");
-      tag.className = "genre-tag";
-      if (index >= 5) tag.classList.add("is-extra-tag");
-      tag.textContent = genre;
-      genresEl.appendChild(tag);
-    });
-    if (genres.length > 5) {
-      const toggle = document.createElement("button");
-      toggle.type = "button";
-      toggle.className = "genre-toggle";
-      toggle.textContent = `+${genres.length - 5} more`;
-      toggle.setAttribute("aria-expanded", "false");
-      toggle.addEventListener("click", () => {
-        const expanded = genresEl.classList.toggle("is-expanded");
-        toggle.textContent = expanded ? "Show less" : `+${genres.length - 5} more`;
-        toggle.setAttribute("aria-expanded", String(expanded));
-      });
-      genresEl.appendChild(toggle);
-    }
-  }
+  renderChipList(genresEl, novel.genres, "genre-tag");
+  renderChipList(tagsEl, novel.tags, "story-tag-chip");
 
   if (linksEl) {
     linksEl.innerHTML = "";
