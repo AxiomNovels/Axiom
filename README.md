@@ -54,6 +54,22 @@ python -m profiler.profile_storytelling NOVEL_ID --save
 Omit `--save` for a preview, or add `--yes` with `--save` for a
 non-interactive run.
 
-To list a tree structure of all files (ignoring those in .gitignore):
-git ls-files -co --exclude-standard
+<img width="1897" height="867" alt="image" src="https://github.com/user-attachments/assets/12f80dbe-02d0-430d-8269-db0b03bec5cb" />
+
+<img width="1870" height="852" alt="image" src="https://github.com/user-attachments/assets/da312f4b-6d8f-4422-9caf-74abc0a09f85" />
+
+<img width="778" height="861" alt="image" src="https://github.com/user-attachments/assets/0f6e57cd-9784-4351-9ef3-d4e466b59978" />
+
+<img width="540" height="883" alt="image" src="https://github.com/user-attachments/assets/51f65908-542f-44e3-9d6c-dd1f009152fa" />
+
+<img width="562" height="275" alt="image" src="https://github.com/user-attachments/assets/77fa7d42-7867-49c2-ab42-98e1f2e1d295" />
+
+<img width="832" height="856" alt="image" src="https://github.com/user-attachments/assets/d817dbcd-6de3-498d-a925-de30ff5b019e" />
+
+<img width="912" height="831" alt="image" src="https://github.com/user-attachments/assets/211e30ed-5bb9-462e-b100-1f5ed06a9cf8" />
+
+<img width="917" height="816" alt="image" src="https://github.com/user-attachments/assets/b1cfc342-924b-442f-9b9a-3eeb5df6a79b" />
+
+
+
 
