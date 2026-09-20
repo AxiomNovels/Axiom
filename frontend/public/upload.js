@@ -260,8 +260,41 @@ function setupMyUploads(elements) {
   });
 }
 
+function setupSourceAutodetect(elements) {
+  const urlInput = elements.form.url;
+  const sourceSelect = elements.form.source;
+
+  urlInput.addEventListener("input", () => {
+    const value = urlInput.value.trim().toLowerCase();
+
+    if (!value) {
+      sourceSelect.value = "";
+      return;
+    }
+
+    // Allow URLs with or without https://
+    let hostname = "";
+    try {
+      const normalized = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+      hostname = new URL(normalized).hostname.toLowerCase();
+    } catch {
+      // URL isn't complete/valid yet; leave the current selection alone.
+      return;
+    }
+
+    if (hostname === "webnovel.com" || hostname.endsWith(".webnovel.com")) {
+      sourceSelect.value = "WebNovel";
+    } else if (hostname === "wattpad.com" || hostname.endsWith(".wattpad.com")) {
+      sourceSelect.value = "Wattpad";
+    } else if (hostname === "royalroad.com" || hostname.endsWith(".royalroad.com")) {
+      sourceSelect.value = "Royal Road";
+    }
+  });
+}
+
 function initUploadForm() {
   const elements = getUploadElements();
+  setupSourceAutodetect(elements);
   elements.form.addEventListener("submit", (event) => handleSearch(event, elements));
   elements.addButton.addEventListener("click", () => handleAdd(elements));
   elements.editButton.addEventListener("click", () => resetToForm(elements));
