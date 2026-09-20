@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
@@ -21,6 +21,8 @@ class ReadingListRename(BaseModel):
 class ReadingListNovelAdd(BaseModel):
     novel_id: int
 
+class ReadingListVisibilityUpdate(BaseModel):
+    visibility: Literal["private", "friends", "public"]
 
 def get_current_user(authorization: Optional[str] = Header(None)):
     """Resolve the Supabase user id from a `Bearer <access_token>` header.
@@ -55,7 +57,7 @@ def _get_owned_list(list_id: str, user_id: str, client) -> dict:
     try:
         response = (
             client.table("reading_lists")
-            .select("id, name, created_at")
+            .select("id, name, created_at, visibility")
             .eq("id", list_id)
             .eq("user_id", user_id)
             .limit(1)
@@ -101,7 +103,7 @@ def list_reading_lists(auth=Depends(get_current_user)):
     try:
         lists_response = (
             client.table("reading_lists")
-            .select("id, name, created_at")
+            .select("id, name, created_at, visibility")
             .eq("user_id", user_id)
             .order("created_at")
             .execute()
@@ -253,6 +255,28 @@ def rename_reading_list(
 
     return response.data[0]
 
+@router.patch("/{list_id}/visibility")
+def set_reading_list_visibility(
+    list_id: str, payload: ReadingListVisibilityUpdate, auth=Depends(get_current_user)
+):
+    user_id, client = auth
+    _get_owned_list(list_id, user_id, client)
+
+    try:
+        response = (
+            client.table("reading_lists")
+            .update({"visibility": payload.visibility})
+            .eq("id", list_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Reading list not found.")
+
+    return response.data[0]
 
 @router.delete("/{list_id}", status_code=204)
 def delete_reading_list(list_id: str, auth=Depends(get_current_user)):

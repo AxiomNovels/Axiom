@@ -452,6 +452,38 @@ document.querySelectorAll(".search-form").forEach((form) => {
   });
 });
 
+function createListBookcase(previews = []) {
+  const bookcase = document.createElement("div");
+  bookcase.className = "list-bookcase";
+  bookcase.setAttribute("aria-hidden", "true");
+  for (let index = 0; index < 3; index += 1) {
+    const novel = previews[index];
+    const book = document.createElement("div");
+    book.className = novel ? "list-preview-book" : "list-preview-book is-empty";
+    if (novel?.cover_image_url) {
+      const image = document.createElement("img");
+      image.referrerPolicy = "no-referrer";
+      image.src = novel.cover_image_url;
+      image.alt = "";
+      image.addEventListener("error", () => {
+        image.remove();
+        book.classList.add("has-fallback");
+        book.textContent = novel.title || "Axiom";
+      }, { once: true });
+      book.appendChild(image);
+    } else if (novel) {
+      book.classList.add("has-fallback");
+      book.textContent = novel.title || "Axiom";
+    } else {
+      const mark = document.createElement("span");
+      mark.textContent = "A";
+      book.appendChild(mark);
+    }
+    bookcase.appendChild(book);
+  }
+  return bookcase;
+}
+
 function createNovelCard(novel, index) {
   const link = document.createElement("a");
   link.href = `/novel.html?id=${novel.id}`;

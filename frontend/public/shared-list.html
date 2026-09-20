@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reading List | Axiom</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/novel.css">
+  </head>
+  <body>
+    <header class="site-header home-header">
+      <a class="brand" href="/" aria-label="Axiom home">
+        <img src="/assets/axiom-mark.png" alt="" class="brand-logo">
+        <img src="/assets/axiom-wordmark.png" alt="" class="brand-wordmark">
+      </a>
+      <nav class="nav-links reader-nav" aria-label="Primary navigation">
+        <a href="/finder.html">Finder</a>
+        <a href="/#popular">Popular</a>
+      </nav>
+      <form class="top-search-form search-form" action="/search.html" method="get" aria-label="Search novels">
+        <label for="novel-search">Search novels</label>
+        <div class="search-row">
+          <input id="novel-search" name="q" type="search" placeholder="Search novels, themes, moods...">
+          <button type="submit" aria-label="Search">Search</button>
+        </div>
+      </form>
+      <nav class="nav-links account-nav" aria-label="Account navigation">
+        <div class="guest-actions" data-guest-actions>
+          <a href="/login.html">Log in</a>
+          <a class="nav-cta" href="/signup.html">Sign up</a>
+        </div>
+        <div class="user-actions is-hidden" data-user-actions>
+          <span class="user-greeting" data-user-greeting></span>
+          <button class="logout-button" type="button" data-logout-button>Log out</button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="reading-lists-page">
+      <a class="novel-back-link" href="/" data-back-link>&larr; Back</a>
+
+      <section class="search-results-heading reading-list-heading" aria-labelledby="list-title">
+        <p class="eyebrow" data-list-owner>Reading list</p>
+        <h1 id="list-title" data-list-title>Loading&hellip;</h1>
+        <p class="reading-lists-summary" data-list-summary aria-live="polite"></p>
+      </section>
+
+      <section aria-label="Novels in this list">
+        <div class="search-results-grid" data-list-novels>
+          <p>Loading novels&hellip;</p>
+        </div>
+      </section>
+    </main>
+
+    <script src="/script.js"></script>
+    <script src="/shared-list.js"></script>
+  </body>
+</html>

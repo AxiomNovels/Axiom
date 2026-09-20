@@ -2741,3 +2741,24 @@ body.modal-open { overflow:hidden; }
 @media (max-width: 1050px) {
   .similar-grid { grid-template-columns: none; grid-auto-columns: 160px; gap: 16px; }
 }
+
+/* Reading list visibility */
+.reading-list-visibility { display: grid; gap: 6px; padding: 0 18px; }
+.reading-list-visibility-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.reading-list-visibility-head label { color: var(--dim); font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.reading-list-visibility-status { color: var(--dim); font-size: .74rem; }
+.reading-list-visibility-select {
+  width: 100%; min-height: 38px; border: 1px solid var(--line); border-radius: 8px;
+  background: rgba(3, 1, 8, 0.72); color: var(--ink); font: inherit; font-size: .85rem; padding: 0 10px;
+}
+.reading-list-visibility-select:focus { border-color: var(--focus); box-shadow: 0 0 0 4px rgba(168, 85, 247, .2); outline: none; }
+.reading-list-visibility-select:disabled { opacity: .6; }
+
+/* Reading lists on the public profile page */
+.user-reading-lists { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
+.user-reading-lists > .user-profile-empty { grid-column: 1 / -1; }
+.user-reading-lists .reading-list-card-link { padding-bottom: 18px; }
+.reading-list-visibility-badge {
+  display: inline-block; margin-top: 10px; border: 1px solid var(--line); border-radius: 999px;
+  color: var(--focus); font-size: .7rem; font-weight: 800; padding: 3px 9px;
+}

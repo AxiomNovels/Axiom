@@ -309,6 +309,77 @@ async function loadFriendAction(targetUserId) {
   }
 }
 
+const LIST_VISIBILITY_LABELS = {
+  private: "Private",
+  friends: "Friends only",
+  public: "Public",
+};
+
+function createProfileListCard(list, ownerId, isOwner) {
+  const card = document.createElement("article");
+  card.className = "reading-list-card";
+
+  const link = document.createElement("a");
+  link.className = "reading-list-card-link";
+  link.href = isOwner
+    ? `/list.html?id=${encodeURIComponent(list.id)}`
+    : `/shared-list.html?user=${encodeURIComponent(ownerId)}&id=${encodeURIComponent(list.id)}`;
+
+  const title = document.createElement("h3");
+  title.textContent = list.name;
+
+  const count = document.createElement("p");
+  count.textContent = `${list.novel_count} ${list.novel_count === 1 ? "novel" : "novels"}`;
+
+  link.append(createListBookcase(list.preview_novels || []), title, count);
+
+  // Only the owner sees which level each list is set to.
+  if (isOwner) {
+    const badge = document.createElement("span");
+    badge.className = "reading-list-visibility-badge";
+    badge.textContent = LIST_VISIBILITY_LABELS[list.visibility] || "Private";
+    link.appendChild(badge);
+  }
+
+  card.appendChild(link);
+  return card;
+}
+
+async function loadUserReadingLists(userId, username) {
+  const container = document.querySelector("[data-user-reading-lists]");
+  if (!container) return;
+
+  try {
+    // authFetch so the backend can tell whether the viewer is the owner or a friend.
+    const response = await authFetch(`${API_BASE}/api/users/${encodeURIComponent(userId)}/reading-lists`);
+    if (!response.ok) throw new Error("Failed to load reading lists");
+    const payload = await response.json();
+    const lists = payload.lists || [];
+
+    container.innerHTML = "";
+    if (!lists.length) {
+      const empty = document.createElement("p");
+      empty.className = "user-profile-empty";
+
+      if (payload.is_owner) {
+        empty.textContent = "You don't have any reading lists yet.";
+      } else {
+        const message = document.createElement("em");
+        message.textContent = `${username || payload.username || "This reader"} does not have any public reading lists.`;
+        empty.appendChild(message);
+      }
+
+      container.appendChild(empty);
+      return;
+    }
+
+    lists.forEach((list) => container.appendChild(createProfileListCard(list, userId, payload.is_owner)));
+  } catch (error) {
+    console.error("[user.js] failed to load reading lists:", error);
+    container.innerHTML = '<p class="user-profile-empty">Reading lists are temporarily unavailable.</p>';
+  }
+}
+
 async function loadPublicProfile() {
   const userId = getUserIdFromUrl();
   const usernameEl = document.querySelector("[data-user-username]");
@@ -349,6 +420,7 @@ async function loadPublicProfile() {
 
     renderUserTags(profile.tag_preferences);
     renderSocialLinks(profile.social_links);
+    loadUserReadingLists(userId, profile.username);
     loadFriendAction(userId);
 
     if (aboutEl) {

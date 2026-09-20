@@ -38,6 +38,75 @@ function showConfirmModal(message) {
   });
 }
 
+const VISIBILITY_OPTIONS = [
+  ["private", "Private"],
+  ["friends", "Visible to Friends"],
+  ["public", "Public"],
+];
+
+function createVisibilityControl(list) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "reading-list-visibility";
+
+  const head = document.createElement("div");
+  head.className = "reading-list-visibility-head";
+
+  const selectId = `list-visibility-${list.id}`;
+  const label = document.createElement("label");
+  label.setAttribute("for", selectId);
+  label.textContent = "Who can see this";
+
+  const status = document.createElement("span");
+  status.className = "reading-list-visibility-status";
+  status.setAttribute("aria-live", "polite");
+  head.append(label, status);
+
+  const select = document.createElement("select");
+  select.id = selectId;
+  select.className = "reading-list-visibility-select";
+  VISIBILITY_OPTIONS.forEach(([value, text]) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = text;
+    select.appendChild(option);
+  });
+  select.value = list.visibility || "private";
+
+  select.addEventListener("change", async () => {
+    const next = select.value;
+    const previous = list.visibility || "private";
+    select.disabled = true;
+    status.textContent = "Saving…";
+    try {
+      const response = await authFetch(`${API_BASE}/api/reading-lists/${list.id}/visibility`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visibility: next }),
+      });
+      if (response.status === 401) {
+        window.location.href = "/login.html";
+        return;
+      }
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(typeof result.detail === "string" ? result.detail : "Update failed");
+      }
+      list.visibility = next;
+      status.textContent = "Saved";
+      setTimeout(() => { status.textContent = ""; }, 1500);
+    } catch (error) {
+      select.value = previous;
+      status.textContent = "";
+      alert(error.message || "Couldn't update this list's visibility. Please try again.");
+    } finally {
+      select.disabled = false;
+    }
+  });
+
+  wrapper.append(head, select);
+  return wrapper;
+}
+
 function createListCard(list) {
   const card = document.createElement("article");
   card.className = "reading-list-card";
@@ -46,35 +115,7 @@ function createListCard(list) {
   link.className = "reading-list-card-link";
   link.href = `/list.html?id=${list.id}`;
 
-  const bookcase = document.createElement("div");
-  bookcase.className = "list-bookcase";
-  bookcase.setAttribute("aria-hidden", "true");
-  const previews = list.preview_novels || [];
-  for (let index = 0; index < 3; index += 1) {
-    const novel = previews[index];
-    const book = document.createElement("div");
-    book.className = novel ? "list-preview-book" : "list-preview-book is-empty";
-    if (novel?.cover_image_url) {
-      const image = document.createElement("img");
-      image.referrerPolicy = "no-referrer";
-      image.src = novel.cover_image_url;
-      image.alt = "";
-      image.addEventListener("error", () => {
-        image.remove();
-        book.classList.add("has-fallback");
-        book.textContent = novel.title || "Axiom";
-      }, { once: true });
-      book.appendChild(image);
-    } else if (novel) {
-      book.classList.add("has-fallback");
-      book.textContent = novel.title || "Axiom";
-    } else {
-      const mark = document.createElement("span");
-      mark.textContent = "A";
-      book.appendChild(mark);
-    }
-    bookcase.appendChild(book);
-  }
+  const bookcase = createListBookcase(list.preview_novels || []);
 
   const title = document.createElement("h3");
   title.textContent = list.name;
@@ -106,7 +147,9 @@ function createListCard(list) {
   actions.appendChild(deleteButton);
 
   card.appendChild(link);
+  card.appendChild(createVisibilityControl(list));
   card.appendChild(actions);
+
   return card;
 }
 
