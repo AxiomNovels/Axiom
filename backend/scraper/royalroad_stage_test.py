@@ -33,7 +33,6 @@ def main():
         print(f"  fiction_id:        {novel['fiction_id']}")
         print(f"  status:             {novel['status']}")
         print(f"  chapter_count:      {novel['chapter_count']}")
-        print(f"  view_count:         {novel['view_count']}")
         print(f"  genres:             {novel['genres']}")
         print(f"  tags:               {novel['tags']}")
         print(f"  cover_image_url:    {novel['cover_image_url']}")

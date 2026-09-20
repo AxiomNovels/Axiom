@@ -12,7 +12,6 @@ function getUploadElements() {
     authorEl: document.querySelector("[data-upload-author]"),
     statusEl: document.querySelector("[data-upload-status]"),
     chaptersEl: document.querySelector("[data-upload-chapters]"),
-    viewsEl: document.querySelector("[data-upload-views]"),
     genresEl: document.querySelector("[data-upload-genres]"),
     tagsEl: document.querySelector("[data-upload-tags]"),
     synopsisEl: document.querySelector("[data-upload-synopsis]"),
@@ -36,7 +35,7 @@ function clearMessage(el) {
   el.classList.add("is-hidden");
 }
 
-// Chapter/view counts are optional -- a source page may not expose one,
+// Chapter counts are optional -- a source page may not expose one,
 // or scraping it may fail -- so this falls back to "Unknown" the same
 // way author/status already do, rather than showing a misleading 0.
 // When a count is available it's shown compactly (e.g. "123.4K") with
@@ -57,7 +56,6 @@ function renderPreview(elements, novel) {
   elements.authorEl.textContent = novel.author || "Unknown";
   elements.statusEl.textContent = novel.status || "Unknown";
   describeCount(elements.chaptersEl, novel.chapter_count);
-  describeCount(elements.viewsEl, novel.view_count);
   elements.genresEl.textContent = (novel.genres || []).join(", ") || "None";
   elements.tagsEl.textContent = (novel.tags || []).join(", ") || "None";
   elements.synopsisEl.textContent = novel.synopsis || "No synopsis available.";

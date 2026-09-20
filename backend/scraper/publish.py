@@ -104,25 +104,22 @@ def validate_novel(novel: dict) -> None:
         author = author.strip()
 
     # --------------------------------------------------
-    # Validate chapter_count / view_count
+    # Validate chapter_count
     #
-    # Both are optional stats scraped from the source site, so None
-    # (never scraped/found) is valid, but if present they must be a
-    # non-negative int -- matching the CHECK constraints added in
-    # database/novel_stats.sql.
+    # Optional stat scraped from the source site, so None (never
+    # scraped/found) is valid, but if present it must be a
+    # non-negative int -- matching the CHECK constraint on
+    # novels.chapter_count.
     # --------------------------------------------------
 
-    for field_name in ("chapter_count", "view_count"):
-        value = novel.get(field_name)
+    chapter_count = novel.get("chapter_count")
 
-        if value is None:
-            continue
+    if chapter_count is not None:
+        if isinstance(chapter_count, bool) or not isinstance(chapter_count, int):
+            raise ValueError("chapter_count must be an integer or None")
 
-        if isinstance(value, bool) or not isinstance(value, int):
-            raise ValueError(f"{field_name} must be an integer or None")
-
-        if value < 0:
-            raise ValueError(f"{field_name} cannot be negative")
+        if chapter_count < 0:
+            raise ValueError("chapter_count cannot be negative")
 
     # --------------------------------------------------
     # Validate genres

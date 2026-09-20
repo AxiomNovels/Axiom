@@ -42,11 +42,9 @@ function resultCard(novel, index) {
   copy.querySelector(".result-status").textContent = novel.status || "Unknown"; copy.querySelector(".result-synopsis").textContent = novel.synopsis || "No synopsis available.";
   const rating = copy.querySelector(".result-rating");
   rating.textContent = novel.average_rating == null ? "Not yet rated" : `★ ${Number(novel.average_rating).toFixed(1)} · ${novel.review_count} ${novel.review_count === 1 ? "review" : "reviews"}`;
-  // Chapter/view counts are optional per novel -- only the stats that
-  // actually exist are shown, compactly (e.g. "128.4K views").
+  // Chapter count is optional per novel -- only shown when it actually
+  // exists, compactly (e.g. "1.2K chapters").
   const statParts = [];
-  const viewCount = Number(novel.view_count);
-  if (Number.isFinite(viewCount) && viewCount >= 0) statParts.push(`${formatCompactNumber(viewCount)} views`);
   const chapterCount = Number(novel.chapter_count);
   if (Number.isFinite(chapterCount) && chapterCount >= 0) statParts.push(`${formatCompactNumber(chapterCount)} ${chapterCount === 1 ? "chapter" : "chapters"}`);
   const statsEl = copy.querySelector(".result-stats");

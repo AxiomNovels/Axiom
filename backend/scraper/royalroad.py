@@ -632,64 +632,28 @@ def extract_chapter_count(
 
 def extract_statistics(
     tree: HTMLParser,
-) -> tuple[int | None, int | None, float | None]:
+) -> tuple[int | None, float | None]:
     """
     Extract Royal Road story statistics.
 
     Returns:
-        (view_count, rating_count, overall_score)
+        (rating_count, overall_score)
 
     Examples:
 
-        Total Views : 28,090,267
         Ratings : 17,478
         Overall Score: 4.8 / 5
-
-    Views and ratings are returned as integers.
-    Overall score is returned as a float.
     """
 
-    statistics_nodes = tree.css(
-        ".fiction-stats"
-    )
+    for statistics_node in tree.css(".fiction-stats"):
 
-    for statistics_node in statistics_nodes:
-
-        text = clean_text(
-            statistics_node
-        )
+        text = clean_text(statistics_node)
 
         if not text:
             continue
 
-        view_count = None
         rating_count = None
         overall_score = None
-
-        # -----------------------------------------------------
-        # Total Views
-        # -----------------------------------------------------
-
-        view_match = re.search(
-            r"\bTotal\s+Views?\s*:\s*([\d,]+)",
-            text,
-            flags=re.IGNORECASE,
-        )
-
-        if view_match:
-            try:
-                view_count = int(
-                    view_match.group(1).replace(
-                        ",",
-                        "",
-                    )
-                )
-            except ValueError:
-                pass
-
-        # -----------------------------------------------------
-        # Ratings
-        # -----------------------------------------------------
 
         rating_match = re.search(
             r"\bRatings?\s*:\s*([\d,]+)",
@@ -700,23 +664,10 @@ def extract_statistics(
         if rating_match:
             try:
                 rating_count = int(
-                    rating_match.group(1).replace(
-                        ",",
-                        "",
-                    )
+                    rating_match.group(1).replace(",", "")
                 )
             except ValueError:
                 pass
-
-        # -----------------------------------------------------
-        # Overall Score
-        #
-        # First try ordinary text representations such as:
-        #
-        #     Overall Score 4.8
-        #     Overall Score: 4.8
-        #     Overall Score 4.8 / 5
-        # -----------------------------------------------------
 
         score_match = re.search(
             r"\bOverall\s+Score\b\s*:?\s*([0-5](?:\.\d+)?)",
@@ -726,27 +677,12 @@ def extract_statistics(
 
         if score_match:
             try:
-                overall_score = float(
-                    score_match.group(1)
-                )
+                overall_score = float(score_match.group(1))
             except ValueError:
                 pass
 
-        # -----------------------------------------------------
-        # Royal Road may render the score visually through
-        # the star-rating CSS rather than putting the number
-        # directly into the visible text.
-        #
-        # Example diagnostic output:
-        #
-        # .star-21220-overall-0f0b...:after{
-        #     width: 97.0357%
-        # }
-        #
-        # The width represents the percentage score.
-        # Convert it back to a 0-5 score.
-        # -----------------------------------------------------
-
+        # Royal Road may render the score through star-rating CSS
+        # (e.g. width: 97.0357%) instead of visible text.
         if overall_score is None:
 
             score_css_match = re.search(
@@ -757,37 +693,19 @@ def extract_statistics(
             )
 
             if score_css_match:
-
                 try:
-                    percentage = float(
-                        score_css_match.group(1)
-                    )
+                    percentage = float(score_css_match.group(1))
 
                     if 0 <= percentage <= 100:
-                        overall_score = round(
-                            percentage / 20,
-                            1,
-                        )
+                        overall_score = round(percentage / 20, 1)
 
                 except ValueError:
                     pass
 
-        if (
-            view_count is not None
-            or rating_count is not None
-            or overall_score is not None
-        ):
-            return (
-                view_count,
-                rating_count,
-                overall_score,
-            )
+        if rating_count is not None or overall_score is not None:
+            return (rating_count, overall_score)
 
-    return (
-        None,
-        None,
-        None,
-    )
+    return (None, None)
 
 def parse_royalroad(
     html: str,
@@ -801,7 +719,7 @@ def parse_royalroad(
         tree
     )
 
-    view_count, rating_count, overall_score = extract_statistics(
+    rating_count, overall_score = extract_statistics(
         tree
     )
 
@@ -813,7 +731,6 @@ def parse_royalroad(
         "author": extract_author(tree),
         "status": extract_status(tree),
         "chapter_count": chapter_count,
-        "view_count": view_count,
         "overall_score": overall_score,
         "rating_count": rating_count,
         "genres": extract_genres(tree),
@@ -855,7 +772,6 @@ def scrape_royalroads(
                 f"| genres={novel['genres']} "
                 f"| tags={novel['tags']} "
                 f"| chapters={novel['chapter_count']} "
-                f"| views={novel['view_count']} "
                 f"| score={novel['overall_score']}"
                 f"| ratings={novel['rating_count']}"
             )
@@ -874,7 +790,6 @@ def scrape_royalroads(
                     "author": None,
                     "status": None,
                     "chapter_count": None,
-                    "view_count": None,
                     "genres": [],
                     "tags": [],
                     "synopsis": None,

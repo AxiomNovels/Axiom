@@ -13,6 +13,7 @@ URLS = [
     "https://www.webnovel.com/book/reverend-insanity_7996858406002505",
     "https://www.webnovel.com/book/22965486906528105",
     "https://www.webnovel.com/book/shadow-slave_22196546206090805",
+    "https://www.webnovel.com/book/35970900108664305",
 ]
 
 
@@ -66,7 +67,6 @@ def main():
         print(f"  story_id:          {novel['story_id']}")
         print(f"  status:             {novel['status']}")
         print(f"  chapter_count:      {novel['chapter_count']}")
-        print(f"  view_count:         {novel['view_count']}")
         print(f"  genres:             {novel['genres']}")
         print(f"  tags:               {novel['tags']}")
         print(

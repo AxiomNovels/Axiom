@@ -28,14 +28,13 @@ def clean_string(value: Any) -> str | None:
 
 def clean_count(value: Any) -> int | None:
     """
-    Convert a scraped chapter/view count into a clean non-negative int.
+    Convert a scraped chapter count into a clean non-negative int.
 
     Every scraper (royalroad.py, webnovel.py, wattpad.py) already parses
-    these as plain ints when it can find them, but this stays defensive
+    this as a plain int when it can find it, but this stays defensive
     against None, numeric strings, floats, or a negative/garbage value
-    slipping through -- novels.chapter_count and novels.view_count are
-    both nullable, so "we don't know" is represented as None rather than
-    a misleading 0.
+    slipping through -- novels.chapter_count is nullable, so "we don't
+    know" is represented as None rather than a misleading 0.
     """
 
     if value is None:
@@ -191,10 +190,6 @@ def transform_royalroad(payload: dict) -> dict:
         payload.get("chapter_count")
     )
 
-    view_count = clean_count(
-        payload.get("view_count")
-    )
-
     reading_links = normalize_reading_links(
         source=payload.get("source"),
         reading_url=clean_string(
@@ -211,7 +206,6 @@ def transform_royalroad(payload: dict) -> dict:
         "genres": genres,
         "tags": tags,
         "chapter_count": chapter_count,
-        "view_count": view_count,
         "reading_links": reading_links,
     }
 
@@ -264,10 +258,6 @@ def transform_wattpad(payload: dict) -> dict:
         payload.get("chapter_count")
     )
 
-    view_count = clean_count(
-        payload.get("view_count")
-    )
-
     reading_links = normalize_reading_links(
         source=payload.get("source"),
         reading_url=clean_string(
@@ -284,7 +274,6 @@ def transform_wattpad(payload: dict) -> dict:
         "genres": genres,
         "tags": tags,
         "chapter_count": chapter_count,
-        "view_count": view_count,
         "reading_links": reading_links,
     }
 
@@ -337,10 +326,6 @@ def transform_webnovel(payload: dict) -> dict:
         payload.get("chapter_count")
     )
 
-    view_count = clean_count(
-        payload.get("view_count")
-    )
-
     reading_links = normalize_reading_links(
         source=payload.get("source"),
         reading_url=clean_string(
@@ -357,7 +342,6 @@ def transform_webnovel(payload: dict) -> dict:
         "genres": genres,
         "tags": tags,
         "chapter_count": chapter_count,
-        "view_count": view_count,
         "reading_links": reading_links,
     }
 

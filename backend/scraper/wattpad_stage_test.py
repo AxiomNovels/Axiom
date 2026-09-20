@@ -67,7 +67,6 @@ def main():
         print(f"  story_id:          {novel['story_id']}")
         print(f"  status:            {novel['status']}")
         print(f"  chapter_count:      {novel['chapter_count']}")
-        print(f"  view_count:         {novel['view_count']}")
         print(f"  genres:             {novel['genres']}")
         print(f"  tags:               {novel['tags']}")
         print(
