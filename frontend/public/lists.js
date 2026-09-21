@@ -127,6 +127,7 @@ function createListCard(list) {
   link.appendChild(bookcase);
   link.appendChild(title);
   link.appendChild(count);
+  link.appendChild(createListRatingLine(list));
 
   const actions = document.createElement("div");
   actions.className = "reading-list-card-actions";

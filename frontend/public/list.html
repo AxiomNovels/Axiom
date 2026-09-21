@@ -50,6 +50,23 @@
           <p>Loading novels&hellip;</p>
         </div>
       </section>
+
+      <section class="reviews-section list-reviews-section" aria-labelledby="reviews-heading" data-list-reviews-section hidden>
+        <div class="reviews-feed">
+          <div class="reviews-heading-row">
+            <div>
+              <p class="eyebrow">Reader perspectives</p>
+              <h2 id="reviews-heading">Reviews</h2>
+            </div>
+            <div class="reviews-overview" data-reviews-overview aria-live="polite"></div>
+          </div>
+
+          <div class="reviews-list" data-reviews-list aria-live="polite">
+            <p class="reviews-empty">Loading reviews&hellip;</p>
+          </div>
+        </div>
+        <div class="review-composer" data-review-composer></div>
+      </section>
     </main>
 
     <div class="modal-overlay is-hidden" data-modal-overlay>
@@ -63,6 +80,7 @@
     </div>
 
     <script src="/script.js"></script>
+    <script src="/list-reviews.js"></script>
     <script src="/list.js"></script>
   </body>
 </html>

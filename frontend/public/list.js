@@ -153,4 +153,5 @@ if (!getAccessToken()) {
   window.location.href = "/login.html";
 } else {
   loadReadingList();
+  initListReviews(getListIdFromUrl());
 }

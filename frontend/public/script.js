@@ -452,6 +452,32 @@ document.querySelectorAll(".search-form").forEach((form) => {
   });
 });
 
+function createListRatingLine(list) {
+  const line = document.createElement("p");
+  line.className = "reading-list-rating";
+  const count = Number(list.review_count) || 0;
+
+  if (!count || list.average_rating == null) {
+    line.classList.add("is-unrated");
+    line.textContent = "Not yet rated";
+    return line;
+  }
+
+  const star = document.createElement("span");
+  star.setAttribute("aria-hidden", "true");
+  star.textContent = "★";
+
+  const value = document.createElement("strong");
+  value.textContent = `${Number(list.average_rating).toFixed(1)}/5`;
+
+  const total = document.createElement("span");
+  total.className = "reading-list-rating-count";
+  total.textContent = ` · ${count} ${count === 1 ? "review" : "reviews"}`;
+
+  line.append(star, " ", value, total);
+  return line;
+}
+
 function createListBookcase(previews = []) {
   const bookcase = document.createElement("div");
   bookcase.className = "list-bookcase";

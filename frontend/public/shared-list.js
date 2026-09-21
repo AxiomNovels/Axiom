@@ -41,7 +41,7 @@ async function loadSharedList() {
 
     const novels = list.novels || [];
     summaryEl.textContent = `${novels.length} ${novels.length === 1 ? "novel" : "novels"} in this list.`;
-
+    initListReviews(listId);
     grid.innerHTML = "";
     if (!novels.length) {
       grid.innerHTML = '<p class="search-empty">No novels in this list yet.</p>';

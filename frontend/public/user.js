@@ -331,7 +331,7 @@ function createProfileListCard(list, ownerId, isOwner) {
   const count = document.createElement("p");
   count.textContent = `${list.novel_count} ${list.novel_count === 1 ? "novel" : "novels"}`;
 
-  link.append(createListBookcase(list.preview_novels || []), title, count);
+   link.append(createListBookcase(list.preview_novels || []), title, count, createListRatingLine(list));
 
   // Only the owner sees which level each list is set to.
   if (isOwner) {

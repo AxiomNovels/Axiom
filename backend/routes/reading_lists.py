@@ -3,8 +3,9 @@ from typing import Literal, Optional
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from core.database import create_authenticated_client, supabase
+from core.database import create_authenticated_client, create_service_client, supabase
 from routes.novels import NOVEL_LIST_COLUMNS
+from services.reading_list_review_service import attach_rating_summaries
 
 
 router = APIRouter(prefix="/api/reading-lists", tags=["reading-lists"])
@@ -147,6 +148,7 @@ def list_reading_lists(auth=Depends(get_current_user)):
         reading_list["novel_count"] = counts.get(reading_list["id"], 0)
         reading_list["preview_novels"] = previews.get(reading_list["id"], [])
 
+    attach_rating_summaries(create_service_client(), lists)
     return lists
 
 

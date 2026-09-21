@@ -3,6 +3,7 @@ from routes.novels import NOVEL_LIST_COLUMNS
 
 from core.auth import get_optional_current_user
 from core.database import create_service_client
+from services.reading_list_review_service import attach_rating_summaries
 
 
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -166,10 +167,13 @@ def get_user_reading_lists(user_id: str, auth=Depends(get_optional_current_user)
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
 
+    lists = _attach_counts_and_previews(client, lists)
+    attach_rating_summaries(client, lists)
+
     return {
         "username": username,
         "is_owner": viewer_id == user_id,
-        "lists": _attach_counts_and_previews(client, lists),
+        "lists": lists,
     }
 
 

@@ -2762,3 +2762,12 @@ body.modal-open { overflow:hidden; }
   display: inline-block; margin-top: 10px; border: 1px solid var(--line); border-radius: 999px;
   color: var(--focus); font-size: .7rem; font-weight: 800; padding: 3px 9px;
 }
+
+/* Reading list ratings */
+.reading-list-card-link .reading-list-rating { margin: 8px 0 0; color: #f2b84b; font-size: .85rem; font-weight: 700; }
+.reading-list-card-link .reading-list-rating.is-unrated { color: var(--dim); font-weight: 500; }
+.reading-list-rating strong { color: var(--ink); }
+.reading-list-rating .reading-list-rating-count { color: var(--muted); font-weight: 500; }
+
+/* .reviews-section sets display:grid, which would override the hidden attribute */
+.list-reviews-section[hidden] { display: none; }
