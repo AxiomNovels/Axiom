@@ -24,13 +24,16 @@ def get_current_user(authorization: Optional[str] = Header(None)):
     if not user:
         raise HTTPException(status_code=401, detail="Your session has expired. Please log in again.")
 
+    if (user.app_metadata or {}).get("axiom_banned") is True:
+        raise HTTPException(status_code=403, detail="This account has been banned.")
+
     return user.id, create_authenticated_client(access_token)
 
 
 def get_optional_current_user(authorization: Optional[str] = Header(None)):
-    """Like get_current_user, but never raises: returns (None, supabase)
+    """Like get_current_user, but returns (None, supabase)
     when there's no bearer token, or when the token is missing/expired,
-    instead of a 401.
+    instead of a 401. Recognized banned accounts still receive a 403.
 
     Used by endpoints that are public (anyone can view them, logged in or
     not) but need to know *who's viewing* to personalize the response --
@@ -50,5 +53,8 @@ def get_optional_current_user(authorization: Optional[str] = Header(None)):
     user = getattr(user_response, "user", None)
     if not user:
         return None, supabase
+
+    if (user.app_metadata or {}).get("axiom_banned") is True:
+        raise HTTPException(status_code=403, detail="This account has been banned.")
 
     return user.id, create_authenticated_client(access_token)

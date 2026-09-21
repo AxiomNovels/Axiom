@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin hub | Axiom</title><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/admin.css"></head><body>
+    <header class="site-header home-header">
+      <a class="brand" href="/" aria-label="Axiom home">
+        <img src="/assets/axiom-mark.png" alt="" class="brand-logo">
+        <img src="/assets/axiom-wordmark.png" alt="" class="brand-wordmark">
+      </a>
+      <nav class="nav-links reader-nav" aria-label="Primary navigation">
+        <a href="/finder.html">Finder</a>
+        <a href="/#popular">Popular</a>
+      </nav>
+      <form class="top-search-form search-form" action="/search.html" method="get" aria-label="Search novels">
+        <label for="novel-search">Search novels</label>
+        <div class="search-row">
+          <input id="novel-search" name="q" type="search" placeholder="Search novels, themes, moods...">
+          <button type="submit" aria-label="Search">Search</button>
+        </div>
+      </form>
+      <nav class="nav-links account-nav" aria-label="Account navigation">
+        <div class="guest-actions" data-guest-actions>
+          <a href="/login.html">Log in</a>
+          <a class="nav-cta" href="/signup.html">Sign up</a>
+        </div>
+        <div class="user-actions is-hidden" data-user-actions>
+          <span class="user-greeting" data-user-greeting></span>
+          <button class="logout-button" type="button" data-logout-button>Log out</button>
+        </div>
+      </nav>
+    </header>
+
+
+<main class="admin-page"><div class="admin-heading"><div><p class="eyebrow">AXIOM / ADMINISTRATION</p><h1>Admin hub<span>.</span></h1><p class="admin-intro">Care for your community. Fine-tune your catalogue.</p></div><span class="admin-access">SPECIAL ACCESS</span></div>
+<p id="admin-status" role="status" aria-live="polite">Checking access…</p>
+<div id="admin-content" hidden>
+<nav class="admin-tabs" aria-label="Admin sections"><button id="users-tab" aria-pressed="true">Accounts</button><button id="novels-tab" aria-pressed="false">Novel profiles</button></nav>
+<section id="users-panel" class="admin-panel"><h2>Accounts</h2><p>Browse accounts and manage bans. SPECIAL accounts are protected.</p>
+<form id="users-search" class="admin-search"><label for="users-query">Search by username</label><input id="users-query" type="search" maxlength="100" placeholder="Find an account..."><button>Search</button></form>
+<div id="users-results"></div><div id="users-pages" class="admin-pages"></div></section>
+<section id="novels-panel" class="admin-panel" hidden><h2>Novel profiles</h2><p>Choose a novel to edit its protagonist, philosophy, and storytelling scores.</p>
+<form id="novels-search" class="admin-search"><label for="novels-query">Search by title</label><input id="novels-query" type="search" maxlength="150" placeholder="Find a novel..."><button>Search</button></form>
+<div id="novels-results"></div><div id="novels-pages" class="admin-pages"></div><section id="profile-editor" aria-label="Profile editor"></section></section>
+</div></main><script src="/script.js"></script><script src="/admin.js"></script></body></html>

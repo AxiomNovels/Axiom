@@ -1,9 +1,10 @@
-from typing import Literal, Optional
+from typing import Literal
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from core.database import create_authenticated_client, supabase
+from core.auth import get_current_user
+from core.database import supabase
 from routes.novels import NOVEL_LIST_COLUMNS
 
 
@@ -23,30 +24,6 @@ class ReadingListNovelAdd(BaseModel):
 
 class ReadingListVisibilityUpdate(BaseModel):
     visibility: Literal["private", "friends", "public"]
-
-def get_current_user(authorization: Optional[str] = Header(None)):
-    """Resolve the Supabase user id from a `Bearer <access_token>` header.
-
-    The frontend stores the Supabase session (including its access token)
-    in localStorage after login/signup and sends it on every reading-list
-    request via `authFetch` in script.js.
-    """
-    if not authorization or not authorization.lower().startswith("bearer "):
-        raise HTTPException(status_code=401, detail="Log in to manage reading lists.")
-
-    access_token = authorization.split(" ", 1)[1].strip()
-
-    try:
-        user_response = supabase.auth.get_user(access_token)
-    except Exception:
-        raise HTTPException(status_code=401, detail="Your session has expired. Please log in again.")
-
-    user = getattr(user_response, "user", None)
-    if not user:
-        raise HTTPException(status_code=401, detail="Your session has expired. Please log in again.")
-
-    return user.id, create_authenticated_client(access_token)
-
 
 def _duplicate_name_error(error: Exception) -> bool:
     message = str(error)

@@ -73,3 +73,26 @@ non-interactive run.
 
 
 
+
+## Admin hub
+
+Run `database/admin_hub.sql` once in the Supabase SQL editor. It grants SPECIAL
+access to the existing **wafflehunter** account, locks catalog profile writes to
+the backend, and blocks banned accounts through existing public-table RLS policies.
+The migration fails without changing anything if wafflehunter does not exist.
+Ensure `SUPABASE_SECRET_KEY` is configured in `backend/.env` (never in the frontend).
+Restart the backend and open `/admin.html`, or choose **Admin hub** in the account menu.
+
+The hub lists/searches accounts with pagination, bans/unbans ordinary accounts,
+and searches novels to edit all three profiles. Scores must be integers from
+0–100; each profile is saved separately. SPECIAL accounts cannot be banned.
+Bans block new Supabase logins and authenticated backend actions, including
+existing sessions. Public content remains available while signed out.
+
+SPECIAL access uses server-owned `auth.users.raw_app_meta_data.axiom_special`;
+usernames, user-editable metadata, and browser storage never authorize access.
+To grant your co-developer access later, use their verified account UUID with the
+commented SQL at the bottom of the migration. Set the flag to false to revoke.
+For new RLS-protected tables, also add the restrictive `axiom_banned_accounts`
+policy shown in the migration. Service-role operations bypass RLS and must
+continue to use the shared backend authentication dependency.
