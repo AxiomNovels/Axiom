@@ -3,6 +3,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from routes.admin import router as admin_router
 from routes.auth import router as auth_router
 from routes.friendships import router as friendships_router
 from routes.inbox import router as inbox_router
@@ -78,6 +79,7 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
     return JSONResponse(status_code=422, content={"detail": message})
 
 
+app.include_router(admin_router)
 app.include_router(auth_router)
 app.include_router(reviews_router)
 app.include_router(novels_router)

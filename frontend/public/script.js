@@ -321,6 +321,15 @@ function updateAccountNav() {
       userActions.appendChild(accountMenu);
     }
 
+    authFetch(`${API_BASE}/api/admin/me`).then((response) => {
+      if (!response.ok || document.querySelector("[data-admin-link]")) return;
+      const link = document.createElement("a");
+      link.href = "/admin.html";
+      link.className = "account-popover-link";
+      link.dataset.adminLink = "";
+      link.textContent = "Admin hub";
+      document.querySelector(".account-popover")?.insertBefore(link, logoutButton);
+    }).catch(() => {});
     refreshAccountAvatar();
     refreshInboxBadge();
     refreshFriendRequestBadges();
