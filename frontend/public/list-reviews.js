@@ -17,6 +17,90 @@ function renderListReviewStars(container, rating) {
   }
 }
 
+function createListThumbsUpIcon() {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("class", "review-like-icon");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute(
+    "d",
+    "M2 22h3.5a1 1 0 0 0 1-1V11a1 1 0 0 0-1-1H2Zm7.5-.4c.4.26.97.4 1.6.4h6.9a2 2 0 0 0 1.94-1.52l1.72-7A2 2 0 0 0 19.72 11H14.9l.62-3.6c.2-1.16-.35-2.3-1.4-2.85a1.9 1.9 0 0 0-2.55.72L8.5 10.6a2 2 0 0 0-.3 1.05V20a1.6 1.6 0 0 0 1.3 1.6Z"
+  );
+  svg.appendChild(path);
+  return svg;
+}
+
+// Toggleable thumbs-up on a list review, mirroring createLikeControl in
+// novel.js. The review's own author sees a disabled button (you can't like
+// your own review); everyone else toggles their like on and off.
+function createListLikeControl(listId, review) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "review-like";
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "review-like-button";
+  button.appendChild(createListThumbsUpIcon());
+
+  const count = document.createElement("span");
+  count.className = "review-like-count";
+  count.textContent = String(review.like_count || 0);
+
+  if (review.user_id === listReviewUserId()) {
+    button.disabled = true;
+    button.classList.add("is-own");
+    button.title = "You can't like your own review";
+    button.setAttribute("aria-label", "You can't like your own review");
+  } else {
+    button.classList.toggle("is-liked", Boolean(review.viewer_has_liked));
+    button.setAttribute("aria-pressed", String(Boolean(review.viewer_has_liked)));
+    button.setAttribute("aria-label", review.viewer_has_liked ? "Unlike this review" : "Like this review");
+
+    button.addEventListener("click", async () => {
+      if (!getAccessToken()) {
+        window.location.href = "/login.html";
+        return;
+      }
+      const currentlyLiked = button.classList.contains("is-liked");
+      button.disabled = true;
+      try {
+        const response = await authFetch(
+          `${API_BASE}/api/reading-lists/${encodeURIComponent(listId)}/reviews/${encodeURIComponent(review.id)}/like`,
+          { method: currentlyLiked ? "DELETE" : "POST" }
+        );
+        if (response.status === 401) {
+          window.location.href = "/login.html";
+          return;
+        }
+        if (response.status === 404) {
+          // The owner tightened visibility (or the review was removed) while this page was open.
+          window.alert("This reading list is no longer shared with you.");
+          await loadListReviews(listId);
+          return;
+        }
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(typeof result.detail === "string" ? result.detail : "Couldn't update your like.");
+        }
+        review.like_count = result.like_count;
+        review.viewer_has_liked = result.liked;
+        button.classList.toggle("is-liked", result.liked);
+        button.setAttribute("aria-pressed", String(result.liked));
+        button.setAttribute("aria-label", result.liked ? "Unlike this review" : "Like this review");
+        count.textContent = String(result.like_count ?? 0);
+      } catch (error) {
+        window.alert(error.message || "Couldn't update your like. Please try again.");
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
+
+  wrapper.append(button, count);
+  return wrapper;
+}
+
 function setupListRatingPicker(stars, valueField, output, clearButton, initialRating) {
   let selectedRating = Number(initialRating) || 0;
   let previewRating = selectedRating;
@@ -234,7 +318,10 @@ function createListReviewCard(listId, review) {
   stars.className = "review-card-stars";
   renderListReviewStars(stars, review.rating);
   stars.setAttribute("aria-label", `${review.rating} out of 5 stars`);
-  meta.appendChild(stars);
+  const topRow = document.createElement("div");
+  topRow.className = "review-card-meta-top";
+  topRow.append(stars, createListLikeControl(listId, review));
+  meta.appendChild(topRow);
 
   header.append(profileLink, identity, meta);
   article.appendChild(header);
@@ -297,16 +384,24 @@ function renderListReviews(listId, payload) {
 
   const list = document.querySelector("[data-reviews-list]");
   list.innerHTML = "";
-  if (!payload.reviews.length) {
+
+  // Like the novel feed, only reviews with a written comment get a card.
+  // Rating-only reviews still count toward the average shown in the overview.
+  const reviewsWithComments = payload.reviews.filter((review) => review.comment);
+  if (!reviewsWithComments.length) {
     const empty = document.createElement("p");
     empty.className = "reviews-empty";
-    empty.textContent = payload.is_owner
-      ? "No reviews yet. Readers who can see this list can rate and comment on it."
-      : "No reviews yet. Start the conversation.";
+    if (payload.review_count) {
+      empty.textContent = "No written comments yet.";
+    } else {
+      empty.textContent = payload.is_owner
+        ? "No reviews yet. Readers who can see this list can rate and comment on it."
+        : "No reviews yet. Start the conversation.";
+    }
     list.appendChild(empty);
     return;
   }
-  payload.reviews.forEach((review) => list.appendChild(createListReviewCard(listId, review)));
+  reviewsWithComments.forEach((review) => list.appendChild(createListReviewCard(listId, review)));
 }
 
 async function loadListReviews(listId) {
