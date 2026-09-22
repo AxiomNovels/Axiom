@@ -38,73 +38,127 @@ function showConfirmModal(message) {
   });
 }
 
-const VISIBILITY_OPTIONS = [
-  ["private", "Private"],
-  ["friends", "Visible to Friends"],
-  ["public", "Public"],
-];
+// Icon + one-line description shown for each visibility level, used both
+// by the chip's compact label and by the popover's option rows.
+const VISIBILITY_CONFIG = {
+  private: { emoji: "🔒", label: "Private", description: "Only you can see this list." },
+  friends: { emoji: "👥", label: "Friends", description: "People you're friends with can see it." },
+  public: { emoji: "🌍", label: "Public", description: "Anyone with the link can see it." },
+};
 
+// A small emoji "chip" (built on the same <details>/<summary> disclosure
+// pattern as the reading-list picker on novel.js and the account menu in
+// script.js) that opens a popover of visibility options. Replaces the old
+// plain <select>, which looked out of place next to the rest of the site.
 function createVisibilityControl(list) {
-  const wrapper = document.createElement("div");
-  wrapper.className = "reading-list-visibility";
+  const picker = document.createElement("details");
+  picker.className = "list-visibility-picker";
 
-  const head = document.createElement("div");
-  head.className = "reading-list-visibility-head";
+  const summary = document.createElement("summary");
+  summary.className = "list-visibility-chip";
 
-  const selectId = `list-visibility-${list.id}`;
-  const label = document.createElement("label");
-  label.setAttribute("for", selectId);
-  label.textContent = "Who can see this";
+  const icon = document.createElement("span");
+  icon.className = "list-visibility-icon";
+  icon.setAttribute("aria-hidden", "true");
+
+  const label = document.createElement("span");
+  label.className = "list-visibility-label";
 
   const status = document.createElement("span");
-  status.className = "reading-list-visibility-status";
+  status.className = "list-visibility-status";
   status.setAttribute("aria-live", "polite");
-  head.append(label, status);
 
-  const select = document.createElement("select");
-  select.id = selectId;
-  select.className = "reading-list-visibility-select";
-  VISIBILITY_OPTIONS.forEach(([value, text]) => {
-    const option = document.createElement("option");
-    option.value = value;
-    option.textContent = text;
-    select.appendChild(option);
-  });
-  select.value = list.visibility || "private";
+  summary.append(icon, label, status);
 
-  select.addEventListener("change", async () => {
-    const next = select.value;
-    const previous = list.visibility || "private";
-    select.disabled = true;
-    status.textContent = "Saving…";
-    try {
-      const response = await authFetch(`${API_BASE}/api/reading-lists/${list.id}/visibility`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ visibility: next }),
-      });
-      if (response.status === 401) {
-        window.location.href = "/login.html";
+  const menu = document.createElement("div");
+  menu.className = "list-visibility-menu";
+  const heading = document.createElement("strong");
+  heading.textContent = "Who can see this";
+  menu.appendChild(heading);
+
+  const optionButtons = {};
+
+  function applyVisibility(value) {
+    const entry = VISIBILITY_CONFIG[value] || VISIBILITY_CONFIG.private;
+    icon.textContent = entry.emoji;
+    label.textContent = entry.label;
+    Object.entries(optionButtons).forEach(([optionValue, button]) => {
+      button.classList.toggle("is-selected", optionValue === value);
+    });
+  }
+
+  function setBusy(busy) {
+    Object.values(optionButtons).forEach((button) => { button.disabled = busy; });
+  }
+
+  Object.entries(VISIBILITY_CONFIG).forEach(([value, entry]) => {
+    const option = document.createElement("button");
+    option.type = "button";
+    option.className = "list-visibility-option";
+
+    const optionIcon = document.createElement("span");
+    optionIcon.className = "list-visibility-option-icon";
+    optionIcon.setAttribute("aria-hidden", "true");
+    optionIcon.textContent = entry.emoji;
+
+    const copy = document.createElement("span");
+    copy.className = "list-visibility-option-copy";
+    const title = document.createElement("strong");
+    title.textContent = entry.label;
+    const description = document.createElement("small");
+    description.textContent = entry.description;
+    copy.append(title, description);
+
+    const check = document.createElement("span");
+    check.className = "list-visibility-option-check";
+    check.setAttribute("aria-hidden", "true");
+    check.textContent = "✓";
+
+    option.append(optionIcon, copy, check);
+
+    option.addEventListener("click", async () => {
+      const previous = list.visibility || "private";
+      if (value === previous) {
+        picker.removeAttribute("open");
         return;
       }
-      if (!response.ok) {
-        const result = await response.json().catch(() => ({}));
-        throw new Error(typeof result.detail === "string" ? result.detail : "Update failed");
+
+      setBusy(true);
+      status.textContent = "Saving…";
+      try {
+        const response = await authFetch(`${API_BASE}/api/reading-lists/${list.id}/visibility`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ visibility: value }),
+        });
+        if (response.status === 401) {
+          window.location.href = "/login.html";
+          return;
+        }
+        if (!response.ok) {
+          const result = await response.json().catch(() => ({}));
+          throw new Error(typeof result.detail === "string" ? result.detail : "Update failed");
+        }
+        list.visibility = value;
+        applyVisibility(value);
+        status.textContent = "Saved";
+        setTimeout(() => { status.textContent = ""; }, 1500);
+        picker.removeAttribute("open");
+      } catch (error) {
+        status.textContent = "";
+        alert(error.message || "Couldn't update this list's visibility. Please try again.");
+      } finally {
+        setBusy(false);
       }
-      list.visibility = next;
-      status.textContent = "Saved";
-      setTimeout(() => { status.textContent = ""; }, 1500);
-    } catch (error) {
-      select.value = previous;
-      status.textContent = "";
-      alert(error.message || "Couldn't update this list's visibility. Please try again.");
-    } finally {
-      select.disabled = false;
-    }
+    });
+
+    optionButtons[value] = option;
+    menu.appendChild(option);
   });
 
-  wrapper.append(head, select);
-  return wrapper;
+  applyVisibility(list.visibility || "private");
+  picker.append(summary, menu);
+  return picker;
 }
 
 function createListCard(list) {
@@ -315,6 +369,15 @@ function setupNewListForm() {
     }
   });
 }
+
+// Close an open visibility popover when clicking anywhere outside it,
+// matching the click-outside behavior of the reading-list picker on
+// novel.js and the account menu in script.js.
+document.addEventListener("click", (event) => {
+  document.querySelectorAll(".list-visibility-picker[open]").forEach((picker) => {
+    if (!picker.contains(event.target)) picker.removeAttribute("open");
+  });
+});
 
 if (requireSession()) {
   setupNewListForm();

@@ -310,9 +310,9 @@ async function loadFriendAction(targetUserId) {
 }
 
 const LIST_VISIBILITY_LABELS = {
-  private: "Private",
-  friends: "Friends only",
-  public: "Public",
+  private: "🔒 Private",
+  friends: "👥 Friends only",
+  public: "🌍 Public",
 };
 
 function createProfileListCard(list, ownerId, isOwner) {
