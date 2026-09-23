@@ -2748,7 +2748,7 @@ body.modal-open { overflow:hidden; }
 /* Reading list visibility -- an emoji chip (<details>/<summary>, same
    pattern as .reading-list-picker above and .account-menu in styles.css)
    that opens a small popover instead of a plain <select>. */
-.list-visibility-picker { position: relative; margin: 0 18px; width: max-content; max-width: calc(100% - 36px); }
+.list-visibility-picker { position: relative; width: max-content; max-width: 100%; }
 .list-visibility-chip {
   display: inline-flex;
   align-items: center;
@@ -2829,14 +2829,13 @@ body.modal-open { overflow:hidden; }
 .list-visibility-option.is-selected .list-visibility-option-check { opacity: 1; }
 
 @media (max-width: 700px) {
-  .list-visibility-picker { margin: 0 12px; max-width: calc(100% - 24px); }
   .list-visibility-menu { width: min(250px, calc(100vw - 56px)); }
 }
 
 /* Reading lists on the public profile page */
 .user-reading-lists { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
 .user-reading-lists > .user-profile-empty { grid-column: 1 / -1; }
-.user-reading-lists .reading-list-card-link { padding-bottom: 18px; }
+.user-reading-lists .reading-list-card-link { padding-bottom: 4px; }
 .reading-list-visibility-badge {
   display: inline-block; margin-top: 10px; border: 1px solid var(--line); border-radius: 999px;
   color: var(--focus); font-size: .7rem; font-weight: 800; padding: 3px 9px;
@@ -2850,3 +2849,107 @@ body.modal-open { overflow:hidden; }
 
 /* .reviews-section sets display:grid, which would override the hidden attribute */
 .list-reviews-section[hidden] { display: none; }
+
+/* =========================================================
+   READING LIST LIKES
+   ========================================================= */
+
+/* Row that holds the visibility chip and the like button together on a
+   "My reading lists" card (lists.js). */
+.reading-list-card-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 18px;
+}
+
+/* Row that holds just the like button on a profile page's reading-list
+   card (user.js), which has no visibility control of its own. */
+.reading-list-card-like-row {
+  padding: 6px 18px 18px;
+}
+
+/* Spacing above the big like button on a list's own detail page
+   (list.html / shared-list.html). */
+.reading-list-like-slot {
+  margin-top: 18px;
+}
+
+/* A heart-shaped like button for a reading list itself -- a size up from
+   .review-like-button, since "like this whole collection" earns a little
+   more presence than liking one line of review text. Warm red/pink
+   (--passion) rather than the site's purple accent, so a liked heart
+   reads at a glance and doesn't compete with the purple visibility chip
+   sitting right next to it. */
+.list-like {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.list-like-button {
+  width: 38px;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: none;
+  color: var(--muted);
+  padding: 0;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+
+.list-like-button:hover:not(:disabled) {
+  border-color: var(--passion);
+  background: var(--passion-soft);
+  color: #ff8b8f;
+  transform: none;
+  box-shadow: none;
+}
+
+.list-like-button.is-liked {
+  border-color: var(--passion);
+  background: var(--passion-soft);
+  color: var(--passion);
+}
+
+.list-like-button:disabled {
+  cursor: default;
+  opacity: .55;
+}
+
+.list-like-icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.list-like-button.is-liked .list-like-icon { fill: currentColor; }
+
+.list-like-count {
+  min-width: 12px;
+  color: var(--muted);
+  font-size: .82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.list-like-button.is-liked ~ .list-like-count { color: var(--ink); }
+
+/* Bigger variant used on a reading list's own detail page rather than
+   its card, per the "must be bigger" requirement. */
+.list-like.large .list-like-button { width: 52px; min-height: 52px; }
+.list-like.large .list-like-icon { width: 24px; height: 24px; }
+.list-like.large .list-like-count { font-size: 1.05rem; }
+
+@media (max-width: 700px) {
+  .reading-list-card-meta-row { padding: 0 12px; }
+  .reading-list-card-like-row { padding: 6px 12px 16px; }
+}

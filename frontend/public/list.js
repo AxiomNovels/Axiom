@@ -128,6 +128,12 @@ async function loadReadingList() {
     document.title = `${list.name} | Axiom`;
     if (titleEl) titleEl.textContent = list.name;
 
+    const likeSlot = document.querySelector("[data-list-like]");
+    if (likeSlot) {
+      likeSlot.innerHTML = "";
+      likeSlot.appendChild(createListLikeControl(list, { isOwner: true, large: true }));
+    }
+
     const novels = list.novels || [];
     if (summaryEl) {
       const novelWord = novels.length === 1 ? "novel" : "novels";

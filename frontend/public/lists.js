@@ -201,8 +201,12 @@ function createListCard(list) {
   actions.appendChild(renameButton);
   actions.appendChild(deleteButton);
 
+  const metaRow = document.createElement("div");
+  metaRow.className = "reading-list-card-meta-row";
+  metaRow.append(createVisibilityControl(list), createListLikeControl(list, { isOwner: true }));
+
   card.appendChild(link);
-  card.appendChild(createVisibilityControl(list));
+  card.appendChild(metaRow);
   card.appendChild(actions);
 
   return card;

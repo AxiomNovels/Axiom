@@ -39,6 +39,12 @@ async function loadSharedList() {
     ownerEl.textContent = `Reading list by ${username}`;
     if (backLink) backLink.textContent = `← Back to ${username}'s profile`;
 
+    const likeSlot = document.querySelector("[data-list-like]");
+    if (likeSlot) {
+      likeSlot.innerHTML = "";
+      likeSlot.appendChild(createListLikeControl(list, { isOwner: Boolean(list.is_owner), large: true }));
+    }
+
     const novels = list.novels || [];
     summaryEl.textContent = `${novels.length} ${novels.length === 1 ? "novel" : "novels"} in this list.`;
     initListReviews(listId);

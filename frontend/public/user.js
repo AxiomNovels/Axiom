@@ -342,6 +342,12 @@ function createProfileListCard(list, ownerId, isOwner) {
   }
 
   card.appendChild(link);
+
+  const likeRow = document.createElement("div");
+  likeRow.className = "reading-list-card-like-row";
+  likeRow.appendChild(createListLikeControl(list, { isOwner }));
+  card.appendChild(likeRow);
+
   return card;
 }
 

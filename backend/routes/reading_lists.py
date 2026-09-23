@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field
 from core.auth import get_current_user
 from core.database import create_service_client, supabase
 from routes.novels import NOVEL_LIST_COLUMNS
+from routes.reading_list_reviews import _load_viewable_list
+from services.reading_list_like_service import attach_like_summaries
 from services.reading_list_review_service import attach_rating_summaries
 
 
@@ -125,7 +127,9 @@ def list_reading_lists(auth=Depends(get_current_user)):
         reading_list["novel_count"] = counts.get(reading_list["id"], 0)
         reading_list["preview_novels"] = previews.get(reading_list["id"], [])
 
-    attach_rating_summaries(create_service_client(), lists)
+    service_client = create_service_client()
+    attach_rating_summaries(service_client, lists)
+    attach_like_summaries(service_client, lists, user_id)
     return lists
 
 
@@ -205,7 +209,9 @@ def get_reading_list(list_id: str, auth=Depends(get_current_user)):
     for novel in novels:
         novel["current_chapter"] = chapters.get(novel["id"], 1)
 
-    return {**reading_list, "novels": novels}
+    payload = {**reading_list, "novels": novels}
+    attach_like_summaries(create_service_client(), [payload], user_id)
+    return payload
 
 
 @router.patch("/{list_id}")
@@ -330,3 +336,65 @@ def remove_novel_from_list(list_id: str, novel_id: int, auth=Depends(get_current
         raise HTTPException(status_code=500, detail=str(error))
 
     return None
+
+
+LIKES_TABLE = "reading_list_likes"
+
+
+def _is_unique_violation(error: Exception) -> bool:
+    message = str(error)
+    return "23505" in message or "duplicate key value" in message
+
+
+def _count_list_likes(client, list_id: str) -> int:
+    try:
+        response = client.table(LIKES_TABLE).select("id").eq("reading_list_id", list_id).execute()
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+    return len(response.data or [])
+
+
+@router.post("/{list_id}/like", status_code=201)
+def like_reading_list(list_id: str, auth=Depends(get_current_user)):
+    """Like a reading list. Gated by the same visibility check as reading
+    and reviewing it: the viewer must currently be able to see the list.
+    Liking your own list is rejected; liking one you've already liked is a
+    no-op so a double-click can't fail.
+    """
+    user_id, _client = auth
+    client = create_service_client()
+    _reading_list, is_owner = _load_viewable_list(client, list_id, user_id)
+
+    if is_owner:
+        raise HTTPException(status_code=403, detail="You can't like your own reading list.")
+
+    try:
+        client.table(LIKES_TABLE).insert({"reading_list_id": list_id, "user_id": user_id}).execute()
+    except Exception as error:
+        if not _is_unique_violation(error):
+            raise HTTPException(status_code=500, detail=str(error))
+        # Already liked -- treat as success.
+
+    return {"liked": True, "like_count": _count_list_likes(client, list_id)}
+
+
+@router.delete("/{list_id}/like")
+def unlike_reading_list(list_id: str, auth=Depends(get_current_user)):
+    """Withdraw a like. Removing a like that doesn't exist is also a no-op."""
+    user_id, _client = auth
+    client = create_service_client()
+    # A viewer who has lost access to the list gets a 404 here too.
+    _load_viewable_list(client, list_id, user_id)
+
+    try:
+        (
+            client.table(LIKES_TABLE)
+            .delete()
+            .eq("reading_list_id", list_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    return {"liked": False, "like_count": _count_list_likes(client, list_id)}

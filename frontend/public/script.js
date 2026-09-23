@@ -487,6 +487,91 @@ function createListRatingLine(list) {
   return line;
 }
 
+function createListLikeHeartIcon() {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("class", "list-like-icon");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute(
+    "d",
+    "M12 21s-6.72-4.35-9.3-8.14C.86 10.27 1.32 6.9 4 5.1c2.2-1.47 4.94-.98 6.6.9L12 7.4l1.4-1.4c1.66-1.88 4.4-2.37 6.6-.9 2.68 1.8 3.14 5.17 1.3 7.76C18.72 16.65 12 21 12 21Z"
+  );
+  svg.appendChild(path);
+  return svg;
+}
+
+// A "like" control for a reading list itself (as opposed to a like on one
+// of its reviews, see createListReviewCard's like button in list-reviews.js).
+// Shared by lists.js (My reading lists), user.js (a profile's reading
+// lists), list.js (your own list page) and shared-list.js (someone else's
+// list page), so the fetch/toggle logic and markup only live in one place.
+// `isOwner` disables the button (you can't like your own list); `large`
+// renders the bigger variant used on a list's own detail page.
+function createListLikeControl(list, { isOwner = false, large = false } = {}) {
+  const wrapper = document.createElement("div");
+  wrapper.className = large ? "list-like large" : "list-like";
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "list-like-button";
+  button.appendChild(createListLikeHeartIcon());
+
+  const count = document.createElement("span");
+  count.className = "list-like-count";
+  count.textContent = String(list.like_count || 0);
+
+  if (isOwner) {
+    button.disabled = true;
+    button.classList.add("is-own");
+    button.title = "You can't like your own reading list";
+    button.setAttribute("aria-label", "You can't like your own reading list");
+  } else {
+    button.classList.toggle("is-liked", Boolean(list.viewer_has_liked));
+    button.setAttribute("aria-pressed", String(Boolean(list.viewer_has_liked)));
+    button.setAttribute("aria-label", list.viewer_has_liked ? "Unlike this reading list" : "Like this reading list");
+
+    button.addEventListener("click", async () => {
+      if (!getAccessToken()) {
+        window.location.href = "/login.html";
+        return;
+      }
+      const currentlyLiked = button.classList.contains("is-liked");
+      button.disabled = true;
+      try {
+        const response = await authFetch(`${API_BASE}/api/reading-lists/${list.id}/like`, {
+          method: currentlyLiked ? "DELETE" : "POST",
+        });
+        if (response.status === 401) {
+          window.location.href = "/login.html";
+          return;
+        }
+        if (response.status === 404) {
+          alert("This reading list is no longer available to you.");
+          return;
+        }
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(typeof result.detail === "string" ? result.detail : "Couldn't update your like.");
+        }
+        list.like_count = result.like_count;
+        list.viewer_has_liked = result.liked;
+        button.classList.toggle("is-liked", result.liked);
+        button.setAttribute("aria-pressed", String(result.liked));
+        button.setAttribute("aria-label", result.liked ? "Unlike this reading list" : "Like this reading list");
+        count.textContent = String(result.like_count ?? 0);
+      } catch (error) {
+        alert(error.message || "Couldn't update your like. Please try again.");
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
+
+  wrapper.append(button, count);
+  return wrapper;
+}
+
 function createListBookcase(previews = []) {
   const bookcase = document.createElement("div");
   bookcase.className = "list-bookcase";

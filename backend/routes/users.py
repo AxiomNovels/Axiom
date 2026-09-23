@@ -3,6 +3,7 @@ from routes.novels import NOVEL_LIST_COLUMNS
 
 from core.auth import get_optional_current_user
 from core.database import create_service_client
+from services.reading_list_like_service import attach_like_summaries
 from services.reading_list_review_service import attach_rating_summaries
 
 
@@ -169,6 +170,7 @@ def get_user_reading_lists(user_id: str, auth=Depends(get_optional_current_user)
 
     lists = _attach_counts_and_previews(client, lists)
     attach_rating_summaries(client, lists)
+    attach_like_summaries(client, lists, viewer_id)
 
     return {
         "username": username,
@@ -220,12 +222,14 @@ def get_user_reading_list(
         raise HTTPException(status_code=500, detail=str(error))
 
     # Deliberately no current_chapter here: reading progress stays private.
-    return {
+    payload = {
         **rows[0],
         "owner": {"id": user_id, "username": username},
         "is_owner": viewer_id == user_id,
         "novels": [item["novels"] for item in items if item.get("novels")],
     }
+    attach_like_summaries(client, [payload], viewer_id)
+    return payload
 
 @router.get("/{user_id}")
 def get_public_profile(user_id: str, auth=Depends(get_optional_current_user)):
