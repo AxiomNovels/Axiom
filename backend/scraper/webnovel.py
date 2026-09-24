@@ -4,6 +4,8 @@ import re
 import requests
 from bs4 import BeautifulSoup
 
+from .genres import IN_HOUSE_GENRES
+
 
 BASE_URL = "https://www.webnovel.com"
 
@@ -1156,6 +1158,43 @@ def extract_genres(
         soup
     )
 
+def classify_genres_and_tags(
+    tags: list[str],
+    genres: list[str],
+) -> tuple[list[str], list[str]]:
+    """
+    Classify all extracted tags and genres using the in-house
+    genre list. Matching values become genres; all other values
+    become tags.
+    """
+
+    in_house_lookup = {
+        genre.casefold(): genre
+        for genre in IN_HOUSE_GENRES
+    }
+
+    classified_genres = []
+    classified_tags = []
+
+    for value in [*tags, *genres]:
+
+        if not value:
+            continue
+
+        key = value.casefold()
+
+        if key in in_house_lookup:
+            value = in_house_lookup[key]
+
+            if value not in classified_genres:
+                classified_genres.append(value)
+
+        elif value not in classified_tags:
+            classified_tags.append(value)
+
+    return classified_genres, classified_tags
+
+
 def extract_cover(
     soup: BeautifulSoup,
     story_id: int,
@@ -1466,6 +1505,11 @@ def parse_webnovel(
     chapter_count = extract_chapter_count(soup)
     tags = extract_tags(soup)
     genres = extract_genres(soup)
+    genres, tags = classify_genres_and_tags(
+        tags,
+        genres,
+    )
+    tags = normalize_tags(tags)
     synopsis = extract_synopsis(soup)
     cover_image_url = extract_cover(
         soup,
