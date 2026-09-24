@@ -501,74 +501,116 @@ function createListLikeHeartIcon() {
   return svg;
 }
 
-// A "like" control for a reading list itself (as opposed to a like on one
-// of its reviews, see createListReviewCard's like button in list-reviews.js).
-// Shared by lists.js (My reading lists), user.js (a profile's reading
-// lists), list.js (your own list page) and shared-list.js (someone else's
-// list page), so the fetch/toggle logic and markup only live in one place.
-// `isOwner` disables the button (you can't like your own list); `large`
-// renders the bigger variant used on a list's own detail page.
+// The ONE like control for a whole reading list. lists.js (the cards),
+// list.js, shared-list.js and user.js all call it, so a list's heart looks
+// and behaves the same everywhere. Likes on individual *reviews* are a
+// separate thumbs-up that lives in list-reviews.js
+// (createListReviewLikeControl) -- keep the two names distinct, because every
+// page loads these scripts into one shared global scope.
+//
+// `list` is mutated in place (like_count / viewer_has_liked) so any other
+// control built from the same object stays in sync. Owners see a read-only
+// count, since you can't like your own list.
 function createListLikeControl(list, { isOwner = false, large = false } = {}) {
   const wrapper = document.createElement("div");
   wrapper.className = large ? "list-like large" : "list-like";
 
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "list-like-button";
-  button.appendChild(createListLikeHeartIcon());
+  // Owners get a non-interactive <span>: a permanently disabled <button>
+  // just reads as broken.
+  const control = document.createElement(isOwner ? "span" : "button");
+  control.className = "list-like-button";
+  if (isOwner) {
+    control.classList.add("is-own");
+    control.setAttribute("role", "img");
+    control.title = "Readers who can see this list can like it. You can't like your own list.";
+  } else {
+    control.type = "button";
+  }
 
   const count = document.createElement("span");
   count.className = "list-like-count";
-  count.textContent = String(list.like_count || 0);
+  control.append(createListLikeHeartIcon(), count);
+  wrapper.appendChild(control);
 
-  if (isOwner) {
-    button.disabled = true;
-    button.classList.add("is-own");
-    button.title = "You can't like your own reading list";
-    button.setAttribute("aria-label", "You can't like your own reading list");
-  } else {
-    button.classList.toggle("is-liked", Boolean(list.viewer_has_liked));
-    button.setAttribute("aria-pressed", String(Boolean(list.viewer_has_liked)));
-    button.setAttribute("aria-label", list.viewer_has_liked ? "Unlike this reading list" : "Like this reading list");
+  const likesText = (total) => `${total} ${total === 1 ? "like" : "likes"}`;
 
-    button.addEventListener("click", async () => {
-      if (!getAccessToken()) {
+  function render() {
+    const total = Math.max(0, Number(list.like_count) || 0);
+    const liked = Boolean(list.viewer_has_liked);
+    count.textContent = String(total);
+    control.classList.toggle("has-likes", total > 0);
+
+    if (isOwner) {
+      control.setAttribute("aria-label", `${likesText(total)} on your reading list`);
+      return;
+    }
+    control.classList.toggle("is-liked", liked);
+    control.setAttribute("aria-pressed", String(liked));
+    control.setAttribute("aria-label", `${liked ? "Unlike" : "Like"} this reading list (${likesText(total)})`);
+    control.title = liked ? "Unlike this list" : "Like this list";
+  }
+  render();
+
+  if (isOwner) return wrapper;
+
+  control.addEventListener("animationend", () => control.classList.remove("is-popping"));
+
+  let pending = false;
+  control.addEventListener("click", async () => {
+    if (!getAccessToken()) {
+      window.location.href = "/login.html";
+      return;
+    }
+    if (pending) return;
+    pending = true;
+
+    // Optimistic update so the heart responds instantly; the server's answer
+    // replaces it, and any failure rolls it back.
+    const wasLiked = Boolean(list.viewer_has_liked);
+    const previousCount = Number(list.like_count) || 0;
+    list.viewer_has_liked = !wasLiked;
+    list.like_count = Math.max(0, previousCount + (wasLiked ? -1 : 1));
+    render();
+    if (!wasLiked) {
+      control.classList.remove("is-popping");
+      void control.offsetWidth; // restart the animation on rapid like/unlike
+      control.classList.add("is-popping");
+    }
+    const rollBack = () => {
+      list.viewer_has_liked = wasLiked;
+      list.like_count = previousCount;
+      render();
+    };
+
+    try {
+      const response = await authFetch(
+        `${API_BASE}/api/reading-lists/${encodeURIComponent(list.id)}/like`,
+        { method: wasLiked ? "DELETE" : "POST" }
+      );
+      if (response.status === 401) {
         window.location.href = "/login.html";
         return;
       }
-      const currentlyLiked = button.classList.contains("is-liked");
-      button.disabled = true;
-      try {
-        const response = await authFetch(`${API_BASE}/api/reading-lists/${list.id}/like`, {
-          method: currentlyLiked ? "DELETE" : "POST",
-        });
-        if (response.status === 401) {
-          window.location.href = "/login.html";
-          return;
-        }
-        if (response.status === 404) {
-          alert("This reading list is no longer available to you.");
-          return;
-        }
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok) {
-          throw new Error(typeof result.detail === "string" ? result.detail : "Couldn't update your like.");
-        }
-        list.like_count = result.like_count;
-        list.viewer_has_liked = result.liked;
-        button.classList.toggle("is-liked", result.liked);
-        button.setAttribute("aria-pressed", String(result.liked));
-        button.setAttribute("aria-label", result.liked ? "Unlike this reading list" : "Like this reading list");
-        count.textContent = String(result.like_count ?? 0);
-      } catch (error) {
-        alert(error.message || "Couldn't update your like. Please try again.");
-      } finally {
-        button.disabled = false;
+      const result = await response.json().catch(() => ({}));
+      if (response.status === 404) {
+        rollBack();
+        alert("This reading list is no longer available to you.");
+        return;
       }
-    });
-  }
+      if (!response.ok) {
+        throw new Error(typeof result.detail === "string" ? result.detail : "Couldn't update your like.");
+      }
+      list.like_count = result.like_count;
+      list.viewer_has_liked = result.liked;
+      render();
+    } catch (error) {
+      rollBack();
+      alert(error.message || "Couldn't update your like. Please try again.");
+    } finally {
+      pending = false;
+    }
+  });
 
-  wrapper.append(button, count);
   return wrapper;
 }
 

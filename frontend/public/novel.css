@@ -2854,3 +2854,699 @@ body.modal-open { overflow:hidden; }
 .profile-vote-link { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); color: #cfa4e8; font-size: 12px; text-decoration: none; }
 .profile-vote-link[hidden] { display: none; }
 .profile-vote-link:hover { color: var(--ink); }
+
+/* =========================================================================
+   READING LISTS -- snug, cozy redesign
+   Keep this block LAST in the file: it supersedes the earlier reading-list,
+   bookcase, visibility-picker and (previously missing) like-heart rules.
+
+   Design notes
+   - The one memorable thing is the lamp-lit oak shelf on each list card.
+     Everything around it stays quiet: hairline borders, soft tone shifts,
+     no lift-on-hover on every tile.
+   - Warm amber (--gold) is used for "lamp light"; the rose --passion is
+     reserved for the heart so a like is the warmest thing on the page.
+   ========================================================================= */
+
+:root {
+  --rl-radius: 20px;
+  --rl-glow: rgba(242, 184, 75, 0.11);
+  --rl-glow-strong: rgba(242, 184, 75, 0.2);
+  --rl-hairline: rgba(255, 255, 255, 0.07);
+  --rl-wood: linear-gradient(180deg, #8a6240 0%, #5a3d29 48%, #38251a 100%);
+}
+
+@keyframes rl-rise {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes list-like-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
+/* ---------- Page frame ---------- */
+
+.reading-lists-page {
+  width: min(1120px, calc(100% - 40px));
+  padding: 36px 0 96px;
+}
+
+.reading-lists-page > .novel-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 22px;
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.reading-lists-page > .novel-back-link:hover {
+  border-color: var(--line-strong);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+.reading-lists-page .search-results-heading {
+  margin-bottom: 28px;
+}
+
+.reading-lists-page .search-results-heading .eyebrow {
+  color: var(--gold);
+}
+
+.reading-lists-page .search-results-heading h1 {
+  margin-bottom: 10px;
+  font-size: clamp(2.3rem, 4.6vw, 3.4rem);
+  line-height: 1.05;
+}
+
+/* ---------- Single-list header (list.html / shared-list.html) ---------- */
+
+.reading-lists-page .reading-list-heading {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  max-width: none;
+  margin: 0 0 32px;
+  padding: 30px 32px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background:
+    radial-gradient(90% 140% at 0% 0%, var(--rl-glow), transparent 60%),
+    linear-gradient(150deg, rgba(38, 19, 52, 0.86), rgba(12, 6, 22, 0.9));
+  box-shadow: 0 26px 64px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.reading-lists-page .reading-list-heading > .eyebrow,
+.reading-lists-page .reading-list-heading > h1 {
+  flex: 0 0 100%;
+  margin: 0;
+}
+
+.reading-lists-page .reading-list-heading > .eyebrow {
+  margin-bottom: 2px;
+}
+
+.reading-lists-page .reading-list-heading > h1 {
+  font-size: clamp(2rem, 4.4vw, 3.1rem);
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+
+.reading-lists-page .reading-list-heading .reading-lists-summary {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.reading-list-like-slot {
+  display: inline-flex;
+}
+
+.reading-list-like-slot:empty {
+  display: none;
+}
+
+/* ---------- The heart (whole-list like) ---------- */
+
+.list-like {
+  display: inline-flex;
+  align-items: center;
+}
+
+.list-like .list-like-button {
+  width: auto;
+  min-height: 34px;
+  padding: 0 13px 0 11px;
+  gap: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.list-like .list-like-button:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.list-like .list-like-icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linejoin: round;
+  transition: fill 0.16s ease, stroke 0.16s ease, transform 0.16s ease;
+}
+
+.list-like .list-like-count {
+  min-width: 1ch;
+  line-height: 1;
+}
+
+.list-like .list-like-button:not(.is-own):hover {
+  border-color: rgba(209, 74, 85, 0.5);
+  background: var(--passion-soft);
+  color: #f4a3ab;
+}
+
+.list-like .list-like-button:not(.is-own):hover .list-like-icon {
+  transform: scale(1.12);
+}
+
+.list-like .list-like-button.is-liked {
+  border-color: rgba(209, 74, 85, 0.55);
+  background: var(--passion-soft);
+  color: #ff8a95;
+}
+
+.list-like .list-like-button.is-liked .list-like-icon {
+  fill: var(--passion);
+  stroke: var(--passion);
+}
+
+.list-like .list-like-button.is-popping .list-like-icon {
+  animation: list-like-pop 0.35s ease-out;
+}
+
+/* Owner view: a quiet read-only count, not a dead button. */
+.list-like .list-like-button.is-own {
+  cursor: default;
+  color: var(--dim);
+}
+
+.list-like .list-like-button.is-own.has-likes {
+  color: #d99aa1;
+}
+
+.list-like .list-like-button.is-own.has-likes .list-like-icon {
+  fill: rgba(209, 74, 85, 0.55);
+  stroke: rgba(209, 74, 85, 0.8);
+}
+
+.list-like .list-like-button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.list-like.large .list-like-button {
+  min-height: 42px;
+  padding: 0 18px 0 15px;
+  font-size: 0.95rem;
+}
+
+.list-like.large .list-like-icon {
+  width: 21px;
+  height: 21px;
+  flex-basis: 21px;
+}
+
+/* ---------- My reading lists grid + cards ---------- */
+
+.reading-lists-grid,
+.user-reading-lists {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 22px;
+}
+
+.reading-list-card {
+  position: relative;
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--rl-radius);
+  background: linear-gradient(160deg, rgba(38, 19, 52, 0.78), rgba(12, 6, 22, 0.88));
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.reading-list-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: 0 24px 54px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Title, count and rating sit in a small grid so "3 novels  ★ 4.5/5" share a line. */
+.reading-list-card .reading-list-card-link {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: baseline;
+  padding: 14px 14px 0;
+  border-radius: var(--rl-radius) var(--rl-radius) 0 0;
+}
+
+.reading-list-card .reading-list-card-link > .list-bookcase,
+.reading-list-card .reading-list-card-link > h3,
+.reading-list-card .reading-list-card-link > .reading-list-visibility-badge {
+  grid-column: 1 / -1;
+}
+
+.reading-list-card .reading-list-card-link h3 {
+  margin: 16px 0 6px;
+  font-size: 1.3rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.reading-list-card .reading-list-card-link:hover h3 {
+  color: var(--gold);
+}
+
+.reading-list-card .reading-list-card-link p {
+  font-size: 0.84rem;
+}
+
+.reading-list-card .reading-list-card-link .reading-list-rating {
+  margin: 0;
+}
+
+.reading-list-card .reading-list-card-link .reading-list-visibility-badge {
+  justify-self: start;
+  margin: 12px 0 0;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+}
+
+.reading-list-card .reading-list-card-link:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -3px;
+}
+
+/* Footer rows sink to the bottom so cards in one grid row line up. */
+.reading-list-card-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding: 14px;
+}
+
+.reading-list-card-like-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding: 12px 14px 14px;
+}
+
+.reading-list-card .reading-list-card-meta-row .list-like {
+  margin-left: auto;
+}
+
+/* Rename | Delete: a quiet bar along the bottom edge. */
+.reading-list-card .reading-list-card-actions {
+  display: flex;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border-top: 1px solid var(--rl-hairline);
+  border-radius: 0 0 var(--rl-radius) var(--rl-radius);
+}
+
+.reading-list-card .reading-list-action {
+  flex: 1 1 0;
+  width: auto;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.reading-list-card .reading-list-action + .reading-list-action {
+  border-left: 1px solid var(--rl-hairline);
+}
+
+.reading-list-card .reading-list-action:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  transform: none;
+  box-shadow: none;
+}
+
+.reading-list-card .reading-list-action:last-child:hover {
+  background: var(--passion-soft);
+  color: #f5b3ba;
+}
+
+.reading-list-card .reading-list-action:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -3px;
+}
+
+/* ---------- The lamp-lit shelf ---------- */
+
+.list-bookcase {
+  position: relative;
+  display: block;
+  height: 160px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(242, 184, 75, 0.14);
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse 70% 90% at 50% 0%, var(--rl-glow-strong), transparent 70%),
+    linear-gradient(180deg, rgba(22, 11, 30, 0.92), rgba(9, 4, 14, 0.96));
+}
+
+/* The oak shelf the books stand on (replaces the old blurred desk shadow). */
+.list-bookcase::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 22px;
+  border: 0;
+  border-radius: 0;
+  content: "";
+  background: var(--rl-wood);
+  filter: none;
+  box-shadow: inset 0 1px 0 rgba(255, 224, 180, 0.22), 0 -10px 20px rgba(0, 0, 0, 0.35);
+}
+
+.list-preview-book {
+  bottom: 21px;
+  width: 74px;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+/* A soft crease down the spine of every cover. */
+.list-preview-book::before {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 12%;
+  content: "";
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.42), rgba(255, 255, 255, 0.08) 60%, transparent);
+  pointer-events: none;
+}
+
+.list-preview-book.is-empty::before {
+  display: none;
+}
+
+/* ---------- Visibility chip + popover ---------- */
+
+.list-visibility-picker {
+  margin: 0;
+  max-width: none;
+}
+
+.list-visibility-chip {
+  min-height: 34px;
+  font-size: 0.8rem;
+}
+
+/* Opens upward, over its own card, so it never spills onto the row below. */
+.list-visibility-menu {
+  top: auto;
+  bottom: calc(100% + 8px);
+  left: 0;
+  width: 232px;
+  border-radius: 14px;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5);
+  transform-origin: bottom left;
+  animation: rl-rise 0.16s ease-out;
+}
+
+/* ---------- "Start a new list" ghost card ---------- */
+
+.reading-list-card.create-list-card {
+  justify-content: center;
+  border: 1.5px dashed rgba(242, 184, 75, 0.3);
+  border-radius: var(--rl-radius);
+  background: rgba(242, 184, 75, 0.03);
+  padding: 14px;
+}
+
+.reading-list-card.create-list-card:hover {
+  border-color: rgba(242, 184, 75, 0.6);
+  background: rgba(242, 184, 75, 0.07);
+  transform: none;
+}
+
+.create-list-preview {
+  height: 160px;
+  border: 1px dashed rgba(242, 184, 75, 0.28);
+  border-radius: 14px;
+  background: radial-gradient(circle at 50% 50%, var(--rl-glow), transparent 60%), rgba(4, 2, 9, 0.4);
+}
+
+.create-list-plus {
+  border-color: rgba(242, 184, 75, 0.5);
+  color: var(--gold);
+}
+
+.reading-list-card.create-list-card:hover .create-list-plus {
+  background: rgba(242, 184, 75, 0.2);
+}
+
+.create-list-card strong,
+.create-list-card small {
+  text-align: center;
+}
+
+.create-list-card small {
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* ---------- Novels on a list ---------- */
+
+.reading-lists-page .search-results-grid {
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  gap: 20px;
+}
+
+/* A tile is the novel itself (shared list) or the novel plus its chapter
+   controls (your own list). Borders, not shadows: hover only warms the edge. */
+.reading-lists-page .search-results-grid > .book-card-link > .book-card,
+.reading-lists-page .list-novel-item {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(160deg, rgba(38, 19, 52, 0.55), rgba(12, 6, 22, 0.7));
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.reading-lists-page .search-results-grid > .book-card-link:hover > .book-card,
+.reading-lists-page .list-novel-item:hover {
+  border-color: var(--line-strong);
+  background: linear-gradient(160deg, rgba(48, 24, 66, 0.6), rgba(14, 7, 26, 0.75));
+}
+
+/* The old outline-on-hover is redundant inside a tile; keep the keyboard ring. */
+.reading-lists-page .book-card-link:hover .book-card {
+  outline: none;
+}
+
+.reading-lists-page .book-card-link:focus-visible .book-card {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.reading-lists-page .book-cover {
+  min-height: 250px;
+  border-radius: 10px;
+}
+
+.reading-lists-page .book-card h3 {
+  margin: 12px 2px 4px;
+  font-size: 0.98rem;
+}
+
+.reading-lists-page .book-card p {
+  display: -webkit-box;
+  margin: 0 2px 2px;
+  overflow: hidden;
+  font-size: 0.84rem;
+  font-weight: 400;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.reading-lists-page .list-novel-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.list-novel-chapter {
+  margin: 0;
+  padding: 9px 12px;
+  gap: 10px;
+  border: 1px solid var(--rl-hairline);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.list-novel-chapter-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+}
+
+.list-novel-chapter-input {
+  width: 68px;
+  min-height: 34px;
+  border-radius: 9px;
+  text-align: center;
+}
+
+.list-novel-chapter-status {
+  margin-left: auto;
+  color: var(--gold);
+  font-size: 0.75rem;
+}
+
+/* Remove appears on hover/focus so tiles stay calm; always visible on touch. */
+.reading-lists-page .list-novel-item .list-novel-remove {
+  top: 18px;
+  right: 18px;
+  z-index: 2;
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(10, 4, 16, 0.74);
+  backdrop-filter: blur(6px);
+  box-shadow: none;
+  color: #f4dfe2;
+  font-size: 0.74rem;
+  font-weight: 750;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.16s ease, transform 0.16s ease, background 0.16s ease;
+}
+
+.reading-lists-page .list-novel-item:hover .list-novel-remove,
+.reading-lists-page .list-novel-item .list-novel-remove:focus-visible {
+  opacity: 1;
+  transform: none;
+}
+
+.reading-lists-page .list-novel-item .list-novel-remove:hover {
+  border-color: transparent;
+  background: rgba(209, 74, 85, 0.92);
+  color: #ffffff;
+  transform: none;
+  box-shadow: none;
+}
+
+.reading-lists-page .list-novel-item .list-novel-remove:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+@media (hover: none) {
+  .reading-lists-page .list-novel-item .list-novel-remove {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.reading-lists-page .search-empty {
+  padding: 48px 24px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.02);
+  text-align: center;
+}
+
+/* ---------- Reviews on a list ---------- */
+
+.list-reviews-section {
+  margin-top: 48px;
+  padding-top: 34px;
+}
+
+.list-reviews-section .review-composer,
+.list-reviews-section .review-card {
+  border-radius: 18px;
+}
+
+/* ---------- Dialogs ---------- */
+
+.modal-card {
+  border-color: var(--line-strong);
+  border-radius: 20px;
+}
+
+.modal-overlay:not(.is-hidden) .modal-card {
+  animation: rl-rise 0.2s ease-out;
+}
+
+.create-list-modal > input {
+  height: 50px;
+  padding: 0 15px;
+  border-radius: 12px;
+}
+
+.create-list-modal .modal-actions button {
+  border-radius: 12px;
+}
+
+.create-list-modal .create-list-error {
+  margin: 10px 0 0;
+  color: #fda4af;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.create-list-modal .create-list-error:empty {
+  display: none;
+}
+
+/* ---------- Small screens ---------- */
+
+@media (max-width: 560px) {
+  .reading-lists-page .reading-list-heading {
+    padding: 22px 20px;
+    border-radius: 20px;
+  }
+
+  .reading-lists-page .search-results-grid {
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    gap: 14px;
+  }
+
+  .reading-lists-page .book-cover {
+    min-height: 200px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reading-lists-page *,
+  .user-reading-lists *,
+  .modal-overlay * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

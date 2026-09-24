@@ -34,7 +34,7 @@ function createListThumbsUpIcon() {
 // Toggleable thumbs-up on a list review, mirroring createLikeControl in
 // novel.js. The review's own author sees a disabled button (you can't like
 // your own review); everyone else toggles their like on and off.
-function createListLikeControl(listId, review) {
+function createListReviewLikeControl(listId, review) {
   const wrapper = document.createElement("div");
   wrapper.className = "review-like";
 
@@ -320,7 +320,7 @@ function createListReviewCard(listId, review) {
   stars.setAttribute("aria-label", `${review.rating} out of 5 stars`);
   const topRow = document.createElement("div");
   topRow.className = "review-card-meta-top";
-  topRow.append(stars, createListLikeControl(listId, review));
+  topRow.append(stars, createListReviewLikeControl(listId, review));
   meta.appendChild(topRow);
 
   header.append(profileLink, identity, meta);

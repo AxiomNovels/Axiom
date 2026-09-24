@@ -48,8 +48,7 @@ const VISIBILITY_CONFIG = {
 
 // A small emoji "chip" (built on the same <details>/<summary> disclosure
 // pattern as the reading-list picker on novel.js and the account menu in
-// script.js) that opens a popover of visibility options. Replaces the old
-// plain <select>, which looked out of place next to the rest of the site.
+// script.js) that opens a popover of visibility options.
 function createVisibilityControl(list) {
   const picker = document.createElement("details");
   picker.className = "list-visibility-picker";
@@ -178,10 +177,13 @@ function createListCard(list) {
   const novelWord = list.novel_count === 1 ? "novel" : "novels";
   count.textContent = `${list.novel_count} ${novelWord}`;
 
-  link.appendChild(bookcase);
-  link.appendChild(title);
-  link.appendChild(count);
-  link.appendChild(createListRatingLine(list));
+  link.append(bookcase, title, count, createListRatingLine(list));
+
+  // Footer: who can see the list on the left, its heart on the right. The
+  // heart is the same control used on the list's own page and on profiles.
+  const metaRow = document.createElement("div");
+  metaRow.className = "reading-list-card-meta-row";
+  metaRow.append(createVisibilityControl(list), createListLikeControl(list, { isOwner: true }));
 
   const actions = document.createElement("div");
   actions.className = "reading-list-card-actions";
@@ -190,25 +192,18 @@ function createListCard(list) {
   renameButton.type = "button";
   renameButton.className = "ghost-link reading-list-action";
   renameButton.textContent = "Rename";
-  renameButton.addEventListener("click", () => renameList(list));
+  renameButton.setAttribute("aria-label", `Rename ${list.name}`);
+  renameButton.addEventListener("click", () => openListModal(list));
 
   const deleteButton = document.createElement("button");
   deleteButton.type = "button";
   deleteButton.className = "ghost-link reading-list-action";
   deleteButton.textContent = "Delete";
+  deleteButton.setAttribute("aria-label", `Delete ${list.name}`);
   deleteButton.addEventListener("click", () => deleteList(list));
 
-  actions.appendChild(renameButton);
-  actions.appendChild(deleteButton);
-
-  const metaRow = document.createElement("div");
-  metaRow.className = "reading-list-card-meta-row";
-  metaRow.append(createVisibilityControl(list), createListLikeControl(list, { isOwner: true }));
-
-  card.appendChild(link);
-  card.appendChild(metaRow);
-  card.appendChild(actions);
-
+  actions.append(renameButton, deleteButton);
+  card.append(link, metaRow, actions);
   return card;
 }
 
@@ -226,54 +221,74 @@ function createGhostListCard() {
       </span>
       <span class="create-list-plus">+</span>
     </span>
-    <strong>Create a new list</strong>
-    <small>Start another collection</small>`;
-  button.addEventListener("click", openCreateListModal);
+    <strong>Start a new list</strong>
+    <small>Give another set of stories its own shelf</small>`;
+  // Wrapped on purpose: passing openListModal directly would hand it the
+  // click event as its `list` argument and put the dialog in rename mode.
+  button.addEventListener("click", () => openListModal());
   return button;
 }
 
-function openCreateListModal() {
-  const modal = document.querySelector("[data-create-list-modal]");
-  if (!modal) return;
-  modal.classList.remove("is-hidden");
-  document.body.classList.add("modal-open");
-  requestAnimationFrame(() => document.getElementById("new-list-name")?.focus());
+// ---------------------------------------------------------------------
+// Create / rename dialog (one dialog, two modes)
+// ---------------------------------------------------------------------
+
+let editingList = null; // null = creating a new list; otherwise the list being renamed
+let modalReturnFocus = null;
+
+function getListModal() {
+  return document.querySelector("[data-create-list-modal]");
 }
 
-function closeCreateListModal() {
-  const modal = document.querySelector("[data-create-list-modal]");
+// The inline error line is created on first use so lists.html needs no changes.
+function getModalError(modal) {
+  let error = modal.querySelector(".create-list-error");
+  if (!error) {
+    error = document.createElement("p");
+    error.className = "create-list-error";
+    error.setAttribute("role", "alert");
+    modal.querySelector(".modal-actions").before(error);
+  }
+  return error;
+}
+
+function openListModal(list = null) {
+  const modal = getListModal();
+  if (!modal) return;
+
+  editingList = list;
+  modalReturnFocus = document.activeElement;
+  const renaming = Boolean(list);
+
+  modal.querySelector(".eyebrow").textContent = renaming ? "Rename collection" : "New collection";
+  modal.querySelector("#new-list-heading").textContent = renaming ? "Rename your reading list" : "Create a reading list";
+  modal.querySelector('button[type="submit"]').textContent = renaming ? "Save name" : "Create list";
+  getModalError(modal).textContent = "";
+
+  const input = document.getElementById("new-list-name");
+  input.value = renaming ? list.name : "";
+
+  modal.classList.remove("is-hidden");
+  document.body.classList.add("modal-open");
+  requestAnimationFrame(() => {
+    input.focus();
+    input.select();
+  });
+}
+
+function closeListModal() {
+  const modal = getListModal();
   if (!modal) return;
   modal.classList.add("is-hidden");
   document.body.classList.remove("modal-open");
-  document.querySelector(".create-list-card")?.focus();
-}
-
-async function renameList(list) {
-  const nextName = window.prompt("Rename list", list.name);
-  if (nextName === null) return;
-
-  const trimmed = nextName.trim();
-  if (!trimmed || trimmed === list.name) return;
-
-  try {
-    const response = await authFetch(`${API_BASE}/api/reading-lists/${list.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: trimmed }),
-    });
-    if (!response.ok) {
-      const result = await response.json().catch(() => ({}));
-      throw new Error(result.detail || "Rename failed");
-    }
-    await loadReadingLists();
-  } catch (error) {
-    alert(error.message || "Couldn't rename this list. Please try again.");
-  }
+  editingList = null;
+  if (modalReturnFocus && modalReturnFocus.isConnected) modalReturnFocus.focus();
+  modalReturnFocus = null;
 }
 
 async function deleteList(list) {
   const confirmed = await showConfirmModal(
-    "All novels in this list will be lost forever. Do you wish to proceed?"
+    `Delete “${list.name}”? The list and everything on it will be removed. This can't be undone.`
   );
   if (!confirmed) return;
 
@@ -317,7 +332,9 @@ async function loadReadingLists() {
 
     if (summary) {
       const listWord = lists.length === 1 ? "list" : "lists";
-      summary.textContent = `You have ${lists.length} reading ${listWord}.`;
+      summary.textContent = lists.length
+        ? `You have ${lists.length} reading ${listWord}.`
+        : "Your shelves are empty. Start your first list below.";
     }
 
     lists.forEach((list) => grid.appendChild(createListCard(list)));
@@ -327,63 +344,90 @@ async function loadReadingLists() {
   }
 }
 
-function setupNewListForm() {
+function setupListModal() {
   const form = document.querySelector("[data-new-list-form]");
-  if (!form) return;
+  const modal = getListModal();
+  if (!form || !modal) return;
 
-  const modal = document.querySelector("[data-create-list-modal]");
-  document.querySelector("[data-create-list-close]")?.addEventListener("click", closeCreateListModal);
-  document.querySelector("[data-create-list-cancel]")?.addEventListener("click", closeCreateListModal);
-  modal?.addEventListener("click", (event) => {
-    if (event.target === modal) closeCreateListModal();
+  document.querySelector("[data-create-list-close]")?.addEventListener("click", closeListModal);
+  document.querySelector("[data-create-list-cancel]")?.addEventListener("click", closeListModal);
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) closeListModal();
   });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !modal?.classList.contains("is-hidden")) closeCreateListModal();
+    if (event.key === "Escape" && !modal.classList.contains("is-hidden")) closeListModal();
   });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const input = document.getElementById("new-list-name");
+    const errorEl = getModalError(modal);
     const name = input.value.trim();
-    if (!name) return;
 
-    const button = form.querySelector('button[type="submit"]');
-    const originalText = button.textContent;
-    button.textContent = "Creating...";
-    button.disabled = true;
+    if (!name) {
+      errorEl.textContent = "Give your list a name.";
+      input.focus();
+      return;
+    }
+
+    const renaming = Boolean(editingList);
+    if (renaming && name === editingList.name) {
+      closeListModal();
+      return;
+    }
+
+    const submit = form.querySelector('button[type="submit"]');
+    const idleLabel = submit.textContent;
+    submit.textContent = renaming ? "Saving..." : "Creating...";
+    submit.disabled = true;
+    errorEl.textContent = "";
 
     try {
-      const response = await authFetch(`${API_BASE}/api/reading-lists`, {
-        method: "POST",
+      const url = renaming
+        ? `${API_BASE}/api/reading-lists/${editingList.id}`
+        : `${API_BASE}/api/reading-lists`;
+      const response = await authFetch(url, {
+        method: renaming ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
       });
+      if (response.status === 401) {
+        window.location.href = "/login.html";
+        return;
+      }
       if (!response.ok) {
         const result = await response.json().catch(() => ({}));
-        throw new Error(result.detail || "Create failed");
+        throw new Error(
+          typeof result.detail === "string"
+            ? result.detail
+            : `Couldn't ${renaming ? "rename" : "create"} this list. Please try again.`
+        );
       }
-      input.value = "";
-      closeCreateListModal();
+      closeListModal();
       await loadReadingLists();
     } catch (error) {
-      alert(error.message || "Couldn't create this list. Please try again.");
+      errorEl.textContent = error.message || "Something went wrong. Please try again.";
     } finally {
-      button.textContent = originalText;
-      button.disabled = false;
+      submit.textContent = idleLabel;
+      submit.disabled = false;
     }
   });
 }
 
-// Close an open visibility popover when clicking anywhere outside it,
-// matching the click-outside behavior of the reading-list picker on
-// novel.js and the account menu in script.js.
+// Close an open visibility popover when clicking anywhere outside it (or on
+// Escape), matching the reading-list picker on novel.js and the account menu
+// in script.js.
 document.addEventListener("click", (event) => {
   document.querySelectorAll(".list-visibility-picker[open]").forEach((picker) => {
     if (!picker.contains(event.target)) picker.removeAttribute("open");
   });
 });
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  document.querySelectorAll(".list-visibility-picker[open]").forEach((picker) => picker.removeAttribute("open"));
+});
 
 if (requireSession()) {
-  setupNewListForm();
+  setupListModal();
   loadReadingLists();
 }
