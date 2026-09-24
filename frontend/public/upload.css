@@ -1,0 +1,135 @@
+/* Profile preview on the Upload a novel page.
+
+   The score rows deliberately reuse .profile-section and .trait-row from
+   novel.css, so a profile looks here exactly as it will on the novel's page.
+   Only what is specific to the upload flow lives in this file. */
+
+.upload-form-progress {
+  margin: 4px 0 18px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.upload-form-progress.is-hidden,
+.upload-profiles.is-hidden {
+  display: none;
+}
+
+.upload-profiles {
+  display: grid;
+  gap: 14px;
+  margin: 8px 0 22px;
+  border-top: 1px solid var(--line);
+  padding-top: 22px;
+}
+
+.upload-profiles-heading {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.35rem;
+}
+
+.upload-profiles-intro {
+  margin: -6px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.upload-profiles-notice {
+  margin: 0;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.upload-profile {
+  padding: 1.15rem 1.25rem 1.25rem;
+  box-shadow: none;
+}
+
+.upload-profile-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 1rem;
+}
+
+.upload-profile-title {
+  margin: 0 0 0.2rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.2rem;
+}
+
+.upload-profile-description {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.upload-profile-badge {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+.upload-profile-badge.is-saved {
+  border-color: rgba(159, 197, 181, 0.35);
+  color: #9fc5b5;
+}
+
+.upload-profile-badge.is-failed {
+  border-color: rgba(255, 93, 98, 0.3);
+  color: #fda4af;
+}
+
+.upload-profile-subject {
+  margin: 0 0 0.9rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.upload-profile-subject strong {
+  color: var(--ink);
+}
+
+.upload-profile-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.upload-profile-note.is-failed {
+  color: #fda4af;
+}
+
+.upload-profile-meta {
+  margin: 1rem 0 0;
+  border-top: 1px solid var(--line);
+  padding-top: 0.85rem;
+  color: var(--dim);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.upload-profile-meta span {
+  display: block;
+}
+
+@media (max-width: 560px) {
+  .upload-profile {
+    padding: 1rem;
+  }
+}

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from services import novel_profiling_service as novel_profiling
 from services.recommendation_service import recommend_novels
 from core.auth import get_current_user
 from core.database import create_service_client, supabase
@@ -39,6 +40,14 @@ class NovelSourceRequest(BaseModel):
     source: str
 
 
+class NovelCreateRequest(NovelSourceRequest):
+    # Signed token returned by POST /scrape. It lets the add step store the
+    # exact profiles the user just reviewed instead of generating new ones.
+    # It's optional and never trusted without verification: a missing or
+    # invalid token just means the profiles are regenerated.
+    profile_token: str | None = Field(default=None, max_length=20_000)
+
+
 def _scrape_and_transform(payload: NovelSourceRequest) -> dict:
     """Run the matching scraper + transformer for a user-submitted URL.
 
@@ -62,6 +71,25 @@ def _scrape_and_transform(payload: NovelSourceRequest) -> dict:
         raise HTTPException(status_code=422, detail=INVALID_SOURCE_MESSAGE)
 
     return novel
+
+
+def _find_existing_novel(novel: dict) -> dict | None:
+    """The catalogue row with the same title AND author, if there is one.
+
+    Uses the same title+author check scraper/publish.py uses for the batch
+    pipeline. Author is nullable, so NULL is matched explicitly.
+    """
+    author = novel.get("author")
+
+    query = supabase.table("novels").select("id, title, author").eq("title", novel["title"])
+    query = query.is_("author", "null") if not author else query.eq("author", author)
+
+    try:
+        rows = query.limit(1).execute().data or []
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    return rows[0] if rows else None
 
 
 def _record_upload(client, user_id: str, novel_id: int) -> None:
@@ -197,43 +225,57 @@ def get_similar_novels(novel_id: int):
 
 @router.post("/scrape")
 def preview_novel(payload: NovelSourceRequest, auth=Depends(get_current_user)):
-    """Scrape a user-submitted URL and return normalized fields for review.
+    """Scrape and profile a user-submitted URL so it can be reviewed.
 
-    This is read-only -- nothing is written to the database here.
+    Returns the normalized novel fields plus a "profiling" object (see
+    services/novel_profiling_service.py) holding the generated profiles and a
+    signed token for the add step. Nothing is written to the database here.
+
+    Profiling never makes this endpoint fail: if it can't run, the scraped
+    fields are still returned with a notice explaining why.
     """
-    return _scrape_and_transform(payload)
+    user_id, _client = auth
+    novel = _scrape_and_transform(payload)
+
+    # Don't spend LLM calls on a novel that can't be added anyway. If the
+    # lookup itself fails, carry on: the add step re-checks for duplicates.
+    try:
+        existing = _find_existing_novel(novel)
+    except HTTPException:
+        existing = None
+
+    if existing:
+        novel["existing_novel"] = {"id": existing["id"], "title": existing["title"]}
+        novel["profiling"] = novel_profiling.empty_payload(
+            "This novel is already in Axiom, so no new profiles were generated."
+        )
+        return novel
+
+    novel["profiling"] = novel_profiling.build_preview(
+        user_id, payload.source, payload.url.strip(), novel
+    )
+    return novel
 
 
 @router.post("", status_code=201)
-def add_novel(payload: NovelSourceRequest, auth=Depends(get_current_user)):
-    """Scrape, de-duplicate, and publish a novel a user has submitted.
+def add_novel(payload: NovelCreateRequest, auth=Depends(get_current_user)):
+    """Scrape, de-duplicate, publish and profile a novel a user has submitted.
 
     The URL is re-scraped here rather than trusting whatever the client
     displayed from /scrape, so the record that gets saved always reflects
     a fresh, server-verified fetch. Duplicates are rejected using the same
     title+author check scraper/publish.py uses for the batch pipeline.
+
+    The novel is inserted first and profiled afterwards, so a profiler
+    problem can never prevent (or delay) the novel from being added. The
+    response is the inserted novel plus a "profiling" object describing
+    which profiles were saved.
     """
     user_id, client = auth
     novel = _scrape_and_transform(payload)
 
-    title = novel["title"]
-    author = novel.get("author")
-
-    duplicate_query = supabase.table("novels").select("id, title, author").eq("title", title)
-    duplicate_query = (
-        duplicate_query.is_("author", "null")
-        if not author
-        else duplicate_query.eq("author", author)
-    )
-
-    try:
-        duplicate_response = duplicate_query.limit(1).execute()
-    except Exception as error:
-        raise HTTPException(status_code=500, detail=str(error))
-
-    existing_rows = duplicate_response.data or []
-    if existing_rows:
-        existing_novel = existing_rows[0]
+    existing_novel = _find_existing_novel(novel)
+    if existing_novel:
         raise HTTPException(
             status_code=409,
             detail={
@@ -254,4 +296,13 @@ def add_novel(payload: NovelSourceRequest, auth=Depends(get_current_user)):
     inserted_novel = insert_response.data[0]
     _record_upload(client, user_id, inserted_novel["id"])
 
-    return inserted_novel
+    profiling = novel_profiling.finalize(
+        user_id,
+        payload.source,
+        payload.url.strip(),
+        novel,
+        inserted_novel["id"],
+        payload.profile_token,
+    )
+
+    return {**inserted_novel, "profiling": profiling}

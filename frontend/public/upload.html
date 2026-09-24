@@ -6,6 +6,7 @@
     <title>Upload a Novel | Axiom</title>
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/novel.css">
+    <link rel="stylesheet" href="/upload.css">
   </head>
   <body>
     <header class="site-header home-header">
@@ -58,11 +59,12 @@
         <p class="eyebrow">Contribute to Axiom</p>
         <h1>Upload a novel</h1>
         <p class="upload-novel-intro">
-          Paste a public Royal Road, WebNovel, or Wattpad link and we'll pull in the title,
-          author, status, tags, and synopsis for you to review before it's added.
+          Paste a public Royal Road, WebNovel, or Wattpad link. We'll pull in the title,
+          author, status, tags, and synopsis, and generate the novel's protagonist,
+          philosophy, and storytelling profiles, so you can review everything before it's added.
         </p>
 
-        <form data-upload-form>
+        <form class="upload-form" data-upload-form>
           <div class="upload-form-row">
             <label for="novel-url">Novel URL</label>
             <input id="novel-url" name="url" type="text" placeholder="https://..." required>
@@ -79,6 +81,7 @@
           </div>
 
           <p class="upload-form-error is-hidden" data-upload-error role="alert" aria-live="polite"></p>
+          <p class="upload-form-progress is-hidden" data-upload-progress role="status" aria-live="polite"></p>
 
           <div class="upload-form-actions">
             <button type="submit" data-upload-search-button>Search</button>
@@ -101,6 +104,9 @@
               <p class="upload-synopsis" data-upload-synopsis></p>
             </div>
           </div>
+
+          <!-- Filled from the API response. Nothing here knows which profiles or traits exist. -->
+          <div class="upload-profiles is-hidden" data-upload-profiles aria-live="polite"></div>
 
           <p class="upload-form-success is-hidden" data-upload-success role="status" aria-live="polite"></p>
 

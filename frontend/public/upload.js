@@ -5,6 +5,7 @@ function getUploadElements() {
   return {
     form: document.querySelector("[data-upload-form]"),
     errorEl: document.querySelector("[data-upload-error]"),
+    progressEl: document.querySelector("[data-upload-progress]"),
     searchButton: document.querySelector("[data-upload-search-button]"),
     preview: document.querySelector("[data-upload-preview]"),
     coverEl: document.querySelector("[data-upload-cover]"),
@@ -15,6 +16,7 @@ function getUploadElements() {
     genresEl: document.querySelector("[data-upload-genres]"),
     tagsEl: document.querySelector("[data-upload-tags]"),
     synopsisEl: document.querySelector("[data-upload-synopsis]"),
+    profilesEl: document.querySelector("[data-upload-profiles]"),
     successEl: document.querySelector("[data-upload-success]"),
     addButton: document.querySelector("[data-upload-add-button]"),
     editButton: document.querySelector("[data-upload-edit]"),
@@ -35,6 +37,23 @@ function clearMessage(el) {
   el.classList.add("is-hidden");
 }
 
+function showMessage(el, message) {
+  el.textContent = message;
+  el.classList.remove("is-hidden");
+}
+
+// "<prefix> <link to the novel>" -- used for both "Added to Axiom" and
+// "Novel already exists".
+function showNovelLink(el, prefix, novelId, title) {
+  el.textContent = "";
+  el.append(`${prefix}: `);
+  const link = document.createElement("a");
+  link.href = `/novel.html?id=${encodeURIComponent(novelId)}`;
+  link.textContent = title || "View novel";
+  el.appendChild(link);
+  el.classList.remove("is-hidden");
+}
+
 // Chapter counts are optional -- a source page may not expose one,
 // or scraping it may fail -- so this falls back to "Unknown" the same
 // way author/status already do, rather than showing a misleading 0.
@@ -50,6 +69,158 @@ function describeCount(el, value) {
   el.textContent = formatCompactNumber(number);
   el.title = number.toLocaleString();
 }
+
+// ---------------------------------------------------------------------
+// Profiles
+//
+// Everything below renders whatever the API sends. It knows nothing about
+// individual traits, how many profiles there are, or how many traits each
+// has: the backend supplies titles and display labels. Changing the
+// profiler's traits or prompts therefore needs no change on this page.
+//
+// A profile looks like:
+//   { kind, title, description, status, message, protagonist_name,
+//     confidence, evidence_summary, scores: [{ key, label, score }] }
+// where status is "ready" (previewed), "saved", "skipped" or "failed".
+// ---------------------------------------------------------------------
+
+const PROFILE_BADGES = {
+  saved: { text: "Saved", className: "is-saved" },
+  failed: { text: "Unavailable", className: "is-failed" },
+  skipped: { text: "Skipped", className: "" },
+};
+
+function createScoreRow(item) {
+  const score = Math.max(0, Math.min(100, Number(item.score) || 0));
+
+  const row = document.createElement("div");
+  row.className = "trait-row";
+
+  const label = document.createElement("div");
+  label.className = "trait-label";
+  label.textContent = item.label || item.key || "";
+
+  const track = document.createElement("div");
+  track.className = "trait-bar-track";
+  const fill = document.createElement("div");
+  fill.className = "trait-bar-fill";
+  fill.style.width = `${score}%`;
+  track.appendChild(fill);
+
+  const value = document.createElement("div");
+  value.className = "trait-score";
+  value.textContent = String(score);
+
+  row.append(label, track, value);
+  return row;
+}
+
+function createProfileCard(profile) {
+  const card = document.createElement("section");
+  card.className = "profile-section upload-profile";
+
+  const header = document.createElement("div");
+  header.className = "upload-profile-header";
+  const heading = document.createElement("div");
+  const title = document.createElement("h3");
+  title.className = "upload-profile-title";
+  title.textContent = profile.title || profile.kind || "Profile";
+  heading.appendChild(title);
+  if (profile.description) {
+    const description = document.createElement("p");
+    description.className = "upload-profile-description";
+    description.textContent = profile.description;
+    heading.appendChild(description);
+  }
+  header.appendChild(heading);
+
+  const badgeConfig = PROFILE_BADGES[profile.status];
+  if (badgeConfig) {
+    const badge = document.createElement("span");
+    badge.className = `upload-profile-badge ${badgeConfig.className}`.trim();
+    badge.textContent = badgeConfig.text;
+    header.appendChild(badge);
+  }
+  card.appendChild(header);
+
+  const scores = Array.isArray(profile.scores) ? profile.scores : [];
+  if (!scores.length) {
+    const note = document.createElement("p");
+    note.className = `upload-profile-note${profile.status === "failed" ? " is-failed" : ""}`;
+    note.textContent = profile.message || "This profile isn't available.";
+    card.appendChild(note);
+    return card;
+  }
+
+  if (profile.protagonist_name) {
+    const subject = document.createElement("p");
+    subject.className = "upload-profile-subject";
+    subject.append("Protagonist: ");
+    const name = document.createElement("strong");
+    name.textContent = profile.protagonist_name;
+    subject.appendChild(name);
+    card.appendChild(subject);
+  }
+
+  scores.forEach((item) => card.appendChild(createScoreRow(item)));
+
+  const metaLines = [];
+  if (typeof profile.confidence === "number") {
+    metaLines.push(`Confidence: ${profile.confidence} out of 100`);
+  }
+  if (profile.evidence_summary) metaLines.push(profile.evidence_summary);
+  if (metaLines.length) {
+    const meta = document.createElement("p");
+    meta.className = "upload-profile-meta";
+    metaLines.forEach((text) => {
+      const line = document.createElement("span");
+      line.textContent = text;
+      meta.appendChild(line);
+    });
+    card.appendChild(meta);
+  }
+
+  return card;
+}
+
+function renderProfiles(elements, profiling, { saved = false } = {}) {
+  const container = elements.profilesEl;
+  if (!container) return;
+  container.replaceChildren();
+
+  const profiles = Array.isArray(profiling?.profiles) ? profiling.profiles : [];
+  const notice = typeof profiling?.notice === "string" ? profiling.notice : "";
+  if (!profiles.length && !notice) {
+    container.classList.add("is-hidden");
+    return;
+  }
+
+  if (profiles.length) {
+    const heading = document.createElement("h3");
+    heading.className = "upload-profiles-heading";
+    heading.textContent = "Profiles";
+    const intro = document.createElement("p");
+    intro.className = "upload-profiles-intro";
+    intro.textContent = saved
+      ? "Here is what was saved with the novel."
+      : "Generated automatically from the synopsis, tags, and public reader comments. These are saved with the novel when you add it.";
+    container.append(heading, intro);
+    profiles.forEach((profile) => container.appendChild(createProfileCard(profile)));
+  }
+
+  if (notice) {
+    const noticeEl = document.createElement("p");
+    noticeEl.className = "upload-profiles-notice";
+    noticeEl.textContent = notice;
+    container.appendChild(noticeEl);
+  }
+
+  container.classList.remove("is-hidden");
+}
+
+// ---------------------------------------------------------------------
+// Preview
+// ---------------------------------------------------------------------
 
 function renderPreview(elements, novel) {
   elements.titleEl.textContent = novel.title || "Untitled";
@@ -71,9 +242,18 @@ function renderPreview(elements, novel) {
     elements.coverEl.appendChild(image);
   }
 
+  renderProfiles(elements, novel.profiling);
+
   clearMessage(elements.successEl);
   elements.addButton.disabled = false;
   elements.addButton.textContent = "Add to Axiom";
+
+  // The server already knows this novel is in the catalogue, so say so now
+  // instead of waiting for the add attempt to be rejected.
+  if (novel.existing_novel) {
+    showNovelLink(elements.successEl, "Novel already exists", novel.existing_novel.id, novel.existing_novel.title);
+    elements.addButton.disabled = true;
+  }
 
   elements.form.classList.add("is-hidden");
   elements.preview.classList.remove("is-hidden");
@@ -84,7 +264,9 @@ function resetToForm(elements) {
   elements.form.classList.remove("is-hidden");
   elements.preview.classList.add("is-hidden");
   clearMessage(elements.errorEl);
+  clearMessage(elements.progressEl);
   clearMessage(elements.successEl);
+  renderProfiles(elements, null);
   elements.addButton.disabled = false;
   elements.addButton.textContent = "Add to Axiom";
   lastSearch = null;
@@ -92,6 +274,7 @@ function resetToForm(elements) {
 
 async function handleSearch(event, elements) {
   event.preventDefault();
+  if (elements.searchButton.disabled) return;
 
   const url = elements.form.url.value.trim();
   const source = elements.form.source.value;
@@ -104,6 +287,10 @@ async function handleSearch(event, elements) {
 
   elements.searchButton.disabled = true;
   elements.searchButton.textContent = "Searching...";
+  showMessage(
+    elements.progressEl,
+    "Reading the novel page and generating its profiles. This can take up to a minute."
+  );
 
   try {
     const response = await authFetch(`${API_BASE}/api/novels/scrape`, {
@@ -127,11 +314,14 @@ async function handleSearch(event, elements) {
       return;
     }
 
-    lastSearch = { url, source };
+    // profile_token lets the server save exactly the profiles shown below
+    // instead of generating new ones when the novel is added.
+    lastSearch = { url, source, profile_token: result.profiling?.token || null };
     renderPreview(elements, result);
   } catch (error) {
     showError(elements.errorEl, "Couldn't reach the backend. Make sure it is running on port 8000.");
   } finally {
+    clearMessage(elements.progressEl);
     elements.searchButton.disabled = false;
     elements.searchButton.textContent = "Search";
   }
@@ -140,9 +330,9 @@ async function handleSearch(event, elements) {
 async function handleAdd(elements) {
   if (!lastSearch) return;
 
-  clearMessage(elements.successEl);
   elements.addButton.disabled = true;
   elements.addButton.textContent = "Adding...";
+  showMessage(elements.successEl, "Saving the novel and its profiles...");
   let added = false;
 
   try {
@@ -161,31 +351,24 @@ async function handleAdd(elements) {
 
     if (response.status === 409) {
       const detail = result.detail || {};
-      elements.successEl.textContent = "";
-      elements.successEl.append("Novel already exists: ");
-      const link = document.createElement("a");
-      link.href = `/novel.html?id=${detail.novel_id}`;
-      link.textContent = detail.title || "View novel";
-      elements.successEl.appendChild(link);
-      elements.successEl.classList.remove("is-hidden");
+      showNovelLink(elements.successEl, "Novel already exists", detail.novel_id, detail.title);
       return;
     }
 
     if (!response.ok) {
-      elements.successEl.textContent =
-        typeof result.detail === "string" ? result.detail : "URL is invalid or source is incorrect.";
-      elements.successEl.classList.remove("is-hidden");
+      showMessage(
+        elements.successEl,
+        typeof result.detail === "string" ? result.detail : "URL is invalid or source is incorrect."
+      );
       return;
     }
 
-    elements.successEl.textContent = "";
-    elements.successEl.append("Added to Axiom: ");
-    const link = document.createElement("a");
-    link.href = `/novel.html?id=${result.id}`;
-    link.textContent = result.title || "View novel";
-    elements.successEl.appendChild(link);
-    elements.successEl.classList.remove("is-hidden");
+    showNovelLink(elements.successEl, "Added to Axiom", result.id, result.title);
     added = true;
+
+    // Show what was actually stored, which is what the user previewed
+    // unless a profile couldn't be saved.
+    if (result.profiling) renderProfiles(elements, result.profiling, { saved: true });
 
     // The new novel now belongs in "Your uploaded novels" -- refresh it
     // so it's up to date next time the user expands the list.
@@ -194,8 +377,7 @@ async function handleAdd(elements) {
       loadMyUploads(elements);
     }
   } catch (error) {
-    elements.successEl.textContent = "Couldn't reach the backend. Make sure it is running on port 8000.";
-    elements.successEl.classList.remove("is-hidden");
+    showMessage(elements.successEl, "Couldn't reach the backend. Make sure it is running on port 8000.");
   } finally {
     elements.addButton.textContent = "Add to Axiom";
     elements.addButton.disabled = added;
