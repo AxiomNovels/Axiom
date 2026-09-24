@@ -542,15 +542,19 @@ def extract_genres(
     """
     Extract Wattpad story genres/categories.
 
-    Extraction order:
+    Extraction sources:
 
         1. JSON-LD structured data
         2. Remix story data
-        3. meta[name='genre']
-        4. meta[property='article:section']
-        5. Other genre/category metadata
+        3. Story metadata section
+        4. Explicit genre meta tag
+        5. Article section
+        6. Generic genre/category metadata
 
-    Tags are intentionally NOT treated as genres.
+    All discovered values are combined and deduplicated.
+
+    Tags are intentionally NOT treated as genres here.
+    They are classified later against IN_HOUSE_GENRES.
     """
 
     genres = []
@@ -562,9 +566,6 @@ def extract_genres(
     genres.extend(
         extract_genres_from_jsonld(tree)
     )
-
-    if genres:
-        return normalize_genres(genres)
 
     # ---------------------------------------------------------
     # 2. Remix story data
@@ -593,18 +594,30 @@ def extract_genres(
                 for item in value:
 
                     if isinstance(item, str):
+
                         item = item.strip()
 
                         if item:
                             genres.append(item)
 
-        genres = normalize_genres(genres)
+    # ---------------------------------------------------------
+    # 3. Story metadata section
+    #
+    # This is where Wattpad may expose values such as:
+    #
+    #     Complete
+    #     Fiction
+    #     Romance
+    #
+    # These must be collected before classification.
+    # ---------------------------------------------------------
 
-        if genres:
-            return genres
+    genres.extend(
+        extract_taxonomy_genres(tree)
+    )
 
     # ---------------------------------------------------------
-    # 3. Explicit genre meta tag
+    # 4. Explicit genre meta tag
     # ---------------------------------------------------------
 
     meta = tree.css_first(
@@ -626,13 +639,8 @@ def extract_genres(
                 )
             )
 
-    genres = normalize_genres(genres)
-
-    if genres:
-        return genres
-
     # ---------------------------------------------------------
-    # 4. Article section
+    # 5. Article section
     # ---------------------------------------------------------
 
     meta = tree.css_first(
@@ -649,13 +657,8 @@ def extract_genres(
         if content:
             genres.append(content)
 
-    genres = normalize_genres(genres)
-
-    if genres:
-        return genres
-
     # ---------------------------------------------------------
-    # 5. Generic genre/category attributes
+    # 6. Generic genre/category attributes
     # ---------------------------------------------------------
 
     selectors = [
@@ -919,6 +922,54 @@ def extract_status(
 
     return status
 
+def extract_taxonomy_genres(
+    tree: HTMLParser,
+) -> list[str]:
+    """
+    Extract Wattpad genres/categories from the taxonomy row.
+
+    Wattpad may render the taxonomy separator inside the
+    preceding label, e.g. "Fiction •". Remove the separator
+    before returning the genre value.
+    """
+
+    genres = []
+
+    taxonomy_row = tree.css_first(
+        "[data-testid='taxonomy-row']"
+    )
+
+    if taxonomy_row is None:
+        return []
+
+    for node in taxonomy_row.css(
+        "[data-testid='label']"
+    ):
+        text = clean_text(node)
+
+        if not text:
+            continue
+
+        # Wattpad may include the taxonomy separator in the
+        # first label, e.g. "Fiction •".
+        text = re.sub(
+            r"\s*[•·]\s*$",
+            "",
+            text,
+        ).strip()
+
+        if not text:
+            continue
+
+        if not any(
+            existing.casefold() == text.casefold()
+            for existing in genres
+        ):
+            genres.append(text)
+
+    return normalize_genres(
+        genres
+    )
 
 def extract_reading_url(
     tree: HTMLParser,
@@ -1097,6 +1148,49 @@ def classify_genres_and_tags(
                 classified_tags.append(value)
 
     return classified_genres, classified_tags
+
+def debug_story_metadata_context(
+    tree: HTMLParser,
+) -> None:
+    """
+    Print the DOM surrounding Wattpad's story-meta element.
+    """
+
+    metadata = tree.css_first(
+        "[data-testid='story-meta']"
+    )
+
+    if metadata is None:
+        print("story-meta NOT FOUND")
+        return
+
+    print("\n--- STORY META PARENT ---")
+
+    parent = metadata.parent
+
+    if parent:
+        print(parent.html)
+
+    print("\n--- STORY META GRANDPARENT ---")
+
+    if parent and parent.parent:
+        print(parent.parent.html)
+
+    print("\n--- ELEMENTS AROUND STORY META ---")
+
+    if parent:
+        for child in parent.iter():
+            text = clean_text(child)
+
+            if text:
+                print(
+                    f"{child.tag} "
+                    f"class={child.attributes.get('class')} "
+                    f"testid={child.attributes.get('data-testid')} "
+                    f"text={text!r}"
+                )
+
+    print("--- END STORY META CONTEXT ---\n")
 
 
 def parse_wattpad(
@@ -1288,6 +1382,8 @@ if __name__ == "__main__":
 
         "https://www.wattpad.com/story/"
         "248229220-bound-to-earth",
+
+        "https://www.wattpad.com/story/246002648",
     ]
 
     novels = scrape_wattpad_many(urls)
