@@ -51,14 +51,11 @@ def fetch_novel(novel_id: int) -> dict:
 
 
 def save_profile(novel_id: int, protagonist_name: str, result: dict) -> None:
-    payload = {
-        "novel_id": novel_id,
-        "protagonist_name": protagonist_name,
-        **result["scores"],
-    }
-    database_client(for_write=True).table("protagonist_profiles").upsert(
-        payload, on_conflict="novel_id"
-    ).execute()
+    database_client(for_write=True).rpc("save_gemini_protagonist", {
+        "p_novel_id": novel_id,
+        "p_name": protagonist_name,
+        "p_scores": result["scores"],
+    }).execute()
 
 
 def print_preview(

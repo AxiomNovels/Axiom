@@ -1,0 +1,7 @@
+{
+  "name": "axiom-database-tests",
+  "private": true,
+  "type": "module",
+  "scripts": { "test:votes": "node integration/protagonist_votes_database.mjs" },
+  "devDependencies": { "@electric-sql/pglite": "0.5.8" }
+}

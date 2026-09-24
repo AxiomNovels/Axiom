@@ -894,6 +894,9 @@ async function loadNovel() {
     const novel = await response.json();
     console.log("[novel.js] novel payload received:", novel);
     renderNovel(novel);
+    const voteLink = document.getElementById("protagonist-vote-link");
+    voteLink.href = `/vote.html?id=${encodeURIComponent(novelId)}`;
+    voteLink.hidden = false;
     refreshReadingListControls(novelId);
     loadReviews(novelId);
     loadSimilarNovels(novelId);

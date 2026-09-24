@@ -37,26 +37,56 @@ function action(text, handler) {
 async function loadList(kind) {
   const current = state[kind];
   const version = ++current.version;
-  status("Loadingâ€¦");
+  status("Loading...");
   const data = await request(`/${kind}?q=${encodeURIComponent(current.query)}&page=${current.page}`);
   if (version !== current.version) return;
   const results = document.getElementById(`${kind}-results`);
   results.replaceChildren();
+  const columns = element("div", undefined, "admin-list-columns");
+  columns.append(element("span", kind === "users" ? "ACCOUNT" : "NOVEL"), element("span", kind === "users" ? "STATUS" : "CATALOGUE"), element("span", "ACTIONS"));
+  results.append(columns);
   for (const item of data[kind]) {
-    const row = element("div", undefined, "admin-row");
-    const description = element("div", kind === "users" ? item.username : item.title);
-    description.append(element("small", kind === "users"
-      ? `${item.special ? "SPECIAL Â· " : ""}${item.banned ? "Banned" : "Active"}`
-      : (item.author || "Unknown author")));
-    row.append(description);
+    const row = element("div", undefined, "admin-row admin-catalog-row");
+    const identity = element("div", undefined, "admin-identity");
+    const name = kind === "users" ? item.username : item.title;
+    const avatar = element("span", name.slice(0, 1).toUpperCase(), "admin-avatar");
+    avatar.setAttribute("aria-hidden", "true");
+    const description = element("div", undefined, "admin-description");
+    description.append(element("strong", name));
+    description.append(element("small", kind === "users" ? (item.special ? "Special account" : "Reader") : (item.author || "Unknown author")));
+    identity.append(avatar, description);
+    const badge = element("span", kind === "users" ? (item.banned ? "Banned" : "Active") : "Novel", `admin-badge ${item.banned ? "is-banned" : kind === "users" ? "is-active" : ""}`);
+    const actions = element("div", undefined, "admin-row-actions");
+    row.append(identity, badge, actions);
     if (kind === "users") {
-      if (!item.special && item.id !== adminId) row.append(action(item.banned ? "Unban" : "Ban account", async () => {
-        if (!confirm(`${item.banned ? "Unban" : "Ban"} ${item.username}?`)) return;
-        await request(`/users/${item.id}/ban`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ banned: !item.banned }) });
-        await loadList(kind);
-        status(`${item.username} ${item.banned ? "unbanned" : "banned"}.`);
-      }));
-    } else row.append(action("Edit profiles", () => openEditor(item.id)));
+      actions.append(action("View votes", () => openVotes("users", item.id, item.username)));
+      const menu = element("details", undefined, "admin-action-menu");
+      const toggle = element("summary", "More", "admin-more");
+      toggle.setAttribute("aria-label", `More actions for ${item.username}`);
+      const options = element("div", undefined, "admin-menu-options");
+      const remove = action("Delete all votes", async () => { menu.open = false; await deleteAllUserVotes(item.id, item.username); });
+      remove.className = "admin-danger";
+      options.append(remove);
+      if (!item.special && item.id !== adminId) {
+        const ban = action(item.banned ? "Unban account" : "Ban account", async () => {
+          menu.open = false;
+          if (!confirm(`${item.banned ? "Unban" : "Ban"} ${item.username}?`)) return;
+          await request(`/users/${item.id}/ban`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ banned: !item.banned }) });
+          await loadList(kind);
+          status(`${item.username} ${item.banned ? "unbanned" : "banned"}.`);
+        });
+        ban.className = "admin-danger";
+        options.append(ban);
+      }
+      menu.append(toggle, options);
+      menu.addEventListener("toggle", () => {
+        if (menu.open) document.querySelectorAll(".admin-action-menu[open]").forEach(other => { if (other !== menu) other.open = false; });
+      });
+      actions.append(menu);
+    } else {
+      actions.append(action("Edit profiles", () => openEditor(item.id)));
+      actions.append(action("Vote distribution", () => openVotes("novels", item.id, item.title)));
+    }
     results.append(row);
   }
   if (!data[kind].length) results.append(element("p", "No matches found."));
@@ -65,7 +95,7 @@ async function loadList(kind) {
   previous.disabled = current.page === 1;
   const next = action("Next", async () => { current.page++; await loadList(kind); });
   next.disabled = current.page * 25 >= data.total;
-  pages.replaceChildren(previous, element("span", `Page ${current.page} Â· ${data.total} results`), next);
+  pages.replaceChildren(previous, element("span", `Page ${current.page} / ${data.total} results`), next);
   status("");
 }
 async function openEditor(id) {
@@ -83,7 +113,7 @@ async function openEditor(id) {
   heading.append(title, novelLink);
   editor.replaceChildren(heading);
   const descriptions = {
-    protagonist: "The character behind the story: motivations, attachments, and temperament.",
+    protagonist: "All six filled scores enable voting, including zeros. Saved edits become the new defaults. Use Vote distribution → Lock scores to keep all protagonist scores fixed while votes continue to be collected.",
     philosophy: "The ideas and philosophical themes that shape the novel.",
     storytelling: "How the story unfolds: its focus, structure, and style."
   };
@@ -216,3 +246,11 @@ window.addEventListener("beforeunload", event => { if (dirty) { event.preventDef
   try { const me = await request("/me"); adminId = me.id; adminContent.hidden = false; await loadList("users"); }
   catch (error) { status(error.message, true); }
 })();
+
+// Native details menus support keyboard activation; close on Escape or outside click.
+document.addEventListener("click", event => {
+  document.querySelectorAll(".admin-action-menu[open]").forEach(menu => { if (!menu.contains(event.target)) menu.open = false; });
+});
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") document.querySelectorAll(".admin-action-menu[open]").forEach(menu => { menu.open = false; menu.querySelector("summary").focus(); });
+});
