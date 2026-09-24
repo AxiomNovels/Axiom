@@ -5,6 +5,8 @@ import json
 import httpx
 from selectolax.parser import HTMLParser
 
+from .genres import IN_HOUSE_GENRES
+
 
 BASE_URL = "https://www.wattpad.com"
 
@@ -1052,6 +1054,51 @@ def extract_part_count(
 
     return None
 
+def classify_genres_and_tags(
+    genres: list[str],
+    tags: list[str],
+) -> tuple[list[str], list[str]]:
+    """
+    Classify every extracted genre and tag against the shared
+    in-house genre list.
+
+    Values that match an in-house genre are placed in genres.
+    Everything else is placed in tags. Matching is case-insensitive,
+    while recognized genres use the exact capitalization from
+    IN_HOUSE_GENRES.
+    """
+
+    genre_lookup = {
+        genre.casefold(): genre
+        for genre in IN_HOUSE_GENRES
+    }
+
+    classified_genres = []
+    classified_tags = []
+
+    for value in list(genres) + list(tags):
+        if not isinstance(value, str):
+            continue
+
+        value = value.strip()
+        if not value:
+            continue
+
+        genre = genre_lookup.get(value.casefold())
+
+        if genre is not None:
+            if genre not in classified_genres:
+                classified_genres.append(genre)
+        else:
+            if not any(
+                existing.casefold() == value.casefold()
+                for existing in classified_tags
+            ):
+                classified_tags.append(value)
+
+    return classified_genres, classified_tags
+
+
 def parse_wattpad(
     html: str,
     source_url: str,
@@ -1143,13 +1190,20 @@ def parse_wattpad(
         )
 
     # ---------------------------------------------------------
-    # Genre extraction is independent of the above path.
+    # Classify all extracted genres and tags against the shared
+    # in-house genre list.
     # ---------------------------------------------------------
 
     genres = extract_genres(
         tree,
         remix_story=remix_story,
     )
+
+    genres, tags = classify_genres_and_tags(
+        genres,
+        tags,
+    )
+    tags = normalize_tags(tags)
 
     return {
         "source": "wattpad",

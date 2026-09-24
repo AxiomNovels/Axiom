@@ -4,6 +4,8 @@ from urllib.parse import parse_qs, urljoin, urlparse
 import httpx
 from selectolax.parser import HTMLParser
 
+from .genres import IN_HOUSE_GENRES
+
 
 BASE_URL = "https://www.royalroad.com"
 
@@ -329,6 +331,51 @@ def extract_tag_links(tree: HTMLParser) -> list[str]:
             tags.append(text)
 
     return tags
+
+
+def classify_genres_and_tags(
+    genres: list[str],
+    tags: list[str],
+) -> tuple[list[str], list[str]]:
+    """
+    Classify every extracted genre and tag against the shared
+    in-house genre list.
+
+    Values that match an in-house genre are placed in genres.
+    Everything else is placed in tags. Matching is case-insensitive,
+    while recognized genres use the exact capitalization from
+    IN_HOUSE_GENRES.
+    """
+
+    genre_lookup = {
+        genre.casefold(): genre
+        for genre in IN_HOUSE_GENRES
+    }
+
+    classified_genres = []
+    classified_tags = []
+
+    for value in list(genres) + list(tags):
+        if not isinstance(value, str):
+            continue
+
+        value = value.strip()
+        if not value:
+            continue
+
+        genre = genre_lookup.get(value.casefold())
+
+        if genre is not None:
+            if genre not in classified_genres:
+                classified_genres.append(genre)
+        else:
+            if not any(
+                existing.casefold() == value.casefold()
+                for existing in classified_tags
+            ):
+                classified_tags.append(value)
+
+    return classified_genres, classified_tags
 
 
 def extract_genres(tree: HTMLParser) -> list[str]:
@@ -723,6 +770,17 @@ def parse_royalroad(
         tree
     )
 
+    extracted_genres = extract_genres(tree)
+    extracted_tags = extract_tags(tree)
+
+    # Reclassify every extracted genre/tag against the shared
+    # in-house genre list, then normalize tags to uppercase.
+    genres, tags = classify_genres_and_tags(
+        extracted_genres,
+        extracted_tags,
+    )
+    tags = normalize_tags(tags)
+
     return {
         "source": "royalroad",
         "source_url": source_url,
@@ -733,8 +791,8 @@ def parse_royalroad(
         "chapter_count": chapter_count,
         "overall_score": overall_score,
         "rating_count": rating_count,
-        "genres": extract_genres(tree),
-        "tags": extract_tags(tree),
+        "genres": genres,
+        "tags": tags,
         "synopsis": extract_synopsis(
             extract_description_node(tree)
         ),
