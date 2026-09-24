@@ -12,8 +12,8 @@ from scraper.staging import save_to_staging
 URLS = [
   "https://www.wattpad.com/story/391415617",
   "https://www.wattpad.com/story/246002648",
-  "https://www.wattpad.com/story/192690761",
-  "https://www.wattpad.com/story/254314754",
+  "https://www.wattpad.com/story/116699884-entwined",
+  "https://www.wattpad.com/story/54319053-best-friend%27s-revenge",
 ]
 
 

@@ -14,6 +14,7 @@ IN_HOUSE_GENRES = [
   "Mystery",
   "Paranormal",
   "Post-Apocalyptic",
+  "Psychology",
   "Romance",
   "Sci-Fi",
   "Science Fiction",
@@ -28,6 +29,8 @@ IN_HOUSE_GENRES = [
   "Progression Fantasy",
   "Fanfiction",
   "Nonfiction",
+  "Non Fiction",
+  "Non-Fiction",
   "Poetry",
   "Short Stories"
 ]
