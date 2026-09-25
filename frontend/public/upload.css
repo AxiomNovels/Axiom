@@ -26,7 +26,7 @@
 
 .upload-profiles-heading {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 1.35rem;
 }
 
@@ -62,7 +62,7 @@
 
 .upload-profile-title {
   margin: 0 0 0.2rem;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-display);
   font-size: 1.2rem;
 }
 
@@ -89,8 +89,8 @@
 }
 
 .upload-profile-badge.is-failed {
-  border-color: rgba(255, 93, 98, 0.3);
-  color: #fda4af;
+  border-color: rgba(244, 104, 125, 0.3);
+  color: #f7aab6;
 }
 
 .upload-profile-subject {
@@ -111,7 +111,7 @@
 }
 
 .upload-profile-note.is-failed {
-  color: #fda4af;
+  color: #f7aab6;
 }
 
 .upload-profile-meta {
