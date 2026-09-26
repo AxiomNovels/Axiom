@@ -22,6 +22,46 @@ const STORYTELLING_MEASURES = [
 const selectedTags = { include: new Set(), exclude: new Set() };
 let allTags = [];
 
+const selectedGenres = { include: new Set(), exclude: new Set() };
+
+function syncGenres() {
+  document.querySelector("[data-included-genres]").value = [...selectedGenres.include].join(",");
+  document.querySelector("[data-excluded-genres]").value = [...selectedGenres.exclude].join(",");
+  document.querySelectorAll("[data-genre]").forEach((button) => {
+    const genre = button.dataset.genre;
+    const state = selectedGenres.include.has(genre) ? "include" : selectedGenres.exclude.has(genre) ? "exclude" : "any";
+    button.dataset.state = state;
+    button.setAttribute("aria-checked", state === "exclude" ? "mixed" : String(state === "include"));
+    button.setAttribute("aria-label", `${genre}: ${state === "any" ? "not filtered" : state === "include" ? "included" : "excluded"}`);
+    button.querySelector(".genre-check").textContent = state === "include" ? "\u2713" : state === "exclude" ? "\u2212" : "";
+  });
+}
+
+function renderGenres(genres) {
+  const grid = document.querySelector("[data-genre-options]");
+  grid.replaceChildren();
+  if (!genres.length) { grid.textContent = "No genres are available yet."; return; }
+  genres.forEach((genre) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "genre-choice";
+    button.dataset.genre = genre;
+    button.setAttribute("role", "checkbox");
+    const check = document.createElement("span");
+    check.className = "genre-check";
+    check.setAttribute("aria-hidden", "true");
+    button.append(check, document.createTextNode(genre));
+    button.addEventListener("click", () => {
+      if (selectedGenres.include.delete(genre)) selectedGenres.exclude.add(genre);
+      else if (!selectedGenres.exclude.delete(genre)) selectedGenres.include.add(genre);
+      syncGenres();
+    });
+    // Two clicks already advance to exclude; do not also toggle on dblclick.
+    grid.appendChild(button);
+  });
+  syncGenres();
+}
+
 function setupRatingFilter() {
   const stars = document.querySelector("[data-rating-stars]");
   const valueField = document.querySelector("[data-rating-value]");
@@ -318,9 +358,10 @@ async function loadOptions() {
     if (!response.ok) throw new Error("Options request failed");
     const options = await response.json();
     allTags = options.tags || [];
+    renderGenres(options.genres || []);
     tagInputs.forEach((input, index) => {
       input.disabled = !allTags.length;
-      input.placeholder = allTags.length ? `Search tags to ${tagFields[index].dataset.tagField}...` : "No tags are available yet";
+      input.placeholder = allTags.length ? `${tagFields[index].dataset.tagField === "include" ? "Include" : "Exclude"} tags...` : "No tags are available yet";
     });
     (options.statuses || []).forEach((value) => {
       const option = document.createElement("option");
@@ -329,6 +370,7 @@ async function loadOptions() {
       status.appendChild(option);
     });
   } catch {
+    document.querySelector("[data-genre-options]").textContent = "Could not load genres. Refresh to try again.";
     tagInputs.forEach((input) => {
       input.disabled = true;
       input.placeholder = "Couldn't load tags";
@@ -379,7 +421,7 @@ finderForm.addEventListener("submit", (event) => {
   new FormData(finderForm).forEach((value, key) => {
     const cleanValue = String(value).trim();
     if (!cleanValue) return;
-    if (key === "tag_mode" && cleanValue === "and") return;
+    if (["tag_mode", "genre_mode"].includes(key) && cleanValue === "and") return;
     compactParams.set(key, cleanValue);
   });
   const query = compactParams.toString();
@@ -387,12 +429,15 @@ finderForm.addEventListener("submit", (event) => {
 });
 
 finderForm.addEventListener("reset", () => {
+  selectedGenres.include.clear();
+  selectedGenres.exclude.clear();
   selectedTags.include.clear();
   selectedTags.exclude.clear();
 
   setTimeout(() => {
     document.querySelector("[data-rating-clear]")?.click();
     renderSelectedTags();
+    syncGenres();
     tagFields.forEach(closeSuggestions);
 
     document.querySelectorAll("[data-profile-range]").forEach((range) => {

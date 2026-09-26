@@ -13,6 +13,9 @@ function showActiveFilters(params) {
   const chips = [];
   const query = params.get("q")?.trim();
   if (query) chips.push(`Keywords: ${query}`);
+  (params.get("include_genres") || "").split(",").filter(Boolean).forEach((genre) => chips.push(`Genre: + ${genre}`));
+  (params.get("exclude_genres") || "").split(",").filter(Boolean).forEach((genre) => chips.push(`Genre: − ${genre}`));
+  if (params.get("include_genres")) chips.push(`Genre match: ${(params.get("genre_mode") || "and").toUpperCase()}`);
   (params.get("include_tags") || "").split(",").filter(Boolean).forEach((tag) => chips.push(`+ ${tag}`));
   (params.get("exclude_tags") || "").split(",").filter(Boolean).forEach((tag) => chips.push(`− ${tag}`));
   if (params.get("status")) chips.push(`Status: ${params.get("status")}`);

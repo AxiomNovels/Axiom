@@ -1,3 +1,5 @@
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException, Query, Request
 
 from routes.novels import NOVEL_LIST_COLUMNS
@@ -51,7 +53,7 @@ def search_options():
         # even while optional profile migrations are still being applied.
         novels = (
             supabase.table("novels")
-            .select("tags, status")
+            .select("tags, genres, status")
             .execute()
             .data
             or []
@@ -60,6 +62,7 @@ def search_options():
         raise HTTPException(status_code=500, detail=str(error))
     return {
         "tags": sorted({tag for novel in novels for tag in (novel.get("tags") or [])}, key=str.lower),
+        "genres": sorted({genre for novel in novels for genre in (novel.get("genres") or [])}, key=str.lower),
         "statuses": sorted({novel.get("status") for novel in novels if novel.get("status")}, key=str.lower),
         "profile_measures": list(PROFILE_MEASURES),
     }
@@ -72,6 +75,9 @@ def search_novels(
     include_tags: str = "",
     exclude_tags: str = "",
     tag_mode: str = "and",
+    include_genres: str = "",
+    exclude_genres: str = "",
+    genre_mode: Literal["and", "or"] = "and",
     status: str = "",
     sort: str = "relevance",
     min_rating: str | None = Query(None),
@@ -126,6 +132,9 @@ def search_novels(
         include_tags=_split_tags(include_tags),
         exclude_tags=_split_tags(exclude_tags),
         tag_mode=tag_mode,
+        include_genres=_split_tags(include_genres),
+        exclude_genres=_split_tags(exclude_genres),
+        genre_mode=genre_mode,
         status=status,
         profile_ranges=ranges,
         philosophy_ranges=philosophy_ranges,

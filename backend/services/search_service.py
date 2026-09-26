@@ -132,15 +132,24 @@ def review_summary(novel):
     return novel
 
 
-def filter_novels(novels, include_tags=None, exclude_tags=None, status=None, profile_ranges=None, tag_mode="and", philosophy_ranges=None, storytelling_ranges=None, min_rating=None):
+def filter_novels(novels, include_tags=None, exclude_tags=None, status=None, profile_ranges=None, tag_mode="and", philosophy_ranges=None, storytelling_ranges=None, min_rating=None, include_genres=None, exclude_genres=None, genre_mode="and"):
     """Apply finder criteria to a catalogue already fetched from Supabase."""
     included = {tag.strip().lower() for tag in (include_tags or []) if tag.strip()}
     excluded = {tag.strip().lower() for tag in (exclude_tags or []) if tag.strip()}
+    included_genres = {genre.strip().casefold() for genre in (include_genres or []) if genre.strip()}
+    excluded_genres = {genre.strip().casefold() for genre in (exclude_genres or []) if genre.strip()}
     wanted_status = (status or "").strip().lower()
     ranges = profile_ranges or {}
     matches = []
 
     for novel in novels:
+        genres = {str(genre).strip().casefold() for genre in (novel.get("genres") or [])}
+        if included_genres and genre_mode == "or" and not included_genres.intersection(genres):
+            continue
+        if included_genres and genre_mode != "or" and not included_genres.issubset(genres):
+            continue
+        if excluded_genres.intersection(genres):
+            continue
         review_summary(novel)
         tags = {str(tag).strip().lower() for tag in (novel.get("tags") or [])}
         if included and tag_mode == "or" and not included.intersection(tags):

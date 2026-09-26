@@ -39,9 +39,9 @@ def test_unmatched_novels_are_excluded():
 
 def test_finder_combines_tags_status_and_profile_ranges():
     novels = [
-        {"id": 1, "genres": ["Fantasy", "Romance"], "status": "ongoing", "protagonist_profiles": [{"romantic_attachment": 70}]},
-        {"id": 2, "genres": ["Fantasy"], "status": "ongoing", "protagonist_profiles": [{"romantic_attachment": 80}]},
-        {"id": 3, "genres": ["Fantasy", "Romance"], "status": "completed", "protagonist_profiles": [{"romantic_attachment": 40}]},
+        {"id": 1, "tags": ["Fantasy", "Romance"], "status": "ongoing", "protagonist_profiles": [{"romantic_attachment": 70}]},
+        {"id": 2, "tags": ["Fantasy"], "status": "ongoing", "protagonist_profiles": [{"romantic_attachment": 80}]},
+        {"id": 3, "tags": ["Fantasy", "Romance"], "status": "completed", "protagonist_profiles": [{"romantic_attachment": 40}]},
     ]
     results = filter_novels(novels, include_tags=["Fantasy", "Romance"], status="ongoing", profile_ranges={"romantic_attachment": (50, None)})
     assert [novel["id"] for novel in results] == [1]
@@ -49,9 +49,9 @@ def test_finder_combines_tags_status_and_profile_ranges():
 
 def test_trait_filter_omits_unprofiled_novels_and_excluded_tags():
     novels = [
-        {"id": 1, "genres": ["Fantasy", "Horror"], "protagonist_profiles": [{"selflessness": 80}]},
-        {"id": 2, "genres": ["Fantasy"], "protagonist_profiles": []},
-        {"id": 3, "genres": ["Fantasy"], "protagonist_profiles": [{"selflessness": 80}]},
+        {"id": 1, "tags": ["Fantasy", "Horror"], "protagonist_profiles": [{"selflessness": 80}]},
+        {"id": 2, "tags": ["Fantasy"], "protagonist_profiles": []},
+        {"id": 3, "tags": ["Fantasy"], "protagonist_profiles": [{"selflessness": 80}]},
     ]
     results = filter_novels(novels, exclude_tags=["Horror"], profile_ranges={"selflessness": (50, 100)})
     assert [novel["id"] for novel in results] == [3]
@@ -59,9 +59,9 @@ def test_trait_filter_omits_unprofiled_novels_and_excluded_tags():
 
 def test_tag_or_mode_matches_any_included_tag():
     novels = [
-        {"id": 1, "genres": ["Fantasy"]},
-        {"id": 2, "genres": ["Romance"]},
-        {"id": 3, "genres": ["Mystery"]},
+        {"id": 1, "tags": ["Fantasy"]},
+        {"id": 2, "tags": ["Romance"]},
+        {"id": 3, "tags": ["Mystery"]},
     ]
     results = filter_novels(novels, include_tags=["Fantasy", "Romance"], tag_mode="or")
     assert [novel["id"] for novel in results] == [1, 2]
@@ -78,3 +78,23 @@ def test_finder_filters_philosophy_and_storytelling_profiles():
         storytelling_ranges={"mystery": (50, None)},
     )
     assert [novel["id"] for novel in results] == [1]
+
+
+def test_genres_default_to_and_with_case_and_whitespace_normalization():
+    assert [n["id"] for n in filter_novels(NOVELS, include_genres=[" fantasy ", "MYSTERY"])] == [1]
+    assert filter_novels(NOVELS, include_genres=["Fantasy", "Drama"]) == []
+
+
+def test_genres_or_and_exclusion_precedence():
+    assert [n["id"] for n in filter_novels(NOVELS, include_genres=["Fantasy", "Drama"], genre_mode="or")] == [1, 2]
+    assert [n["id"] for n in filter_novels(NOVELS, include_genres=["Fantasy", "Drama"], exclude_genres=[" mystery "], genre_mode="or")] == [2]
+    assert filter_novels(NOVELS, include_genres=["Fantasy"], exclude_genres=["Fantasy"]) == []
+
+
+def test_genres_missing_metadata_and_tags_are_independent():
+    novels = [{"id": 1, "genres": ["Fantasy"], "tags": ["Time Loop"], "status": "ongoing"},
+              {"id": 2, "genres": None, "tags": ["Fantasy"]}, {"id": 3}]
+    assert [n["id"] for n in filter_novels(novels, include_genres=["Fantasy"], include_tags=["Time Loop"], status="ongoing")] == [1]
+    assert filter_novels(novels, include_genres=["Fantasy"], include_tags=["Fantasy"]) == []
+    assert [n["id"] for n in filter_novels(novels, exclude_genres=["Fantasy"])] == [2, 3]
+    assert len(filter_novels(novels)) == 3
