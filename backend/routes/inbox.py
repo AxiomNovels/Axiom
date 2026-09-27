@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from core.auth import get_current_user
+from core.database import create_service_client
 from models.notification import NotificationUpdate
 
 
@@ -98,6 +99,28 @@ def get_unread_count(auth=Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=str(error))
 
     return {"unread_count": len(response.data or [])}
+
+
+@router.delete("/{notification_id}")
+def delete_notification(notification_id: str, auth=Depends(get_current_user)):
+    """Permanently remove one notification belonging to the current reader."""
+    user_id, _ = auth
+    try:
+        response = (
+            create_service_client()
+            .table("notifications")
+            .delete()
+            .eq("id", notification_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+    except Exception as error:
+        raise HTTPException(status_code=500, detail="Couldn't delete this message.") from error
+
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Notification not found.")
+
+    return {"deleted": True}
 
 
 @router.patch("/{notification_id}")

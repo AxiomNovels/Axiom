@@ -1653,6 +1653,8 @@ body.modal-open { overflow:hidden; }
 .user-activity-empty p { margin: 7px 0 0; color: var(--muted); }
 
 @media (max-width: 560px) {
+  .reading-lists-ground::before { top: -20px; right: -8px; bottom: -22px; left: -8px; border-radius: 14px; }
+
   .reader-directory-page { padding-top: 32px; }
   .reader-directory-grid { grid-template-columns: 1fr; }
   .reader-directory-search > div { flex-direction: column; }
@@ -2051,8 +2053,21 @@ body.modal-open { overflow:hidden; }
 
 .inbox-message-actions {
   display: flex;
+  gap: 10px;
   justify-content: flex-end;
   margin-top: 16px;
+}
+
+.inbox-delete-message {
+  border-color: rgba(209, 74, 85, 0.42);
+  color: #edabb4;
+}
+
+.inbox-delete-message:hover,
+.inbox-delete-message:focus-visible {
+  border-color: var(--passion);
+  background: var(--passion-soft);
+  color: #ffd5da;
 }
 
 .inbox-read-toggle {
@@ -3064,6 +3079,33 @@ body.modal-open { overflow:hidden; }
   gap: 22px;
 }
 
+/* A visual shelf behind the library only. It deliberately has no padding or
+   layout rules, so the existing card grid never shifts to accommodate it. */
+.reading-lists-ground {
+  position: relative;
+  isolation: isolate;
+}
+
+.reading-lists-ground::before {
+  position: absolute;
+  z-index: -1;
+  top: -20px;
+  right: -18px;
+  bottom: -34px;
+  left: -18px;
+
+  border: 1px solid rgba(173, 121, 211, 0.30);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 90% 18%, rgba(110, 146, 196, 0.20), transparent 35%),
+    radial-gradient(circle at 10% 88%, rgba(95, 155, 130, 0.13), transparent 32%),
+    linear-gradient(145deg, rgba(40, 21, 57, 0.44), rgba(16, 8, 29, 0.38));
+  box-shadow: 0 26px 62px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+
+  content: "";
+  pointer-events: none;
+}
+
 .reading-list-card {
   position: relative;
   gap: 0;
@@ -3227,8 +3269,23 @@ body.modal-open { overflow:hidden; }
 
 .list-preview-book {
   bottom: 21px;
-  width: 74px;
+  width: 82px;
   border-color: rgba(255, 255, 255, 0.16);
+}
+
+.list-preview-book:nth-child(1) {
+  left: calc(50% - 88px);
+  height: 124px;
+}
+
+.list-preview-book:nth-child(2) {
+  left: calc(50% - 34px);
+  height: 120px;
+}
+
+.list-preview-book:nth-child(3) {
+  left: calc(50% + 20px);
+  height: 116px;
 }
 
 /* A soft crease down the spine of every cover. */
@@ -3465,6 +3522,23 @@ body.modal-open { overflow:hidden; }
 .list-reviews-section .review-composer,
 .list-reviews-section .review-card {
   border-radius: 18px;
+}
+
+/* ---------- Refined inbox cards ---------- */
+.inbox-list { gap: 14px; margin-top: 18px; }
+.inbox-message { border-radius: 14px; background: linear-gradient(110deg, rgba(33, 17, 48, .78), rgba(14, 7, 25, .84)); box-shadow: 0 12px 30px rgba(0, 0, 0, .13), inset 0 1px 0 rgba(255, 255, 255, .025); transition: border-color .18s ease, background .18s ease, transform .18s ease; }
+.inbox-message[open] { border-color: rgba(110, 146, 196, .46); background: linear-gradient(120deg, rgba(43, 23, 61, .88), rgba(15, 8, 28, .92)); }
+.inbox-message > summary { gap: 11px; padding: 14px 18px; }
+.inbox-message > summary:hover { background: rgba(255, 255, 255, .035); }
+.inbox-message-icon { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border: 1px solid rgba(110, 146, 196, .42); border-radius: 10px; background: linear-gradient(145deg, rgba(110, 146, 196, .18), rgba(155, 77, 204, .12)); color: #b9d0f3; font-size: .95rem; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08); }
+.inbox-message-body { padding: 18px 22px 20px 62px; }
+.inbox-message-actions { justify-content: flex-start; }
+.inbox-message-actions .ghost-link { width: auto; min-height: 36px; padding: 0 13px; font-size: .78rem; }
+.inbox-read-toggle { min-height: 36px; }
+
+@media (max-width: 560px) {
+  .inbox-message-body { padding: 15px 16px 16px; }
+  .inbox-message-icon { width: 31px; height: 31px; flex-basis: 31px; border-radius: 9px; }
 }
 
 /* ---------- Dialogs ---------- */

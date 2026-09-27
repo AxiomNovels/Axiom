@@ -28,6 +28,19 @@ async function setNotificationRead(id, isRead) {
   return response.json();
 }
 
+async function deleteNotification(id) {
+  const response = await authFetch(`${API_BASE}/api/inbox/${id}`, { method: "DELETE" });
+  if (response.status === 401) {
+    window.location.href = "/login.html";
+    return false;
+  }
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+    throw new Error(typeof result.detail === "string" ? result.detail : "Couldn't delete this message.");
+  }
+  return true;
+}
+
 // Renders the friend_request-specific part of a message body: a link to
 // the sender's profile, and either the live Accept/Reject controls (while
 // data.friendship_status is "pending") or a short resolved message.
@@ -122,6 +135,11 @@ function createNotificationCard(notification) {
   dot.className = "inbox-unread-dot";
   dot.setAttribute("aria-hidden", "true");
 
+  const typeIcon = document.createElement("span");
+  typeIcon.className = "inbox-message-icon";
+  typeIcon.setAttribute("aria-hidden", "true");
+  typeIcon.textContent = notification.type === "friend_request" ? "✦" : "✉";
+
   const subject = document.createElement("strong");
   subject.className = "inbox-message-subject";
   subject.textContent = notification.subject;
@@ -131,7 +149,7 @@ function createNotificationCard(notification) {
   date.dateTime = notification.created_at;
   date.textContent = formatNotificationDate(notification.created_at);
 
-  summary.append(dot, subject, date);
+  summary.append(typeIcon, dot, subject, date);
 
   const body = document.createElement("div");
   body.className = "inbox-message-body";
@@ -173,7 +191,26 @@ function createNotificationCard(notification) {
     }
   });
 
-  actions.appendChild(readToggleButton);
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.className = "ghost-link inbox-delete-message";
+  deleteButton.textContent = "Delete";
+  deleteButton.addEventListener("click", async () => {
+    if (!window.confirm("Delete this message permanently?")) return;
+    deleteButton.disabled = true;
+    try {
+      if (await deleteNotification(notification.id)) {
+        details.remove();
+        window.refreshInboxBadge?.();
+        loadInbox();
+      }
+    } catch (error) {
+      alert(error.message || "Couldn't delete this message. Please try again.");
+      deleteButton.disabled = false;
+    }
+  });
+
+  actions.append(readToggleButton, deleteButton);
   body.appendChild(actions);
   details.append(summary, body);
 
