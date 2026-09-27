@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime, timedelta, timezone
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from routes.novels import NOVEL_LIST_COLUMNS
 
 from core.auth import get_optional_current_user
@@ -22,6 +25,7 @@ PUBLIC_PROFILE_COLUMNS = (
     "instagram_username, instagram_visibility, "
     "reddit_username, reddit_visibility, "
     "tiktok_username, tiktok_visibility"
+    ", online_status_visibility"
 )
 
 SOCIAL_PLATFORMS = ("discord", "instagram", "reddit", "tiktok")
@@ -100,6 +104,53 @@ def _get_owner_username(client, user_id: str) -> str:
     return response.data["username"]
 
 
+def _is_special_account(client, user_id: str) -> bool:
+    """Whether an account holds the public-facing Axiom admin badge."""
+    try:
+        user = client.auth.admin.get_user_by_id(user_id).user
+        metadata = (user.app_metadata or {}) if user else {}
+        return metadata.get("axiom_special") is True and metadata.get("axiom_banned") is not True
+    except Exception:
+        return False
+
+
+def _online_user_ids(client, user_ids: list[str]) -> set[str]:
+    if not user_ids:
+        return set()
+    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=2)).isoformat()
+    try:
+        rows = (
+            client.table("user_presence")
+            .select("user_id")
+            .in_("user_id", user_ids)
+            .gte("last_heartbeat_at", cutoff)
+            .execute()
+            .data
+            or []
+        )
+    except Exception:
+        return set()
+    return {str(row["user_id"]) for row in rows}
+
+
+def _presence_by_user_id(client, user_ids: list[str]) -> dict[str, str]:
+    """Latest check-in timestamp for each requested reader, if one exists."""
+    if not user_ids:
+        return {}
+    try:
+        rows = (
+            client.table("user_presence")
+            .select("user_id, last_heartbeat_at")
+            .in_("user_id", user_ids)
+            .execute()
+            .data
+            or []
+        )
+    except Exception:
+        return {}
+    return {str(row["user_id"]): row["last_heartbeat_at"] for row in rows}
+
+
 def _attach_counts_and_previews(client, lists: list[dict]) -> list[dict]:
     if not lists:
         return lists
@@ -143,6 +194,68 @@ def _attach_counts_and_previews(client, lists: list[dict]) -> list[dict]:
         reading_list["novel_count"] = counts.get(reading_list["id"], 0)
         reading_list["preview_novels"] = previews.get(reading_list["id"], [])
     return lists
+
+
+@router.get("")
+def list_public_users(
+    q: str = "",
+    sort: Literal["alphabetical", "last_online"] = "last_online",
+    limit: int = Query(48, ge=1, le=100),
+):
+    """A compact, public directory of Axiom readers.
+
+    This intentionally returns only the details needed to identify a profile;
+    private account and social fields remain available only through the
+    friend-aware profile endpoint below.
+    """
+    client = create_service_client()
+    query = q.strip()
+    safe_limit = limit
+
+    try:
+        request = (
+            client.table("profiles")
+            .select("id, username, avatar_url, about_me, country, tag_preferences, online_status_visibility")
+            .order("username")
+            .limit(100 if sort == "last_online" else safe_limit)
+        )
+        if query:
+            request = request.ilike("username", f"%{query}%")
+        profiles = request.execute().data or []
+    except Exception:
+        raise HTTPException(status_code=500, detail="Couldn't load the reader directory.")
+
+    profile_ids = [str(profile["id"]) for profile in profiles]
+    online_ids = _online_user_ids(client, profile_ids)
+    last_heartbeat_by_user = _presence_by_user_id(client, profile_ids)
+    users = []
+    for profile in profiles:
+        is_public = profile.pop("online_status_visibility", "public") == "public"
+        users.append({
+            **profile,
+            "special": _is_special_account(client, profile["id"]),
+            "online": is_public and str(profile["id"]) in online_ids,
+            "_public_presence": is_public,
+        })
+
+    if sort == "last_online":
+        # A private reader is deliberately kept out of activity ordering, so
+        # the directory cannot indirectly disclose when they were last here.
+        # Stable passes preserve alphabetical order when check-ins tie.
+        users.sort(key=lambda user: user.get("username", "").casefold())
+        users.sort(
+            key=lambda user: last_heartbeat_by_user.get(str(user["id"]), ""),
+            reverse=True,
+        )
+        users.sort(key=lambda user: not user["_public_presence"])
+        users = users[:safe_limit]
+    for user in users:
+        user.pop("_public_presence", None)
+    return {
+        "users": users,
+        "query": query,
+        "sort": sort,
+    }
 
 
 @router.get("/{user_id}/reading-lists")
@@ -261,6 +374,9 @@ def get_public_profile(user_id: str, auth=Depends(get_optional_current_user)):
     )
 
     profile["social_links"] = _build_social_links(profile, can_see_friends_only)
+    profile["special"] = _is_special_account(service_client, user_id)
+    is_public = profile.pop("online_status_visibility", "public") == "public"
+    profile["online"] = is_public and str(user_id) in _online_user_ids(service_client, [str(user_id)])
 
     # The raw social_* columns were only ever needed to build social_links
     # above -- drop them so the public API surface doesn't also expose the
@@ -274,7 +390,7 @@ def get_public_profile(user_id: str, auth=Depends(get_optional_current_user)):
 
 @router.get("/{user_id}/activity")
 def get_public_activity(user_id: str):
-    """Return a reader's public review history, newest activity first."""
+    """Return a reader's public review and reply history, newest first."""
     client = create_service_client()
     try:
         profile_response = (
@@ -296,7 +412,31 @@ def get_public_activity(user_id: str):
             .execute()
         )
         reviews = reviews_response.data or []
-        novel_ids = list({review["novel_id"] for review in reviews})
+        replies_response = (
+            client.table("review_replies")
+            .select("id, review_id, parent_reply_id, comment, created_at")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .execute()
+        )
+        replies = replies_response.data or []
+        replied_review_ids = list({reply["review_id"] for reply in replies})
+        reply_reviews_by_id = {}
+        if replied_review_ids:
+            replied_reviews_response = (
+                client.table("reviews")
+                .select("id, novel_id")
+                .in_("id", replied_review_ids)
+                .execute()
+            )
+            reply_reviews_by_id = {
+                review["id"]: review for review in (replied_reviews_response.data or [])
+            }
+
+        novel_ids = list(
+            {review["novel_id"] for review in reviews}
+            | {review["novel_id"] for review in reply_reviews_by_id.values()}
+        )
         novels_by_id = {}
         if novel_ids:
             novels_response = (
@@ -306,8 +446,22 @@ def get_public_activity(user_id: str):
                 .execute()
             )
             novels_by_id = {novel["id"]: novel for novel in (novels_response.data or [])}
+        activity = []
         for review in reviews:
-            review["novel"] = novels_by_id.get(review["novel_id"])
+            activity.append({"type": "review", **review, "novel": novels_by_id.get(review["novel_id"])})
+        for reply in replies:
+            parent_review = reply_reviews_by_id.get(reply["review_id"])
+            if parent_review:
+                activity.append(
+                    {
+                        "type": "reply",
+                        **reply,
+                        "novel_id": parent_review["novel_id"],
+                        "updated_at": reply["created_at"],
+                        "novel": novels_by_id.get(parent_review["novel_id"]),
+                    }
+                )
+        activity.sort(key=lambda item: item["updated_at"], reverse=True)
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
 
@@ -315,6 +469,7 @@ def get_public_activity(user_id: str):
     return {
         "profile": profile_response.data,
         "review_count": len(reviews),
+        "reply_count": len(replies),
         "average_rating": round(sum(ratings) / len(ratings), 2) if ratings else None,
-        "activity": reviews,
+        "activity": activity,
     }

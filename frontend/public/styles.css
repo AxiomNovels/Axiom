@@ -1,11 +1,11 @@
 :root {
   color-scheme: dark;
 
-  --background: #07030b;
-  --background-soft: #100718;
+  --background: #09030d;
+  --background-soft: #16091c;
 
-  --surface: rgba(23, 11, 32, 0.82);
-  --surface-strong: rgba(34, 15, 45, 0.94);
+  --surface: rgba(29, 13, 40, 0.84);
+  --surface-strong: rgba(43, 18, 55, 0.94);
 
   --ink: #f7f0f5;
   --muted: #bba9bd;
@@ -21,12 +21,20 @@
   --passion-strong: #ae3342;
   --passion-soft: rgba(209, 74, 85, 0.16);
 
+  /* Tertiary — dusk blue, a quiet cool counterpoint to plum and berry. */
+  --dusk: #6e92c4;
+  --dusk-soft: rgba(110, 146, 196, 0.14);
+
+  /* A restrained organic note for depth, not a primary interface color. */
+  --verdant: #5f9b82;
+  --verdant-soft: rgba(95, 155, 130, 0.19);
+
   /* Warm literary highlight */
   --gold: #c9a66b;
   --gold-soft: rgba(201, 166, 107, 0.13);
 
-  --line: rgba(216, 180, 254, 0.17);
-  --line-strong: rgba(216, 180, 254, 0.28);
+  --line: rgba(223, 184, 255, 0.20);
+  --line-strong: rgba(223, 184, 255, 0.32);
 
   --focus: #c99ae5;
 
@@ -65,16 +73,36 @@ body {
       transparent 28%
     ),
     radial-gradient(
-      circle at 52% 92%,
-      rgba(174, 51, 66, 0.08),
-      transparent 30%
+      circle at 18% 104%,
+      rgba(171, 57, 103, 0.22),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 86% 96%,
+      rgba(96, 51, 148, 0.22),
+      transparent 39%
+    ),
+    radial-gradient(
+      circle at 82% 62%,
+      var(--dusk-soft),
+      transparent 27%
+    ),
+    radial-gradient(
+      circle at 9% 62%,
+      var(--verdant-soft),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 52% 76%,
+      rgba(174, 51, 66, 0.10),
+      transparent 32%
     ),
     linear-gradient(
       140deg,
       #030108 0%,
       #08040d 42%,
-      #120719 72%,
-      #16091b 100%
+      #16081e 72%,
+      #251027 100%
     );
 
   background-attachment: fixed;
@@ -382,6 +410,16 @@ button:hover {
       circle at 72% 22%,
       rgba(155, 77, 204, 0.18),
       transparent 32%
+    ),
+    radial-gradient(
+      circle at 88% 76%,
+      var(--dusk-soft),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 16% 58%,
+      var(--verdant-soft),
+      transparent 30%
     ),
     radial-gradient(
       circle at 24% 78%,
@@ -794,6 +832,9 @@ button {
 }
 
 .reader-hero {
+  position: relative;
+  overflow: hidden;
+
   border: 1px solid var(--line);
   border-radius: 8px;
 
@@ -826,6 +867,120 @@ button {
     0 28px 90px rgba(0, 0, 0, 0.38);
 
   padding: 42px;
+}
+
+.reader-hero > :not(.hero-constellation) {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-constellation {
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  right: clamp(46px, 9vw, 170px);
+
+  width: clamp(190px, 22vw, 320px);
+  aspect-ratio: 1;
+
+  transform: translateY(-48%);
+
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, rgba(155, 77, 204, 0.20), transparent 31%),
+    radial-gradient(circle at 66% 72%, var(--verdant-soft), transparent 20%);
+
+  filter: drop-shadow(0 0 34px rgba(155, 77, 204, 0.18));
+  pointer-events: none;
+}
+
+.hero-constellation::before,
+.hero-constellation::after {
+  position: absolute;
+  inset: 14%;
+
+  border: 1px solid rgba(216, 180, 254, 0.26);
+  border-radius: 50%;
+
+  content: "";
+}
+
+.hero-constellation::before {
+  transform: rotate(45deg) scaleX(1.55);
+}
+
+.hero-constellation::after {
+  border-color: rgba(95, 155, 130, 0.38);
+
+  transform: rotate(-45deg) scaleX(1.55);
+}
+
+.hero-constellation img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+  width: 33%;
+  height: auto;
+
+  transform: translate(-50%, -50%);
+
+  filter: drop-shadow(0 0 16px rgba(216, 180, 254, 0.52));
+  opacity: 0.9;
+}
+
+.hero-constellation-orbit {
+  position: absolute;
+  inset: 4%;
+
+  border: 1px solid rgba(216, 180, 254, 0.17);
+  border-radius: 50%;
+}
+
+.hero-constellation-orbit-one {
+  transform: rotate(24deg) scaleX(1.32);
+}
+
+.hero-constellation-orbit-two {
+  inset: 27%;
+
+  border-color: rgba(110, 146, 196, 0.4);
+
+  transform: rotate(-30deg) scaleX(1.6);
+}
+
+.hero-constellation-orbit-three {
+  inset: 38%;
+
+  border-color: rgba(95, 155, 130, 0.42);
+
+  transform: rotate(68deg) scaleX(1.95);
+}
+
+.hero-constellation-star {
+  position: absolute;
+
+  width: 7px;
+  aspect-ratio: 1;
+
+  border-radius: 50%;
+  background: var(--focus);
+  box-shadow: 0 0 15px rgba(216, 180, 254, 0.9);
+}
+
+.hero-constellation-star-one {
+  top: 11%;
+  right: 23%;
+}
+
+.hero-constellation-star-two {
+  bottom: 18%;
+  left: 18%;
+
+  width: 5px;
+
+  background: var(--verdant);
+  box-shadow: 0 0 13px rgba(95, 155, 130, 0.8);
 }
 
 .reader-hero h1 {
@@ -1050,6 +1205,89 @@ button {
   color: var(--muted);
   line-height: 1.65;
 }
+
+.featured-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 22px;
+}
+
+.featured-meta-row .meta-row {
+  margin-top: 0;
+}
+
+.featured-novel-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: min(82%, 188px);
+  min-height: 38px;
+  border: 1px solid rgba(110, 146, 196, .60);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(110, 146, 196, .22), rgba(116, 44, 157, .20));
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .18), inset 0 1px 0 rgba(255, 255, 255, .08);
+  color: var(--ink);
+  font-size: .78rem;
+  padding: 0 11px;
+}
+
+.featured-cover-column {
+  display: grid;
+  gap: 18px;
+  justify-items: center;
+  width: 100%;
+}
+
+.featured-cover-column .featured-cover {
+  width: 100%;
+}
+
+.featured-novel-link:hover {
+  border-color: var(--dusk);
+  background: linear-gradient(135deg, rgba(110, 146, 196, .34), rgba(116, 44, 157, .30));
+  color: #fff;
+}
+
+.about-page {
+  position: relative;
+  z-index: 1;
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 56px 0 90px;
+}
+
+.about-heading { max-width: 720px; margin-bottom: 42px; }
+.about-heading h1 { margin-bottom: 18px; font-size: clamp(2.8rem, 6vw, 5rem); }
+.about-heading > p:last-child { color: var(--muted); font-size: 1.08rem; line-height: 1.7; }
+.about-articles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.about-articles article { scroll-margin-top: 100px; border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(145deg, rgba(38, 19, 52, .76), rgba(12, 6, 22, .86)); padding: 26px; }
+.about-articles h2 { margin: 0 0 12px; font-size: 1.65rem; }
+.about-articles p:last-child { margin: 0; color: var(--muted); line-height: 1.7; }
+.info-back-link { display: inline-flex; align-items: center; min-height: 36px; margin-bottom: 30px; color: var(--dusk); font-size: .85rem; }
+.info-articles { display: grid; gap: 18px; max-width: 820px; }
+.info-articles article { border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(145deg, rgba(38, 19, 52, .76), rgba(12, 6, 22, .86)); padding: 28px; }
+.info-articles h2 { margin: 0 0 14px; font-size: clamp(1.55rem, 3vw, 2rem); }
+.info-articles p:last-child { margin: 0; color: var(--muted); font-size: 1.02rem; line-height: 1.75; }
+.longform-article { max-width: 760px; color: var(--muted); font-size: 1.06rem; line-height: 1.8; }
+.longform-article p { margin: 0 0 24px; }
+.longform-article .longform-lead { border-left: 2px solid var(--dusk); color: var(--ink); font-size: 1.26rem; line-height: 1.65; padding-left: 20px; }
+.longform-article h2 { margin: 42px 0 12px; color: var(--ink); font-size: clamp(1.65rem, 3vw, 2.2rem); }
+.info-page .about-heading { max-width: 1040px; margin-right: auto; margin-left: auto; }
+.info-page .info-back-link { display: flex; width: min(1040px, 100%); margin-right: auto; margin-left: auto; }
+.info-page .longform-article { width: min(1040px, 100%); max-width: none; margin-right: auto; margin-left: auto; }
+.team-members { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin-top: 48px; border-top: 1px solid var(--line); padding-top: 28px; }
+.team-member { display: flex; align-items: center; gap: 14px; min-width: 0; padding-right: 24px; }
+.team-member + .team-member { border-left: 1px solid var(--line); padding-right: 0; padding-left: 24px; }
+.team-avatar { width: 58px; height: 58px; flex: 0 0 58px; overflow: hidden; display: grid; place-items: center; border: 1px solid rgba(110, 146, 196, .55); border-radius: 50%; background: linear-gradient(145deg, #6b3b73, #273957); color: var(--ink); font: 700 1.2rem Georgia, serif; }
+.team-avatar-generic { background: linear-gradient(145deg, #31505f, #203042); }
+.team-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.team-member-name { display: flex; align-items: center; gap: 8px; }
+.team-member h3 { margin: 0 0 3px; color: var(--ink); font-size: 1rem; }
+.team-member p { margin: 0; color: var(--muted); font-size: .88rem; line-height: 1.45; }
+@media (max-width: 600px) { .team-members { grid-template-columns: 1fr; gap: 20px; } .team-member, .team-member + .team-member { border-left: 0; padding: 0; } }
+@media (max-width: 680px) { .about-page { padding-top: 32px; } .about-articles { grid-template-columns: 1fr; } }
 
 .meta-row {
   display: flex;
@@ -2681,8 +2919,29 @@ button {
   content: "◇";
 }
 
+.home-header .reader-nav a[href*="readers"]::before {
+  content: "♧";
+}
+
 .home-header .reader-nav a[href*="popular"]::before {
   content: "▤";
+}
+
+.account-special-badge {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-height: 22px;
+  border: 1px solid rgba(201, 166, 107, 0.52);
+  border-radius: 999px;
+  background: rgba(201, 166, 107, 0.12);
+  color: #e7c785;
+  font-size: 0.64rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  padding: 0 8px;
 }
 
 .home-header .reader-nav a:hover,
@@ -2693,9 +2952,9 @@ button {
 }
 
 .home-header .top-search-form {
-  flex: 0 1 310px;
+  flex: 0 1 400px;
 
-  min-width: 190px;
+  min-width: 300px;
 
   margin-left: auto;
 
@@ -3158,6 +3417,10 @@ button {
 }
 
 @media (max-width: 880px) {
+  .hero-constellation {
+    display: none;
+  }
+
   .home-shell,
   .auth-shell {
     grid-template-columns: 1fr;

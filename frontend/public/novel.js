@@ -658,6 +658,110 @@ function renderReviewComposer(novelId, reviews) {
   container.appendChild(form);
 }
 
+function createReplyAction(novelId, reviewId, parentReplyId, targetName) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "review-reply-action-row";
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "review-reply-button";
+  button.textContent = "Reply";
+  button.addEventListener("click", () => {
+    if (!getAccessToken()) {
+      window.location.href = "/login.html";
+      return;
+    }
+    if (wrapper.querySelector("form")) return;
+
+    const form = document.createElement("form");
+    form.className = "review-reply-form";
+    const label = document.createElement("label");
+    label.textContent = `Reply to ${targetName || "this reader"}`;
+    const textarea = document.createElement("textarea");
+    textarea.maxLength = 2000;
+    textarea.rows = 3;
+    textarea.placeholder = "Add to the conversation…";
+    textarea.required = true;
+    const footer = document.createElement("div");
+    footer.className = "review-reply-form-footer";
+    const message = document.createElement("span");
+    message.setAttribute("role", "status");
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "ghost-link";
+    cancel.textContent = "Cancel";
+    cancel.addEventListener("click", () => form.remove());
+    const submit = document.createElement("button");
+    submit.type = "submit";
+    submit.textContent = "Post reply";
+    footer.append(message, cancel, submit);
+    label.appendChild(textarea);
+    form.append(label, footer);
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      submit.disabled = true;
+      submit.textContent = "Posting…";
+      message.textContent = "";
+      try {
+        const response = await authFetch(`${API_BASE}/api/novels/${novelId}/reviews/${reviewId}/replies`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ comment: textarea.value, parent_reply_id: parentReplyId }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (response.status === 401) { window.location.href = "/login.html"; return; }
+        if (!response.ok) throw new Error(typeof result.detail === "string" ? result.detail : "Couldn't post your reply.");
+        await loadReviews(novelId);
+      } catch (error) {
+        message.textContent = error.message || "Couldn't post your reply.";
+        submit.disabled = false;
+        submit.textContent = "Post reply";
+      }
+    });
+    wrapper.append(form);
+    textarea.focus();
+  });
+  wrapper.appendChild(button);
+  return wrapper;
+}
+
+function createReviewReply(novelId, reviewId, reply) {
+  const profileValue = reply.profiles || {};
+  const profile = Array.isArray(profileValue) ? (profileValue[0] || {}) : profileValue;
+  const article = document.createElement("article");
+  article.className = "review-reply";
+  article.id = `reply-${reply.id}`;
+  article.tabIndex = -1;
+  const header = document.createElement("div");
+  header.className = "review-reply-header";
+  const avatar = document.createElement("div");
+  avatar.className = "review-reply-avatar";
+  if (profile.avatar_url) {
+    const image = document.createElement("img");
+    image.src = profile.avatar_url;
+    image.alt = "";
+    avatar.appendChild(image);
+  } else {
+    avatar.textContent = (profile.username || "?").charAt(0).toUpperCase();
+  }
+  const identity = document.createElement("div");
+  const name = document.createElement("a");
+  name.href = `/user.html?id=${encodeURIComponent(reply.user_id)}`;
+  name.textContent = profile.username || "Axiom reader";
+  const date = document.createElement("time");
+  date.dateTime = reply.created_at;
+  date.textContent = new Date(reply.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  identity.append(name, date);
+  header.append(avatar, identity);
+  const comment = document.createElement("p");
+  comment.textContent = reply.comment;
+  const children = document.createElement("div");
+  children.className = "review-replies";
+  children.appendChild(createReplyAction(novelId, reviewId, reply.id, profile.username));
+  (reply.replies || []).forEach((child) => children.appendChild(createReviewReply(novelId, reviewId, child)));
+  article.append(header, comment, children);
+  return article;
+}
+
 function renderReviews(novelId, payload) {
   renderRatingSummary(payload);
   renderReviewComposer(novelId, payload.reviews);
@@ -672,6 +776,8 @@ function renderReviews(novelId, payload) {
     const profileValue = review.profiles || {};
     const profile = Array.isArray(profileValue) ? (profileValue[0] || {}) : profileValue;
     const article = document.createElement("article"); article.className = "review-card";
+    article.id = `review-${review.id}`;
+    article.tabIndex = -1;
     const header = document.createElement("div"); header.className = "review-card-header";
     const profileLink = document.createElement("a"); profileLink.className = "review-profile-link"; profileLink.href = `/user.html?id=${encodeURIComponent(review.user_id)}`; profileLink.setAttribute("aria-label", `View ${profile.username || "this reader"}'s profile`);
     const avatar = document.createElement("div"); avatar.className = "review-avatar";
@@ -716,9 +822,30 @@ function renderReviews(novelId, payload) {
     }
     header.append(profileLink, identity, reviewMeta);
     const comment = document.createElement("p"); comment.textContent = review.comment;
-    article.append(header, comment); list.appendChild(article);
+    const replies = document.createElement("div");
+    replies.className = "review-replies";
+    replies.appendChild(createReplyAction(novelId, review.id, null, profile.username));
+    (review.replies || []).forEach((reply) => replies.appendChild(createReviewReply(novelId, review.id, reply)));
+    article.append(header, comment, replies); list.appendChild(article);
   });
+  focusReviewDiscussionTarget();
 }
+
+function focusReviewDiscussionTarget() {
+  const targetId = decodeURIComponent(window.location.hash.slice(1));
+  if (!/^(review|reply)-\d+$/.test(targetId)) return;
+  const target = document.getElementById(targetId);
+  if (!target) return;
+
+  document.querySelectorAll(".is-activity-target").forEach((item) => {
+    item.classList.remove("is-activity-target");
+  });
+  target.classList.add("is-activity-target");
+  target.scrollIntoView({ behavior: "smooth", block: "center" });
+  target.focus({ preventScroll: true });
+}
+
+window.addEventListener("hashchange", focusReviewDiscussionTarget);
 
 async function loadReviews(novelId) {
   try {

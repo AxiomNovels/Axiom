@@ -19,3 +19,16 @@ class ReviewUpsert(BaseModel):
         if value * 2 != int(value * 2):
             raise ValueError("Rating must use half-star increments.")
         return value
+
+
+class ReviewReplyCreate(BaseModel):
+    comment: str = Field(min_length=1, max_length=2000)
+    parent_reply_id: int | None = Field(default=None, gt=0)
+
+    @field_validator("comment")
+    @classmethod
+    def clean_comment(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Reply cannot be empty.")
+        return cleaned

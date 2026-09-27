@@ -22,13 +22,14 @@
 
       <nav class="nav-links reader-nav" aria-label="Primary navigation">
         <a href="/finder.html">Finder</a>
+        <a href="/readers.html">Readers</a>
         <a href="/#popular">Popular</a>
       </nav>
 
       <form class="top-search-form search-form" action="/search.html" method="get" aria-label="Search novels">
         <label for="novel-search">Search novels</label>
         <div class="search-row">
-          <input id="novel-search" name="q" type="search" placeholder="Search novels, themes, moods...">
+          <input id="novel-search" name="q" type="search" placeholder="Search novels, authors, keywords...">
           <button type="submit" aria-label="Search">Search</button>
         </div>
       </form>
@@ -47,7 +48,6 @@
     </header>
 
     <main class="profile-manage-page">
-      <a class="novel-back-link" href="/lists.html">&larr; Back to your reading lists</a>
 
       <div class="profile-manage-card">
         <p class="eyebrow">Your account</p>
@@ -164,6 +164,16 @@
               <p>No tag preferences added yet.</p>
             </div>
           </div>
+
+          <section class="profile-presence-section" aria-labelledby="online-status-heading">
+            <h2 id="online-status-heading">Online status</h2>
+            <p>Show other readers when you are active on Axiom.</p>
+            <label class="profile-presence-toggle" for="online-status-public">
+              <input id="online-status-public" name="online_status_public" type="checkbox" checked>
+              <span>Show my online status</span>
+            </label>
+            <p class="profile-presence-note">When off, your profile always appears offline.</p>
+          </section>
 
           <div class="profile-social-section">
             <h2 class="profile-social-heading">Social accounts</h2>

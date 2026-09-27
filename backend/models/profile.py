@@ -8,6 +8,7 @@ GENDER_OPTIONS = ("♀️Female", "♂️Male", "⚧️Non-Binary", "Prefer not 
 # Every social field defaults to "friends_only" -- a reader opts a
 # platform in to "everyone" visibility individually, not the reverse.
 SOCIAL_VISIBILITY_OPTIONS = ("everyone", "friends_only")
+ONLINE_STATUS_VISIBILITY_OPTIONS = ("public", "private")
 SOCIAL_PLATFORMS = ("discord", "instagram", "reddit", "tiktok")
 
 
@@ -26,6 +27,7 @@ class ProfileUpdate(BaseModel):
     reddit_visibility: str = "friends_only"
     tiktok_username: Optional[str] = None
     tiktok_visibility: str = "friends_only"
+    online_status_visibility: str = "public"
 
     @field_validator("gender")
     @classmethod
@@ -79,6 +81,13 @@ class ProfileUpdate(BaseModel):
     def validate_social_visibility(cls, value: str) -> str:
         if value not in SOCIAL_VISIBILITY_OPTIONS:
             raise ValueError("Please choose a valid visibility option.")
+        return value
+
+    @field_validator("online_status_visibility")
+    @classmethod
+    def validate_online_status_visibility(cls, value: str) -> str:
+        if value not in ONLINE_STATUS_VISIBILITY_OPTIONS:
+            raise ValueError("Please choose a valid online status setting.")
         return value
 
 

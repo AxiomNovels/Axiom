@@ -15,6 +15,7 @@
       </a>
       <nav class="nav-links reader-nav" aria-label="Primary navigation">
         <a href="/finder.html">Finder</a>
+        <a href="/readers.html">Readers</a>
         <a href="#popular">Popular</a>
       </nav>
       <form class="top-search-form search-form" action="/search.html" method="get" aria-label="Search novels">
@@ -24,7 +25,7 @@
             id="novel-search"
             name="q"
             type="search"
-            placeholder="Search novels, themes, moods..."
+            placeholder="Search novels, authors, keywords..."
           >
           <button type="submit" aria-label="Search">Search</button>
         </div>
@@ -55,37 +56,55 @@
         <div class="quick-actions" id="browse" aria-label="Browse shortcuts">
           <a href="/finder.html">Open Series Finder</a>
         </div>
+
+        <div class="hero-constellation" aria-hidden="true">
+          <span class="hero-constellation-orbit hero-constellation-orbit-one"></span>
+          <span class="hero-constellation-orbit hero-constellation-orbit-two"></span>
+          <span class="hero-constellation-orbit hero-constellation-orbit-three"></span>
+          <span class="hero-constellation-star hero-constellation-star-one"></span>
+          <span class="hero-constellation-star hero-constellation-star-two"></span>
+          <img src="/assets/axiom-mark.png" alt="">
+        </div>
       </section>
 
       <section class="home-grid">
-        <article class="featured-novel" aria-labelledby="featured-title">
-          <div class="book-cover featured-cover">
-            <span>The Stranger</span>
+        <article class="featured-novel" data-home-feature aria-labelledby="featured-title">
+          <div class="featured-cover-column">
+            <div class="book-cover featured-cover" data-home-feature-cover>
+              <span>The Stranger</span>
+            </div>
+            <a class="featured-novel-link" data-home-feature-link href="#" hidden>View novel <span aria-hidden="true">→</span></a>
           </div>
           <div class="featured-copy">
             <p class="eyebrow">Featured inquiry</p>
-            <h2 id="featured-title">What does freedom cost when meaning disappears?</h2>
-            <p>
+            <h2 id="featured-title" data-home-feature-inquiry>What does freedom cost when meaning disappears?</h2>
+            <p data-home-feature-description>
               Placeholder recommendation inspired by existential fiction,
               moral ambiguity, alienation, and protagonists who refuse easy answers.
             </p>
-            <div class="meta-row">
-              <span>Existentialism</span>
-              <span>Modern classic</span>
-              <span>Bleak clarity</span>
+            <div class="featured-meta-row">
+              <div class="meta-row" data-home-feature-tags>
+                <span>Existentialism</span>
+                <span>Modern classic</span>
+                <span>Bleak clarity</span>
+              </div>
             </div>
           </div>
         </article>
 
         <aside class="updates-panel" aria-labelledby="updates-title">
           <h2 id="updates-title">Meet Axiom</h2>
-          <a href="#popular">
-            <strong>Recommendation engine preview</strong>
-            <span>Popular and personalized picks will appear here soon.</span>
+          <a href="/team.html">
+            <strong>Meet the Axiom team</strong>
+            <span>The readers building a more intentional place to discover webnovels.</span>
           </a>
-          <a href="#popular">
-            <strong>Reader taste profiles</strong>
-            <span>Personalized discovery will connect to saved preferences soon.</span>
+          <a href="/mission.html">
+            <strong>Why Axiom exists</strong>
+            <span>Our goal for a better, reader-first webnovel catalogue.</span>
+          </a>
+          <a href="/protagonist-profile-info.html">
+            <strong>Protagonist profiles</strong>
+            <span>See how Axiom maps the traits that drive a story’s lead.</span>
           </a>
         </aside>
       </section>

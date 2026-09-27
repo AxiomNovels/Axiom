@@ -215,6 +215,32 @@ async function refreshAccountAvatar() {
 }
 window.refreshAccountAvatar = refreshAccountAvatar;
 
+let presenceHeartbeatTimer = null;
+
+async function sendPresenceHeartbeat() {
+  if (!getAccessToken() || document.visibilityState !== "visible") return;
+  try {
+    await authFetch(`${API_BASE}/api/presence/heartbeat`, {
+      method: "POST",
+      skipSessionRefresh: true,
+    });
+  } catch {
+    // Presence is intentionally best-effort. A missed check-in simply lets
+    // the short online window expire rather than affecting the reader's use.
+  }
+}
+
+function startPresenceTracking() {
+  if (!getAccessToken()) return;
+  sendPresenceHeartbeat();
+  presenceHeartbeatTimer = window.setInterval(sendPresenceHeartbeat, 60_000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") sendPresenceHeartbeat();
+  });
+}
+
+startPresenceTracking();
+
 // Exposed globally so inbox.js can refresh the header badge immediately
 // after a message is opened or its read state is toggled, without a
 // full page reload.
@@ -375,10 +401,15 @@ function updateAccountNav() {
       popoverAvatar.setAttribute("aria-hidden", "true");
       popoverAvatar.textContent = getUserName(user).charAt(0).toUpperCase();
 
-      userGreeting.textContent = getUserName(user);
-      userGreeting.classList.add("account-popover-username");
+      // The account name is a direct route to the reader's public profile;
+      // profile management remains available as its own explicit menu item.
+      const profileNameLink = document.createElement("a");
+      profileNameLink.href = `/user.html?id=${encodeURIComponent(user.id)}`;
+      profileNameLink.className = "user-greeting account-popover-username";
+      profileNameLink.textContent = getUserName(user);
+      userGreeting.remove();
 
-      popoverHeader.append(popoverAvatar, userGreeting);
+      popoverHeader.append(popoverAvatar, profileNameLink);
 
       const manageProfileLink = document.createElement("a");
       manageProfileLink.href = "/profile.html";
@@ -791,6 +822,46 @@ function createNovelCard(novel, index) {
   return link;
 }
 
+async function loadHomeFeature() {
+  const featureCard = document.querySelector("[data-home-feature]");
+  if (!featureCard) return;
+  try {
+    const response = await fetch(`${API_BASE}/api/home-feature`);
+    const feature = await response.json().catch(() => null);
+    if (!response.ok || !feature?.novel) return;
+    const inquiry = featureCard.querySelector("[data-home-feature-inquiry]");
+    const description = featureCard.querySelector("[data-home-feature-description]");
+    const tags = featureCard.querySelector("[data-home-feature-tags]");
+    const cover = featureCard.querySelector("[data-home-feature-cover]");
+    const link = featureCard.querySelector("[data-home-feature-link]");
+    inquiry.textContent = feature.inquiry;
+    description.textContent = feature.description;
+    tags.replaceChildren();
+    (feature.tags || []).forEach((tag) => {
+      const chip = document.createElement("span");
+      chip.textContent = tag;
+      tags.appendChild(chip);
+    });
+    cover.replaceChildren();
+    if (feature.novel.cover_image_url) {
+      const image = document.createElement("img");
+      image.className = "book-cover-image";
+      image.src = feature.novel.cover_image_url;
+      image.alt = `${feature.novel.title} cover`;
+      image.referrerPolicy = "no-referrer";
+      cover.appendChild(image);
+    } else {
+      const title = document.createElement("span");
+      title.textContent = feature.novel.title;
+      cover.appendChild(title);
+    }
+    link.href = `/novel.html?id=${encodeURIComponent(feature.novel.id)}`;
+    link.hidden = false;
+  } catch {
+    // The static feature remains visible when no feature has been published.
+  }
+}
+
 async function loadFeaturedNovels() {
   const grid = document.querySelector("[data-novel-grid]");
   if (!grid) {
@@ -814,3 +885,4 @@ async function loadFeaturedNovels() {
 }
 
 loadFeaturedNovels();
+loadHomeFeature();

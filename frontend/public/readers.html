@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Search | Axiom</title>
+    <title>Readers | Axiom</title>
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/novel.css">
   </head>
@@ -15,7 +15,7 @@
       </a>
       <nav class="nav-links reader-nav" aria-label="Primary navigation">
         <a href="/finder.html">Finder</a>
-        <a href="/readers.html">Readers</a>
+        <a href="/readers.html" aria-current="page">Readers</a>
         <a href="/#popular">Popular</a>
       </nav>
       <form class="top-search-form search-form" action="/search.html" method="get" aria-label="Search novels">
@@ -37,25 +37,34 @@
       </nav>
     </header>
 
-    <main class="search-results-page">
-      <section class="search-results-heading" aria-labelledby="results-title">
-        <p class="eyebrow">Novel discovery</p>
-        <h1 id="results-title">Search results</h1>
-        <p data-results-summary aria-live="polite">Finding relevant novels&hellip;</p>
-      </section>
-      <section class="results-layout" aria-label="Search results">
-        <aside class="active-filters" data-active-filters>
-          <strong>Your filters</strong>
-          <div data-filter-chips></div>
-          <a href="/finder.html">Edit search</a>
-        </aside>
-        <div class="series-results" data-search-results>
-          <p>Loading results&hellip;</p>
+    <main class="reader-directory-page">
+      <header class="reader-directory-heading">
+        <p class="eyebrow">The Axiom community</p>
+        <h1>Meet the readers.</h1>
+        <p>Find fellow readers, explore their public profiles, and see the tastes they choose to share.</p>
+      </header>
+
+      <form class="reader-directory-search" data-reader-search role="search">
+        <label for="reader-query">Search readers</label>
+        <div>
+          <input id="reader-query" type="search" maxlength="100" placeholder="Search by username" autocomplete="off">
+          <button type="submit">Search</button>
         </div>
-      </section>
+      </form>
+
+      <div class="reader-directory-toolbar">
+        <p class="reader-directory-status" data-reader-status aria-live="polite">Loading readers&hellip;</p>
+        <label class="reader-directory-sort" for="reader-sort">Sort by
+          <select id="reader-sort" data-reader-sort>
+            <option value="last_online" selected>Last online</option>
+            <option value="alphabetical">Alphabetical</option>
+          </select>
+        </label>
+      </div>
+      <section class="reader-directory-grid" data-reader-results aria-label="Reader directory"></section>
     </main>
 
     <script src="/script.js"></script>
-    <script src="/search.js"></script>
+    <script src="/readers.js"></script>
   </body>
 </html>

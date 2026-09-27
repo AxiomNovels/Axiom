@@ -124,6 +124,15 @@
 .vote-record > div { flex: 1; }
 .vote-distribution h3 { font-size: 13px; margin-top: 0; }
 .vote-distribution p { font-size: 12px; color: var(--muted); }
+.home-feature-form { display: grid; gap: 18px; max-width: 720px; margin-top: 24px; }
+.home-feature-form > label { display: grid; gap: 8px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.home-feature-form label small { color: var(--dim); font-weight: 400; }
+.home-feature-form textarea { width: 100%; min-height: 108px; resize: vertical; border: 1px solid var(--line); border-radius: 8px; background: #0b0711; color: var(--ink); font: inherit; font-size: 14px; line-height: 1.5; padding: 12px 14px; }
+.home-feature-form textarea:focus { border-color: var(--focus); outline: 2px solid var(--focus); outline-offset: 3px; }
+.home-feature-result { display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 720px; border-top: 1px solid var(--line); padding: 12px 2px; }
+.home-feature-result strong, .home-feature-result small { display: block; }
+.home-feature-result small { margin-top: 4px; color: var(--dim); font-size: 12px; }
+#home-feature-selection { margin: 0; border: 1px solid rgba(110, 146, 196, .35); border-radius: 9px; background: var(--dusk-soft); color: var(--ink); padding: 12px 14px; }
 @media (max-width: 700px) {
   .admin-page { margin-top: 24px; }
   .admin-panel { padding: 18px; }

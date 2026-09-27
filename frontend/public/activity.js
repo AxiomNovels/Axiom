@@ -11,12 +11,13 @@ function renderActivityStars(container, rating) {
 function createActivityCard(activity) {
   const novel = activity.novel || {};
   const novelUrl = `/novel.html?id=${encodeURIComponent(activity.novel_id)}`;
+  const activityUrl = `${novelUrl}#${activity.type === "reply" ? "reply" : "review"}-${activity.id}`;
   const card = document.createElement("article");
   card.className = "user-activity-card";
 
   const cover = document.createElement("a");
   cover.className = "user-activity-cover";
-  cover.href = novelUrl;
+  cover.href = activityUrl;
   if (novel.cover_image_url) {
     const image = document.createElement("img");
     image.referrerPolicy = "no-referrer";
@@ -37,24 +38,27 @@ function createActivityCard(activity) {
   body.className = "user-activity-body";
   const context = document.createElement("p");
   context.className = "user-activity-context";
-  context.textContent = activity.comment ? "You reviewed" : "You rated";
+  context.textContent = activity.type === "reply" ? "You replied on" : activity.comment ? "You reviewed" : "You rated";
   const title = document.createElement("a");
   title.className = "user-activity-title";
-  title.href = novelUrl;
+  title.href = activityUrl;
   title.textContent = novel.title || "Unknown novel";
   const author = document.createElement("span");
   author.className = "user-activity-author";
   author.textContent = novel.author ? `by ${novel.author}` : "";
   const meta = document.createElement("div");
   meta.className = "user-activity-meta";
-  const stars = document.createElement("span");
-  stars.className = "review-card-stars";
-  stars.setAttribute("aria-label", `${activity.rating} out of 5 stars`);
-  renderActivityStars(stars, activity.rating);
   const date = document.createElement("time");
   date.dateTime = activity.updated_at;
   date.textContent = new Date(activity.updated_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-  meta.append(stars, date);
+  if (activity.type !== "reply") {
+    const stars = document.createElement("span");
+    stars.className = "review-card-stars";
+    stars.setAttribute("aria-label", `${activity.rating} out of 5 stars`);
+    renderActivityStars(stars, activity.rating);
+    meta.appendChild(stars);
+  }
+  meta.appendChild(date);
   body.append(context, title, author, meta);
 
   if (activity.comment) {
@@ -88,20 +92,22 @@ async function loadOwnActivity() {
     if (!isOwnActivity) {
       document.querySelector(".activity-page .eyebrow").textContent = "Reader history";
       document.getElementById("activity-heading").textContent = `${username}'s activity`;
-      document.querySelector(".activity-intro").textContent = `Every novel ${username} has rated or reviewed, newest first.`;
+      document.querySelector(".activity-intro").textContent = `Every review and reply ${username} has shared, newest first.`;
     }
     const count = Number(payload.review_count) || 0;
-    stats.textContent = count
-      ? `${count} ${count === 1 ? "review" : "reviews"} · ${Number(payload.average_rating).toFixed(1)} average`
-      : "No reviews yet";
+    const replyCount = Number(payload.reply_count) || 0;
+    const statsParts = [];
+    if (count) statsParts.push(`${count} ${count === 1 ? "review" : "reviews"} · ${Number(payload.average_rating).toFixed(1)} average`);
+    if (replyCount) statsParts.push(`${replyCount} ${replyCount === 1 ? "reply" : "replies"}`);
+    stats.textContent = statsParts.join(" · ") || "No activity yet";
     feed.innerHTML = "";
     if (!payload.activity?.length) {
-      feed.innerHTML = '<div class="user-activity-empty"><strong>No activity yet</strong><p>Your ratings and reviews will appear here.</p></div>';
+      feed.innerHTML = '<div class="user-activity-empty"><strong>No activity yet</strong><p>Your ratings, reviews, and replies will appear here.</p></div>';
       return;
     }
     payload.activity.forEach((activity) => {
       const card = createActivityCard(activity);
-      if (!isOwnActivity) card.querySelector(".user-activity-context").textContent = activity.comment ? "Reviewed" : "Rated";
+      if (!isOwnActivity) card.querySelector(".user-activity-context").textContent = activity.type === "reply" ? "Replied on" : activity.comment ? "Reviewed" : "Rated";
       feed.appendChild(card);
     });
   } catch (error) {

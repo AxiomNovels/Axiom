@@ -18,6 +18,7 @@ PROFILE_COLUMNS = (
     "instagram_username, instagram_visibility, "
     "reddit_username, reddit_visibility, "
     "tiktok_username, tiktok_visibility"
+    ", online_status_visibility"
 )
 
 AVATAR_BUCKET = "avatars"
@@ -62,6 +63,7 @@ def update_my_profile(payload: ProfileUpdate, auth=Depends(get_current_user)):
                     "reddit_visibility": payload.reddit_visibility,
                     "tiktok_username": payload.tiktok_username,
                     "tiktok_visibility": payload.tiktok_visibility,
+                    "online_status_visibility": payload.online_status_visibility,
                 }
             )
             .eq("id", user_id)

@@ -263,9 +263,90 @@ async function openEditor(id) {
   }
   editor.scrollIntoView({ behavior: "smooth", block: "start" });
 }
+
+let selectedHomeNovel = null;
+
+function renderHomeFeatureSelection(novel) {
+  selectedHomeNovel = novel;
+  document.getElementById("home-feature-novel-id").value = novel?.id || "";
+  document.getElementById("home-feature-selection").textContent = novel
+    ? `Featured novel: ${novel.title}${novel.author ? ` by ${novel.author}` : ""}`
+    : "Choose a novel to begin.";
+}
+
+async function loadHomeFeature() {
+  const data = await request("/home-feature");
+  const feature = data.feature;
+  if (!feature) return;
+  renderHomeFeatureSelection(feature.novel);
+  document.getElementById("home-feature-inquiry").value = feature.inquiry;
+  document.getElementById("home-feature-description").value = feature.description;
+  document.getElementById("home-feature-tags").value = (feature.tags || []).join(", ");
+  document.getElementById("home-feature-status").textContent = "Current published feature loaded.";
+}
+
+async function searchHomeFeatureNovels() {
+  const query = document.getElementById("home-feature-query").value.trim();
+  const data = await request(`/novels?q=${encodeURIComponent(query)}&page=1`);
+  const results = document.getElementById("home-feature-results");
+  results.replaceChildren();
+  if (!data.novels.length) {
+    results.append(element("p", "No catalogue novels match that search."));
+    return;
+  }
+  data.novels.forEach((novel) => {
+    const row = element("div", undefined, "home-feature-result");
+    const copy = element("div");
+    copy.append(element("strong", novel.title), element("small", novel.author || "Unknown author"));
+    const choose = action(selectedHomeNovel?.id === novel.id ? "Selected" : "Choose", async () => {
+      renderHomeFeatureSelection(novel);
+      document.getElementById("home-feature-status").textContent = "Novel selected. Add the editorial copy, then publish.";
+      results.querySelectorAll("button").forEach((button) => { button.textContent = "Choose"; });
+      choose.textContent = "Selected";
+    });
+    choose.disabled = selectedHomeNovel?.id === novel.id;
+    row.append(copy, choose);
+    results.append(row);
+  });
+}
+
+document.getElementById("home-tab").addEventListener("click", () => {
+  ["users", "novels", "home"].forEach((section) => {
+    document.getElementById(`${section}-panel`).hidden = section !== "home";
+    document.getElementById(`${section}-tab`).setAttribute("aria-pressed", String(section === "home"));
+  });
+  loadHomeFeature().catch((error) => status(error.message, true));
+});
+document.getElementById("home-feature-search").addEventListener("submit", (event) => {
+  event.preventDefault();
+  searchHomeFeatureNovels().catch((error) => status(error.message, true));
+});
+document.getElementById("home-feature-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const statusEl = document.getElementById("home-feature-status");
+  const novelId = Number(document.getElementById("home-feature-novel-id").value);
+  if (!novelId) { statusEl.textContent = "Choose a catalogue novel first."; return; }
+  const submit = event.currentTarget.querySelector("button[type='submit']");
+  submit.disabled = true;
+  statusEl.textContent = "Publishing…";
+  try {
+    await request("/home-feature", {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        novel_id: novelId,
+        inquiry: document.getElementById("home-feature-inquiry").value,
+        description: document.getElementById("home-feature-description").value,
+        tags: document.getElementById("home-feature-tags").value.split(",").map((tag) => tag.trim()).filter(Boolean),
+      }),
+    });
+    statusEl.textContent = "Published. The Home page will now show this feature.";
+  } catch (error) { statusEl.textContent = error.message; statusEl.classList.add("error"); }
+  finally { submit.disabled = false; }
+});
+
 for (const kind of ["users", "novels"]) {
   document.getElementById(`${kind}-tab`).addEventListener("click", () => {
-    for (const section of ["users", "novels"]) {
+    for (const section of ["users", "novels", "home"]) {
       document.getElementById(`${section}-panel`).hidden = section !== kind;
       document.getElementById(`${section}-tab`).setAttribute("aria-pressed", String(section === kind));
     }

@@ -1,5 +1,5 @@
 /* Compact finder layout, scoped to this page. */
-.finder-page { max-width: 1040px; padding-top: 30px; }
+.finder-page { max-width: 1120px; padding-top: 30px; }
 .finder-heading { margin-bottom: 22px; }
 .finder-heading h1 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.5rem); }
 .finder-form { box-shadow: none; }

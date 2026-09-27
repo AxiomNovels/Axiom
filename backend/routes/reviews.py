@@ -2,12 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 
 from core.auth import get_current_user, get_optional_current_user
 from core.database import create_service_client
-from models.review import ReviewUpsert
+from models.review import ReviewReplyCreate, ReviewUpsert
 
 
 router = APIRouter(prefix="/api/novels", tags=["reviews"])
 
 REVIEW_COLUMNS = "id, user_id, novel_id, rating, comment, created_at, updated_at"
+REPLY_COLUMNS = "id, review_id, parent_reply_id, user_id, comment, created_at"
 
 
 def _attach_public_profiles(rows: list[dict], client) -> list[dict]:
@@ -70,6 +71,42 @@ def _attach_like_data(rows: list[dict], client, viewer_id: str | None) -> list[d
     return rows
 
 
+def _attach_replies(rows: list[dict], client) -> list[dict]:
+    """Attach replies as a nested tree under each review.
+
+    The database retains a simple parent id, which keeps replies easy to
+    query and lets the client render an arbitrary reply depth without issuing
+    one request per comment.
+    """
+    review_ids = [row["id"] for row in rows if row.get("id")]
+    if not review_ids:
+        return rows
+
+    response = (
+        client.table("review_replies")
+        .select(REPLY_COLUMNS)
+        .in_("review_id", review_ids)
+        .order("created_at")
+        .execute()
+    )
+    replies = _attach_public_profiles(response.data or [], client)
+    replies_by_id = {reply["id"]: reply for reply in replies}
+    roots_by_review: dict[int, list[dict]] = {review_id: [] for review_id in review_ids}
+
+    for reply in replies:
+        reply["replies"] = []
+    for reply in replies:
+        parent = replies_by_id.get(reply.get("parent_reply_id"))
+        if parent and parent["review_id"] == reply["review_id"]:
+            parent["replies"].append(reply)
+        else:
+            roots_by_review.setdefault(reply["review_id"], []).append(reply)
+
+    for row in rows:
+        row["replies"] = roots_by_review.get(row["id"], [])
+    return rows
+
+
 def _review_payload(rows: list[dict]) -> dict:
     ratings = [float(row["rating"]) for row in rows]
     average = round(sum(ratings) / len(ratings), 2) if ratings else None
@@ -98,6 +135,7 @@ def list_reviews(novel_id: int, auth=Depends(get_optional_current_user)):
     rows = response.data or []
     rows = _attach_public_profiles(rows, client)
     rows = _attach_like_data(rows, client, viewer_id)
+    rows = _attach_replies(rows, client)
     return _review_payload(rows)
 
 
@@ -128,3 +166,59 @@ def delete_review(novel_id: int, auth=Depends(get_current_user)):
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
     return Response(status_code=204)
+
+
+@router.post("/{novel_id}/reviews/{review_id}/replies", status_code=201)
+def create_review_reply(
+    novel_id: int,
+    review_id: int,
+    payload: ReviewReplyCreate,
+    auth=Depends(get_current_user),
+):
+    """Add a reply to a review or to a reply already on that review."""
+    user_id, client = auth
+    service_client = create_service_client()
+    try:
+        review_response = (
+            service_client.table("reviews")
+            .select("id")
+            .eq("id", review_id)
+            .eq("novel_id", novel_id)
+            .maybe_single()
+            .execute()
+        )
+        if not review_response.data:
+            raise HTTPException(status_code=404, detail="Review not found for this novel.")
+
+        if payload.parent_reply_id is not None:
+            parent_response = (
+                service_client.table("review_replies")
+                .select("id")
+                .eq("id", payload.parent_reply_id)
+                .eq("review_id", review_id)
+                .maybe_single()
+                .execute()
+            )
+            if not parent_response.data:
+                raise HTTPException(status_code=404, detail="The reply you selected no longer exists.")
+
+        response = (
+            client.table("review_replies")
+            .insert(
+                {
+                    "review_id": review_id,
+                    "parent_reply_id": payload.parent_reply_id,
+                    "user_id": user_id,
+                    "comment": payload.comment,
+                }
+            )
+            .execute()
+        )
+    except HTTPException:
+        raise
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    if not response.data:
+        raise HTTPException(status_code=500, detail="Reply could not be saved.")
+    return response.data[0]

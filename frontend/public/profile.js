@@ -193,6 +193,7 @@ async function loadProfile() {
     form.country.value = profile.country || "";
     aboutMeEl.value = profile.about_me || "";
     counterEl.textContent = `${(profile.about_me || "").length}/500 characters`;
+    form.online_status_public.checked = (profile.online_status_visibility || "public") === "public";
 
     SOCIAL_PLATFORMS.forEach((platform) => {
       const usernameField = form[`${platform}_username`];
@@ -232,6 +233,7 @@ function setupProfileForm() {
       country: form.country.value.trim(),
       about_me: document.getElementById("about-me").value.trim(),
       tag_preferences: [...preferredTags],
+      online_status_visibility: form.online_status_public.checked ? "public" : "private",
     };
 
     SOCIAL_PLATFORMS.forEach((platform) => {

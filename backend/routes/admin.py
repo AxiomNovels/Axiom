@@ -2,7 +2,7 @@ from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, ConfigDict, StrictBool, StrictInt
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, field_validator
 
 from core.auth import get_current_user
 from core.database import create_service_client
@@ -28,6 +28,16 @@ def require_special(auth=Depends(get_current_user)):
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
+def home_feature_table_error(error: Exception) -> HTTPException:
+    """Turn the missing migration's PostgREST error into an actionable one."""
+    if "home_feature" in str(error) and "schema cache" in str(error):
+        return HTTPException(
+            status_code=503,
+            detail="Home-page publishing is not set up yet. Run database/home_feature.sql in the Supabase SQL editor, then try again.",
+        )
+    return HTTPException(status_code=500, detail="Home-page feature could not be loaded. Please try again.")
+
+
 class BanUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     banned: StrictBool
@@ -39,9 +49,57 @@ class ProfileScores(BaseModel):
     protagonist_name: str | None = None
 
 
+class HomeFeatureUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    novel_id: int = Field(gt=0)
+    inquiry: str = Field(min_length=10, max_length=240)
+    description: str = Field(min_length=10, max_length=500)
+    tags: list[str] = Field(default_factory=list, max_length=4)
+
+    @field_validator("inquiry", "description")
+    @classmethod
+    def nonblank_copy(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("This field cannot be empty.")
+        return value
+
+    @field_validator("tags")
+    @classmethod
+    def clean_tags(cls, tags: list[str]) -> list[str]:
+        cleaned = [tag.strip() for tag in tags if tag.strip()]
+        if len(cleaned) > 4 or any(len(tag) > 40 for tag in cleaned):
+            raise ValueError("Use up to four tags, each no longer than 40 characters.")
+        return cleaned
+
+
 @router.get("/me")
 def admin_me(admin=Depends(require_special)):
     return {"id": admin[0], "special": True}
+
+
+@router.get("/home-feature")
+def get_home_feature(admin=Depends(require_special)):
+    client = admin[1]
+    try:
+        feature = client.table("home_feature").select("novel_id,inquiry,description,tags,updated_at").eq("id", True).maybe_single().execute().data
+    except Exception as error:
+        raise home_feature_table_error(error) from error
+    if not feature:
+        return {"feature": None}
+    novel = find_novel(client, feature["novel_id"])
+    return {"feature": {**feature, "novel": novel}}
+
+
+@router.put("/home-feature")
+def save_home_feature(payload: HomeFeatureUpdate, admin=Depends(require_special)):
+    client = admin[1]
+    find_novel(client, payload.novel_id)
+    try:
+        client.table("home_feature").upsert({"id": True, **payload.model_dump()}, on_conflict="id").execute()
+    except Exception as error:
+        raise home_feature_table_error(error) from error
+    return {"saved": True}
 
 
 @router.get("/users")

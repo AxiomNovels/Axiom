@@ -8,8 +8,11 @@ from routes.protagonist_votes import router as protagonist_votes_router
 from routes.auth import router as auth_router
 from routes.friendships import router as friendships_router
 from routes.inbox import router as inbox_router
+from routes.home import router as home_router
+from routes.team import router as team_router
 from routes.novels import router as novels_router
 from routes.profile import router as profile_router
+from routes.presence import router as presence_router
 from routes.search import router as search_router
 from routes.reading_lists import router as reading_lists_router
 from routes.reading_progress import router as reading_progress_router
@@ -86,11 +89,14 @@ app.include_router(auth_router)
 app.include_router(reviews_router)
 app.include_router(novels_router)
 app.include_router(profile_router)
+app.include_router(presence_router)
 app.include_router(search_router)
 app.include_router(reading_lists_router)
 app.include_router(reading_progress_router)
 app.include_router(users_router)
 app.include_router(inbox_router)
+app.include_router(home_router)
+app.include_router(team_router)
 app.include_router(friendships_router)
 app.include_router(review_likes_router)
 app.include_router(reading_list_reviews_router)

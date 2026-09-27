@@ -418,6 +418,13 @@ async function loadPublicProfile() {
     document.title = `${profile.username || "User"} | Axiom`;
 
     if (usernameEl) usernameEl.textContent = profile.username || "Unknown reader";
+    const specialBadge = document.querySelector("[data-user-special-badge]");
+    if (specialBadge) specialBadge.hidden = !profile.special;
+    const onlineStatus = document.querySelector("[data-user-online-status]");
+    if (onlineStatus) {
+      onlineStatus.textContent = profile.online ? "Online now" : "Offline";
+      onlineStatus.classList.toggle("is-online", Boolean(profile.online));
+    }
     renderUserAvatar(profile);
 
     if (genderEl) genderEl.textContent = formatOrFallback(profile.gender, "Prefer not to say");
