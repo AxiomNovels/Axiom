@@ -26,3 +26,7 @@ class SignupRequest(BaseModel):
 class LoginRequest(BaseModel):
     identifier: str
     password: str
+
+
+class RefreshSessionRequest(BaseModel):
+    refresh_token: str

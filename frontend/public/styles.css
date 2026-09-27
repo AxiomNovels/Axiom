@@ -2899,6 +2899,72 @@ button {
   color: #ffffff;
 }
 
+/* Inbox is added to signed-in headers by script.js, including the Admin hub.
+   These belong in the shared header stylesheet rather than a page stylesheet
+   so the icon and label keep the same alignment everywhere. */
+.home-header .inbox-link {
+  position: relative;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.inbox-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.home-header .inbox-icon {
+  width: 21px;
+  height: 21px;
+  flex: 0 0 auto;
+  overflow: visible;
+  fill: rgba(155, 77, 204, 0.14);
+  stroke: var(--focus);
+  stroke-width: 1.45;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 5px rgba(155, 77, 204, 0.30));
+  transition: filter 0.18s ease, transform 0.18s ease;
+}
+
+.home-header .inbox-link:hover .inbox-icon {
+  filter: drop-shadow(0 0 8px rgba(192, 132, 252, 0.55));
+  transform: translateY(-1px);
+}
+
+.home-header .inbox-link:hover {
+  color: #ffffff;
+}
+
+.inbox-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--passion);
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0 4px;
+  box-shadow: 0 0 0 2px rgba(7, 3, 13, 0.86);
+}
+
+.inbox-badge.is-hidden {
+  display: none;
+}
+
 /* =========================================================
    ACCOUNT MENU
    ========================================================= */
@@ -3217,7 +3283,12 @@ button {
     font-size: 0;
   }
 
-  .home-header .my-lists-icon {
+  .home-header .inbox-link {
+    font-size: 0;
+    padding: 0 8px;
+  }
+
+  .home-header :is(.my-lists-icon, .inbox-icon) {
     width: 21px;
     height: 21px;
   }

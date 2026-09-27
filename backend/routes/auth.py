@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
 
-from core.database import create_service_client, supabase
+from core.database import create_public_client, create_service_client, supabase
 from core.notifications import send_welcome_notification
-from models.auth import LoginRequest, SignupRequest
+from models.auth import LoginRequest, RefreshSessionRequest, SignupRequest
 
 
 router = APIRouter(prefix="/api", tags=["authentication"])
@@ -151,5 +151,24 @@ def login(payload: LoginRequest):
         )
     except Exception as error:
         raise auth_error(error, 401)
+
+    return auth_response_payload(response)
+
+
+@router.post("/session/refresh")
+def refresh_session(payload: RefreshSessionRequest):
+    """Exchange a valid refresh token for a new short-lived access token."""
+    if not payload.refresh_token.strip():
+        raise HTTPException(status_code=422, detail="Your login session is missing. Please log in again.")
+
+    try:
+        response = create_public_client().auth.refresh_session(payload.refresh_token)
+    except Exception as error:
+        # A refresh token may be expired, revoked, or already rotated. Do not
+        # expose provider details; the browser will clear its local session.
+        raise HTTPException(status_code=401, detail="Your session has expired. Please log in again.") from error
+
+    if not getattr(response, "session", None):
+        raise HTTPException(status_code=401, detail="Your session has expired. Please log in again.")
 
     return auth_response_payload(response)

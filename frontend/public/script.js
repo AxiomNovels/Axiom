@@ -1,5 +1,7 @@
 const API_BASE = "http://localhost:8000";
 const COVER_CLASSES = ["cover-one", "cover-two", "cover-three", "cover-four", "cover-five"];
+let sessionRefreshPromise = null;
+let sessionRefreshTimer = null;
 
 // Shared by the novel page, upload preview, and search results to show
 // chapter counts compactly (e.g. 123456 -> "123.4K").
@@ -27,19 +29,50 @@ function formatCompactNumber(value) {
   return String(Math.trunc(number));
 }
 
-function getStoredUser() {
-  try {
-    return JSON.parse(localStorage.getItem("axiomUser"));
-  } catch {
-    return null;
+function getStoredValue(key) {
+  // A remembered login survives closing the browser; a normal login is kept
+  // only for the current browser session. Check local storage first so
+  // existing remembered sign-ins continue to work after this change.
+  for (const storage of [localStorage, sessionStorage]) {
+    try {
+      const value = storage.getItem(key);
+      if (value) return JSON.parse(value);
+    } catch {
+      // Invalid or unavailable browser storage is treated as signed out.
+    }
   }
+  return null;
+}
+
+function getStoredUser() {
+  return getStoredValue("axiomUser");
 }
 
 function getStoredSession() {
-  try {
-    return JSON.parse(localStorage.getItem("axiomSession"));
-  } catch {
-    return null;
+  return getStoredValue("axiomSession");
+}
+
+function storeAuthState(user, session, remember) {
+  const storage = remember ? localStorage : sessionStorage;
+  const otherStorage = remember ? sessionStorage : localStorage;
+
+  // Keep exactly one authentication lifetime active, so a later normal
+  // login cannot accidentally fall back to an older remembered account.
+  otherStorage.removeItem("axiomUser");
+  otherStorage.removeItem("axiomSession");
+  storage.setItem("axiomUser", JSON.stringify(user));
+  storage.setItem("axiomSession", JSON.stringify(session));
+  scheduleSessionRefresh();
+}
+
+function clearAuthState() {
+  if (sessionRefreshTimer) {
+    window.clearTimeout(sessionRefreshTimer);
+    sessionRefreshTimer = null;
+  }
+  for (const storage of [localStorage, sessionStorage]) {
+    storage.removeItem("axiomUser");
+    storage.removeItem("axiomSession");
   }
 }
 
@@ -47,13 +80,77 @@ function getAccessToken() {
   return getStoredSession()?.access_token || null;
 }
 
-async function authFetch(url, options = {}) {
+function sessionIsRemembered() {
+  try {
+    return Boolean(localStorage.getItem("axiomSession"));
+  } catch {
+    return false;
+  }
+}
+
+async function refreshAuthSession() {
+  if (sessionRefreshPromise) return sessionRefreshPromise;
+
+  const currentSession = getStoredSession();
+  if (!currentSession?.refresh_token) return false;
+
+  sessionRefreshPromise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/session/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: currentSession.refresh_token })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.session?.access_token) {
+        clearAuthState();
+        return false;
+      }
+      storeAuthState(result.user || getStoredUser(), result.session, sessionIsRemembered());
+      return true;
+    } catch {
+      // A temporary network failure should not discard a still-valid session.
+      // The next authenticated request will attempt a refresh again.
+      return false;
+    } finally {
+      sessionRefreshPromise = null;
+    }
+  })();
+
+  return sessionRefreshPromise;
+}
+
+function scheduleSessionRefresh() {
+  if (sessionRefreshTimer) window.clearTimeout(sessionRefreshTimer);
+
+  const expiresAt = Number(getStoredSession()?.expires_at);
+  if (!Number.isFinite(expiresAt) || expiresAt <= 0) return;
+
+  // Refresh one minute before expiry. This is scheduled only while a page is
+  // open; returning to the app is also covered by authFetch's 401 retry.
+  const delay = Math.max(0, expiresAt * 1000 - Date.now() - 60_000);
+  sessionRefreshTimer = window.setTimeout(() => {
+    refreshAuthSession().then((refreshed) => {
+      if (!refreshed && getAccessToken()) scheduleSessionRefresh();
+    });
+  }, delay);
+}
+
+async function sendAuthenticatedRequest(url, options) {
   const token = getAccessToken();
   const headers = { ...(options.headers || {}) };
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
   return fetch(url, { ...options, headers });
+}
+
+async function authFetch(url, options = {}) {
+  const response = await sendAuthenticatedRequest(url, options);
+  if (response.status !== 401 || options.skipSessionRefresh) return response;
+
+  if (!await refreshAuthSession()) return response;
+  return sendAuthenticatedRequest(url, options);
 }
 
 function getUserName(user) {
@@ -340,12 +437,12 @@ function updateAccountNav() {
   }
 
   logoutButton.addEventListener("click", () => {
-    localStorage.removeItem("axiomUser");
-    localStorage.removeItem("axiomSession");
+    clearAuthState();
     window.location.href = "/";
   });
 }
 
+scheduleSessionRefresh();
 updateAccountNav();
 
 document.addEventListener("click", (event) => {
@@ -430,8 +527,12 @@ document.querySelectorAll(".auth-form").forEach((form) => {
         return;
       }
 
-      localStorage.setItem("axiomUser", JSON.stringify(result.user));
-      localStorage.setItem("axiomSession", JSON.stringify(result.session));
+      const rememberCheckbox = form.querySelector("input[name='remember']");
+      // Sign-up has no checkbox and keeps the app's prior persistent-session
+      // behavior. On the login form, the reader explicitly chooses whether
+      // the session should survive closing the browser.
+      const remember = isSignup || Boolean(rememberCheckbox?.checked);
+      storeAuthState(result.user, result.session, remember);
 
       // New accounts land on their profile page first so they can fill in
       // preferences right away; logging back in later goes straight to
