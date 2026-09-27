@@ -6,13 +6,12 @@ from pydantic import BaseModel, ConfigDict, StrictBool, StrictInt
 
 from core.auth import get_current_user
 from core.database import create_service_client
-from profiler.prompt import MEASURES, PHILOSOPHY_MEASURES, STORYTELLING_MEASURES
+from profiler.prompt import MEASURES
+from services.novel_profiling_service import generate_protagonist_preview
 
 
 PROFILES = {
     "protagonist": ("protagonist_profiles", MEASURES),
-    "philosophy": ("philosophy_profiles", PHILOSOPHY_MEASURES),
-    "storytelling": ("storytelling_style_profiles", STORYTELLING_MEASURES),
 }
 
 
@@ -112,8 +111,24 @@ def novel_profiles(novel_id: int, admin=Depends(require_special)):
     return {"novel": novel, "profiles": profiles}
 
 
+@router.post("/novels/{novel_id}/profiles/protagonist/generate")
+def generate_scores(novel_id: int, admin=Depends(require_special)):
+    result = (
+        admin[1].table("novels")
+        .select("id,title,synopsis,genres,tags,reading_links,protagonist_profiles(protagonist_name)")
+        .eq("id", novel_id).limit(1).execute()
+    )
+    if not result.data:
+        raise HTTPException(404, "Novel not found.")
+    profile = generate_protagonist_preview(result.data[0])
+    if profile.get("status") != "ready":
+        raise HTTPException(422 if profile.get("status") == "skipped" else 502,
+                            profile.get("message") or "Gemini could not generate this profile. Try again.")
+    return profile
+
+
 @router.put("/novels/{novel_id}/profiles/{kind}")
-def save_scores(novel_id: int, kind: Literal["protagonist", "philosophy", "storytelling"],
+def save_scores(novel_id: int, kind: Literal["protagonist"],
                 payload: ProfileScores, admin=Depends(require_special)):
     table, measures = PROFILES[kind]
     if set(payload.scores) != set(measures) or any(not 0 <= value <= 100 for value in payload.scores.values()):

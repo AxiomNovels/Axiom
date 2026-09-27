@@ -198,12 +198,12 @@ function renderProfiles(elements, profiling, { saved = false } = {}) {
   if (profiles.length) {
     const heading = document.createElement("h3");
     heading.className = "upload-profiles-heading";
-    heading.textContent = "Profiles";
+    heading.textContent = "Protagonist profile";
     const intro = document.createElement("p");
     intro.className = "upload-profiles-intro";
     intro.textContent = saved
       ? "Here is what was saved with the novel."
-      : "Generated automatically from the synopsis, tags, and public reader comments. These are saved with the novel when you add it.";
+      : "Generated automatically from the synopsis, tags, and public reader comments. Saved with the novel when you add it.";
     container.append(heading, intro);
     profiles.forEach((profile) => container.appendChild(createProfileCard(profile)));
   }
@@ -289,7 +289,7 @@ async function handleSearch(event, elements) {
   elements.searchButton.textContent = "Searching...";
   showMessage(
     elements.progressEl,
-    "Reading the novel page and generating its profiles. This can take up to a minute."
+    "Reading the novel page and generating its protagonist profile. This can take up to a minute."
   );
 
   try {
@@ -332,7 +332,7 @@ async function handleAdd(elements) {
 
   elements.addButton.disabled = true;
   elements.addButton.textContent = "Adding...";
-  showMessage(elements.successEl, "Saving the novel and its profiles...");
+  showMessage(elements.successEl, "Saving the novel and its protagonist profile...");
   let added = false;
 
   try {

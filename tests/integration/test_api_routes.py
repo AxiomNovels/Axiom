@@ -17,8 +17,6 @@ NOVELS = [
         "genres": ["Fantasy", "Mystery"],
         "tags": ["Time Loop", "Academy"],
         "protagonist_profiles": [{"romantic_attachment": 25}],
-        "philosophy_profiles": {"freedom": 80},
-        "storytelling_style_profiles": {"mystery": 70},
         "reviews": [{"rating": 5}, {"rating": 4}],
     },
     {
@@ -31,8 +29,6 @@ NOVELS = [
         "genres": ["Fantasy"],
         "tags": ["Villain Lead"],
         "protagonist_profiles": [{"romantic_attachment": 70}],
-        "philosophy_profiles": {"freedom": 30},
-        "storytelling_style_profiles": {"mystery": 20},
         "reviews": [{"rating": 3}],
     },
 ]
@@ -155,11 +151,11 @@ def test_search_accepts_blank_profile_thresholds_from_finder_form(monkeypatch):
     assert len(response.json()) == 2
 
 
-def test_search_filters_philosophy_and_storytelling_ranges(monkeypatch):
+def test_retired_profile_filters_do_not_affect_search(monkeypatch):
     monkeypatch.setattr(search_routes, "supabase", FakeSupabase())
     response = TestClient(app).get("/api/search", params={"freedom_min": 60, "mystery_min": 50})
     assert response.status_code == 200
-    assert [novel["id"] for novel in response.json()] == [1]
+    assert [novel["id"] for novel in response.json()] == [2, 1]
 
 
 def test_search_filters_by_average_reader_rating(monkeypatch):

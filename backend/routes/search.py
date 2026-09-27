@@ -4,13 +4,13 @@ from fastapi import APIRouter, HTTPException, Query, Request
 
 from routes.novels import NOVEL_LIST_COLUMNS
 from core.database import supabase
-from services.search_service import PHILOSOPHY_MEASURES, PROFILE_MEASURES, STORYTELLING_MEASURES, filter_novels, sort_novels
+from services.search_service import PROFILE_MEASURES, filter_novels, sort_novels
 
 
 router = APIRouter(prefix="/api/search", tags=["search"])
 
 
-SEARCH_COLUMNS = f"{NOVEL_LIST_COLUMNS}, protagonist_profiles(*), philosophy_profiles(*), storytelling_style_profiles(*), reviews(rating)"
+SEARCH_COLUMNS = f"{NOVEL_LIST_COLUMNS}, protagonist_profiles(*), reviews(rating)"
 
 
 def _split_tags(value):
@@ -106,19 +106,6 @@ def search_novels(
         for measure in PROFILE_MEASURES
         if thresholds[f"{measure}_min"] is not None or thresholds[f"{measure}_max"] is not None
     }
-    def query_ranges(measures):
-        return {
-            measure: (
-                _threshold(request.query_params.get(f"{measure}_min"), f"{measure}_min"),
-                _threshold(request.query_params.get(f"{measure}_max"), f"{measure}_max"),
-            )
-            for measure in measures
-            if request.query_params.get(f"{measure}_min", "").strip()
-            or request.query_params.get(f"{measure}_max", "").strip()
-        }
-
-    philosophy_ranges = query_ranges(PHILOSOPHY_MEASURES)
-    storytelling_ranges = query_ranges(STORYTELLING_MEASURES)
     try:
         novels = _fetch_catalogue()
     except Exception as error:
@@ -137,8 +124,6 @@ def search_novels(
         genre_mode=genre_mode,
         status=status,
         profile_ranges=ranges,
-        philosophy_ranges=philosophy_ranges,
-        storytelling_ranges=storytelling_ranges,
         min_rating=_rating_threshold(min_rating),
     )
     return sort_novels(novels, sort=sort, query=query if sort == "relevance" else "")

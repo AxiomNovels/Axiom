@@ -2,13 +2,11 @@
 import math
 
 from services.search_service import (
-    PROFILE_MEASURES, PHILOSOPHY_MEASURES, STORYTELLING_MEASURES,
+    PROFILE_MEASURES,
 )
 
 PROFILE_GROUPS = (
-    ("protagonist_profiles", PROFILE_MEASURES, 0.40),
-    ("philosophy_profiles", PHILOSOPHY_MEASURES, 0.10),
-    ("storytelling_style_profiles", STORYTELLING_MEASURES, 0.10),
+    ("protagonist_profiles", PROFILE_MEASURES, 0.50),
 )
 CARD_FIELDS = ("id", "title", "author", "cover_image_url")
 
@@ -34,7 +32,7 @@ def _scores(novel, table, keys):
 
 
 def recommend_novels(source, candidates, limit=6):
-    """Weight protagonist and tags at 40% each, and other profiles at 10% each.
+    """Weight protagonist traits and tags equally at 50% each.
 
     Missing candidate dimensions contribute zero, rather than rewarding sparse
     profiles. Source dimensions without data are omitted from the denominator.
@@ -43,7 +41,7 @@ def recommend_novels(source, candidates, limit=6):
     """
     source_tags = _tags(source)
     profiles = [(table, keys, weight, _scores(source, table, keys)) for table, keys, weight in PROFILE_GROUPS]
-    denominator = (0.40 if source_tags else 0) + sum(weight for _, _, weight, values in profiles if values)
+    denominator = (0.50 if source_tags else 0) + sum(weight for _, _, weight, values in profiles if values)
     ranked = []
     seen = {str(source["id"])}
     for novel in candidates:
@@ -53,7 +51,7 @@ def recommend_novels(source, candidates, limit=6):
         seen.add(identity)
         tags = _tags(novel)
         shared = source_tags & tags
-        score = 0.40 * len(shared) / len(source_tags | tags) if source_tags else 0
+        score = 0.50 * len(shared) / len(source_tags | tags) if source_tags else 0
         for table, keys, weight, values in profiles:
             if values:
                 other = _scores(novel, table, keys)

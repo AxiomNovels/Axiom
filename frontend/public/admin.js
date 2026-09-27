@@ -114,14 +114,10 @@ async function openEditor(id) {
   editor.replaceChildren(heading);
   const descriptions = {
     protagonist: "All six filled scores enable voting, including zeros. Saved edits become the new defaults. Use Vote distribution → Lock scores to keep all protagonist scores fixed while votes continue to be collected.",
-    philosophy: "The ideas and philosophical themes that shape the novel.",
-    storytelling: "How the story unfolds: its focus, structure, and style."
   };
-  let profileIndex = 0;
   for (const [kind, profile] of Object.entries(data.profiles)) {
     const form = element("form", undefined, "admin-profile");
     const header = element("div", undefined, "profile-heading");
-    header.append(element("span", String(++profileIndex).padStart(2, "0"), "profile-index"));
     const headingText = element("div");
     headingText.append(element("h3", `${kind[0].toUpperCase() + kind.slice(1)} profile`), element("p", descriptions[kind]));
     header.append(headingText);
@@ -135,6 +131,8 @@ async function openEditor(id) {
     feedback.setAttribute("role", "status");
     const save = element("button", "Save changes", "admin-primary");
     const reset = element("button", "Reset changes", "admin-secondary");
+    const generate = element("button", "Generate with Gemini", "admin-secondary");
+    generate.type = "button";
     reset.type = "button";
     function updateDirty() {
       const changed = Object.keys(saved).some(key => inputs[key].dataset.unset !== String(saved[key] == null) ||
@@ -195,7 +193,44 @@ async function openEditor(id) {
     });
     const footer = element("div", undefined, "profile-footer");
     const buttons = element("div", undefined, "profile-actions");
-    buttons.append(reset, save); footer.append(feedback, buttons);
+    generate.addEventListener("click", async () => {
+      if (saving) return;
+      if (form.dataset.dirty === "true" && !confirm("Replace your unsaved edits with Gemini scores?")) return;
+      saving = true;
+      generate.disabled = save.disabled = reset.disabled = true;
+      Object.values(inputs).forEach(input => { input.disabled = true; });
+      generate.textContent = "Generating…";
+      feedback.classList.remove("error");
+      feedback.textContent = "Gemini is identifying the protagonist and scoring traits. This may take a minute.";
+      form.setAttribute("aria-busy", "true");
+      try {
+        const draft = await request(`/novels/${id}/profiles/protagonist/generate`, { method: "POST" });
+        if (version !== editorVersion) return;
+        if (!draft.protagonist_name || Object.keys(saved).some(key => !Number.isInteger(draft.scores?.[key]) || draft.scores[key] < 0 || draft.scores[key] > 100)) {
+          throw new Error("Gemini returned an incomplete profile. Existing scores were kept.");
+        }
+        for (const key of Object.keys(saved)) {
+          inputs[key].value = draft.scores[key];
+          inputs[key].dataset.unset = "false";
+          renderers[key]();
+        }
+        inputs.protagonist_name.value = draft.protagonist_name;
+        updateDirty();
+        feedback.textContent = "Gemini draft ready. Review the scores, then save changes." + (draft.evidence_summary ? ` ${draft.evidence_summary}` : "");
+      } catch (error) {
+        feedback.textContent = error.message;
+        feedback.classList.add("error");
+      } finally {
+        saving = false;
+        form.removeAttribute("aria-busy");
+        generate.disabled = false;
+        generate.textContent = "Generate with Gemini";
+        Object.values(inputs).forEach(input => { input.disabled = false; });
+        save.disabled = form.dataset.dirty !== "true";
+        reset.disabled = save.disabled;
+      }
+    });
+    buttons.append(generate, reset, save); footer.append(feedback, buttons);
     form.append(fields, footer);
     form.addEventListener("submit", async event => {
       event.preventDefault();
@@ -205,7 +240,7 @@ async function openEditor(id) {
         feedback.textContent = `Set a score for ${labelFor(missing)} before saving this profile.`;
         feedback.classList.add("error"); inputs[missing].focus(); return;
       }
-      saving = true; save.disabled = true; reset.disabled = true;
+      saving = true; save.disabled = true; reset.disabled = true; generate.disabled = true;
       Object.values(inputs).forEach(input => { input.disabled = true; });
       feedback.textContent = "Saving changes...";
       const payload = { scores: Object.fromEntries(Object.keys(saved).map(key => [key, Number(inputs[key].value)])) };
@@ -219,6 +254,7 @@ async function openEditor(id) {
       } catch (error) { feedback.textContent = error.message; feedback.classList.add("error"); }
       finally {
         saving = false;
+        generate.disabled = false;
         Object.values(inputs).forEach(input => { input.disabled = false; });
         save.disabled = form.dataset.dirty !== "true"; reset.disabled = save.disabled;
       }

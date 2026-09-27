@@ -18,10 +18,7 @@ NOVEL_LIST_COLUMNS = "id, title, author, cover_image_url, synopsis, status, genr
 
 # The profile tables are embedded through their novel_id foreign keys.
 NOVEL_DETAIL_COLUMNS = (
-    "*, "
-    "protagonist_profiles(*), "
-    "philosophy_profiles(*), "
-    "storytelling_style_profiles(*)"
+    "*, protagonist_profiles(*)"
 )
 
 # Maps the exact dropdown labels the frontend sends to the scraper/transform
@@ -203,7 +200,7 @@ def get_similar_novels(novel_id: int):
         raise HTTPException(status_code=404, detail="Novel not found")
     columns = (
         "id, title, author, cover_image_url, genres, tags, "
-        "protagonist_profiles(*), philosophy_profiles(*), storytelling_style_profiles(*)"
+        "protagonist_profiles(*)"
     )
     candidates = []
     try:

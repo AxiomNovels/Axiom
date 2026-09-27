@@ -159,14 +159,6 @@ def generate_profile(prompt: str, timeout: int = 90) -> dict:
     )
 
 
-def generate_novel_profile(prompt: str, measures, timeout: int = 90) -> dict:
-    measures = tuple(measures)
-    return validate_profile(
-        request_structured(prompt, response_schema(measures), max_output_tokens=900, timeout=timeout),
-        measures,
-    )
-
-
 def identify_protagonist(prompt: str, timeout: int = 90) -> dict:
     return validate_identification(
         request_structured(

@@ -7,17 +7,7 @@ const PROFILE_MEASURES = [
   ["selflessness", "Selflessness", "Self-interested", "Self-sacrificing"]
 ];
 
-const PHILOSOPHY_MEASURES = [
-  ["freedom", "Freedom"], ["survival", "Survival"], ["existentialism", "Existentialism"],
-  ["moral_ambiguity", "Moral ambiguity"], ["self_improvement", "Self-improvement"],
-  ["determinism", "Determinism"], ["revenge", "Revenge"], ["romance", "Romance"]
-].map(([key, label]) => [key, label, "Low emphasis", "Central theme"]);
 
-const STORYTELLING_MEASURES = [
-  ["political_intrigue", "Political intrigue"], ["psychological_warfare", "Psychological warfare"],
-  ["kingdom_building", "Kingdom building"], ["action", "Action"], ["slice_of_life", "Slice of life"],
-  ["mystery", "Mystery"], ["worldbuilding", "Worldbuilding"]
-].map(([key, label]) => [key, label, "Light", "Prominent"]);
 
 const selectedTags = { include: new Set(), exclude: new Set() };
 let allTags = [];
@@ -471,7 +461,5 @@ finderForm.addEventListener("reset", () => {
 });
 
 createProfileFilters(document.querySelector('[data-profile-filters="protagonist"]'), PROFILE_MEASURES);
-createProfileFilters(document.querySelector('[data-profile-filters="philosophy"]'), PHILOSOPHY_MEASURES);
-createProfileFilters(document.querySelector('[data-profile-filters="storytelling"]'), STORYTELLING_MEASURES);
 setupRatingFilter();
 loadOptions();

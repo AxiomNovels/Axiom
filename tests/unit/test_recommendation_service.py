@@ -2,7 +2,7 @@ from services.recommendation_service import recommend_novels
 
 
 def novel(identity, tags=None, **extra):
-    return {"id": identity, "title": f"Novel {identity}", "genres": tags or [], **extra}
+    return {"id": identity, "title": f"Novel {identity}", "tags": tags or [], **extra}
 
 
 def test_tag_overlap_ranking_excludes_source_and_limits_to_six():
@@ -23,10 +23,10 @@ def test_closer_profiles_rank_higher_and_both_embed_shapes_work():
 
 
 def test_missing_values_do_not_count_as_zero_or_outscore_complete_profiles():
-    source = novel(1, philosophy_profiles={"freedom": 0, "survival": 80})
-    complete = novel(2, philosophy_profiles={"freedom": 10, "survival": 70})
-    sparse = novel(3, philosophy_profiles={"freedom": 0})
-    absent = novel(4, philosophy_profiles={"freedom": None})
+    source = novel(1, protagonist_profiles={"impulsivity": 0, "selflessness": 80})
+    complete = novel(2, protagonist_profiles={"impulsivity": 10, "selflessness": 70})
+    sparse = novel(3, protagonist_profiles={"impulsivity": 0})
+    absent = novel(4, protagonist_profiles={"impulsivity": None})
     assert [row["id"] for row in recommend_novels(source, [sparse, absent, complete])] == [2, 3, 4]
 
 
@@ -43,7 +43,7 @@ def test_shared_tags_and_minimal_payload():
     assert "synopsis" not in result[0]
 
 
-def test_protagonist_match_outweighs_other_profiles_with_equal_tags():
+def test_retired_profiles_do_not_outweigh_protagonist_match():
     source = novel(1, ["Fantasy"], protagonist_profiles={"impulsivity": 100},
                    philosophy_profiles={"freedom": 100}, storytelling_style_profiles={"action": 100})
     character_match = novel(2, ["Fantasy"], protagonist_profiles={"impulsivity": 100},

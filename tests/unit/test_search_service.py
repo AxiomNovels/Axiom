@@ -67,19 +67,6 @@ def test_tag_or_mode_matches_any_included_tag():
     assert [novel["id"] for novel in results] == [1, 2]
 
 
-def test_finder_filters_philosophy_and_storytelling_profiles():
-    novels = [
-        {"id": 1, "philosophy_profiles": {"freedom": 80}, "storytelling_style_profiles": {"mystery": 70}},
-        {"id": 2, "philosophy_profiles": {"freedom": 30}, "storytelling_style_profiles": {"mystery": 80}},
-    ]
-    results = filter_novels(
-        novels,
-        philosophy_ranges={"freedom": (60, None)},
-        storytelling_ranges={"mystery": (50, None)},
-    )
-    assert [novel["id"] for novel in results] == [1]
-
-
 def test_genres_default_to_and_with_case_and_whitespace_normalization():
     assert [n["id"] for n in filter_novels(NOVELS, include_genres=[" fantasy ", "MYSTERY"])] == [1]
     assert filter_novels(NOVELS, include_genres=["Fantasy", "Drama"]) == []

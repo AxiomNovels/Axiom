@@ -9,23 +9,7 @@ const TRAIT_LABELS = {
   romantic_attachment: "Romantic Attachment",
   sexual_desire: "Lust",
   selflessness: "Selflessness",
-  // Philosophy Profile
-  freedom: "Freedom",
-  survival: "Survival",
-  existentialism: "Existentialism",
-  moral_ambiguity: "Moral Ambiguity",
-  self_improvement: "Self-Improvement",
-  determinism: "Determinism",
-  revenge: "Revenge",
-  romance: "Romance",
-  // Storytelling Style
-  political_intrigue: "Political Intrigue",
-  psychological_warfare: "Psychological Warfare",
-  kingdom_building: "Kingdom Building",
-  action: "Action",
-  slice_of_life: "Slice of Life",
-  mystery: "Mystery",
-  worldbuilding: "Worldbuilding",
+
 };
 
 const PROTAGONIST_MEASURES = [
@@ -35,14 +19,6 @@ const PROTAGONIST_MEASURES = [
   { key: "romantic_attachment" },
   { key: "sexual_desire" },
   { key: "selflessness" },
-];
-const PHILOSOPHY_KEYS = [
-  "freedom", "survival", "existentialism", "moral_ambiguity",
-  "self_improvement", "determinism", "revenge", "romance",
-];
-const STYLE_KEYS = [
-  "political_intrigue", "psychological_warfare", "kingdom_building",
-  "action", "slice_of_life", "mystery", "worldbuilding",
 ];
 
 function getNovelIdFromUrl() {
@@ -113,22 +89,6 @@ function renderProtagonistProfile(profile) {
   });
 }
 
-function renderProfileSection(containerId, keys, profile) {
-  const container = document.getElementById(containerId);
-  if (!container) {
-    return;
-  }
-  container.innerHTML = "";
-
-  if (!profile) {
-    container.innerHTML = "<p>No profile data yet for this novel.</p>";
-    return;
-  }
-
-  keys.forEach((key) => {
-    container.appendChild(renderTraitRow(key, profile[key] ?? 0));
-  });
-}
 
 function setupSynopsis(synopsis) {
   const wrapper = document.getElementById("novel-synopsis-wrapper");
@@ -286,8 +246,6 @@ function renderNovel(novel) {
   const unwrap = (value) => (Array.isArray(value) ? value[0] : value);
 
   renderProtagonistProfile(unwrap(novel.protagonist_profiles));
-  renderProfileSection("philosophy-profile", PHILOSOPHY_KEYS, unwrap(novel.philosophy_profiles));
-  renderProfileSection("storytelling-profile", STYLE_KEYS, unwrap(novel.storytelling_style_profiles));
 }
 
 async function fetchReadingLists() {

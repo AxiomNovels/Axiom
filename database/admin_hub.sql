@@ -12,8 +12,7 @@ begin
 end $$;
 
 -- Ordinary clients must not bypass the admin API to edit catalog scores.
-revoke insert, update, delete on public.protagonist_profiles,
-  public.philosophy_profiles, public.storytelling_style_profiles from anon, authenticated;
+revoke insert, update, delete on public.protagonist_profiles from anon, authenticated;
 
 -- Read current server-owned ban state, including for previously issued JWTs.
 create or replace function public.axiom_account_allowed()

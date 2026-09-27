@@ -39,3 +39,5 @@
   .finder-rating-field { align-items: flex-start; flex-direction: column; gap: 6px; }
   .finder-star-filter { flex-wrap: wrap; }
 }
+
+.finder-page .advanced-filters > .profile-filter-grid { margin-left: 0; }

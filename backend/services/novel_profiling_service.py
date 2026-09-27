@@ -1,7 +1,7 @@
 """Generate, preview and store AI profiles for user-uploaded novels.
 
 Uploading a novel used to be scrape-only. This module adds the profiler step so
-a new novel is saved with its protagonist, philosophy and storytelling
+a new novel is saved with its protagonist
 profiles, and so the uploader can review those profiles before confirming.
 
 Design rules
@@ -36,7 +36,7 @@ All three return the same shape:
     {
       "profiles": [
         {
-          "kind": "philosophy", "title": "...", "description": "...",
+          "kind": "protagonist", "title": "...", "description": "...",
           "status": "ready" | "saved" | "skipped" | "failed",
           "message": str | None,              # why skipped / failed
           "protagonist_name": str | None,     # protagonist profile only
@@ -213,21 +213,6 @@ def _generate_protagonist(novel: dict, raw_comments: list[str], measures: tuple[
     return result
 
 
-def _story_generator(profile_type: str) -> Callable[[dict, list[str], tuple[str, ...]], dict]:
-    """Generator for the whole-novel profiles ("philosophy", "storytelling")."""
-
-    def generate(novel: dict, raw_comments: list[str], measures: tuple[str, ...]) -> dict:
-        from profiler.comments import select_story_comments
-        from profiler.gemini import generate_novel_profile
-        from profiler.prompt import build_novel_profile_prompt
-
-        comments = select_story_comments(raw_comments)
-        prompt = build_novel_profile_prompt(novel, comments, profile_type)
-        return generate_novel_profile(prompt, measures)
-
-    return generate
-
-
 # ---------------------------------------------------------------------------
 # Savers
 # ---------------------------------------------------------------------------
@@ -243,15 +228,6 @@ def _save_protagonist(client, novel_id: int, result: ProfileResult) -> None:
     ).execute()
 
 
-def _table_saver(table: str) -> Callable[[Any, int, ProfileResult], None]:
-    def save(client, novel_id: int, result: ProfileResult) -> None:
-        client.table(table).upsert(
-            {"novel_id": novel_id, **(result.scores or {})}, on_conflict="novel_id"
-        ).execute()
-
-    return save
-
-
 # ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
@@ -265,7 +241,7 @@ def _load_specs() -> tuple[ProfileSpec, ...]:
 
     Mirrors routes/admin.py's PROFILES table, which maps kinds to tables.
     """
-    from profiler.prompt import MEASURES, PHILOSOPHY_MEASURES, STORYTELLING_MEASURES
+    from profiler.prompt import MEASURES
 
     return (
         ProfileSpec(
@@ -275,22 +251,6 @@ def _load_specs() -> tuple[ProfileSpec, ...]:
             measures=tuple(MEASURES),
             generate=_generate_protagonist,
             save=_save_protagonist,
-        ),
-        ProfileSpec(
-            kind="philosophy",
-            title="Philosophy profile",
-            description="The major ideas and themes, scored 0-100.",
-            measures=tuple(PHILOSOPHY_MEASURES),
-            generate=_story_generator("philosophy"),
-            save=_table_saver("philosophy_profiles"),
-        ),
-        ProfileSpec(
-            kind="storytelling",
-            title="Storytelling style",
-            description="How this story feels to read.",
-            measures=tuple(STORYTELLING_MEASURES),
-            generate=_story_generator("storytelling"),
-            save=_table_saver("storytelling_style_profiles"),
         ),
     )
 
@@ -494,6 +454,13 @@ def empty_payload(notice: str | None = None) -> dict[str, Any]:
     return _payload([], notice=notice)
 
 
+def generate_protagonist_preview(novel: dict) -> dict[str, Any]:
+    """Generate an admin draft without changing saved scores or reader votes."""
+    spec = _load_specs()[0]
+    result = _run_spec(spec, novel, _collect_comments(novel))
+    return {**result.to_public(), "scores": result.scores}
+
+
 def build_preview(user_id: str, source: str, url: str, novel: dict) -> dict[str, Any]:
     """Generate profiles for the preview step. Never raises."""
     try:
@@ -502,7 +469,7 @@ def build_preview(user_id: str, source: str, url: str, novel: dict) -> dict[str,
         token = _issue_token(user_id, source, url, novel, results)
         notice = None
         if not any(result.status == STATUS_READY for result in results):
-            notice = "No profiles could be generated right now. You can still add the novel without them, or search again to retry."
+            notice = "The protagonist profile could not be generated. You can still add the novel, or search again to retry."
         return _payload(results, token=token, notice=notice)
     except Exception:
         logger.exception("Profile preview failed for %s", url)
@@ -525,8 +492,8 @@ def finalize(
         results = _save_results(specs, novel_id, results)
         notice = None
         if not any(result.status == STATUS_SAVED for result in results):
-            notice = "The novel was added without profiles."
+            notice = "The novel was added without a protagonist profile."
         return _payload(results, notice=notice)
     except Exception:
         logger.exception("Profile finalisation failed for novel %s", novel_id)
-        return empty_payload("The novel was added, but its profiles couldn't be generated or saved.")
+        return empty_payload("The novel was added, but its protagonist profile couldn't be generated or saved.")

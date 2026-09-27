@@ -1,4 +1,4 @@
-"""Generate protagonist, philosophy, and storytelling profiles for one novel."""
+"""Generate a protagonist profile for one novel."""
 
 import argparse
 import subprocess
@@ -6,7 +6,7 @@ import sys
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate all three AI profiles for one novel")
+    parser = argparse.ArgumentParser(description="Generate a protagonist profile for one novel")
     parser.add_argument("novel_id", type=int)
     parser.add_argument("--protagonist", help="Override automatic protagonist detection")
     parser.add_argument("--comments", help="Use a UTF-8 comment file instead of reading links")
@@ -39,8 +39,6 @@ def main() -> None:
 
     try:
         subprocess.run(protagonist_command, check=True)
-        subprocess.run(module_command("profiler.profile_philosophy", args), check=True)
-        subprocess.run(module_command("profiler.profile_storytelling", args), check=True)
     except subprocess.CalledProcessError:
         raise SystemExit("Profile generation stopped because one profiler failed.") from None
 

@@ -52,7 +52,7 @@
 .admin-page .is-unscored input[type="range"] { background: #35263f; }
 .profile-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); }
 .profile-footer p { font-size: 12px; color: var(--muted); margin: 0; }
-.profile-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.profile-actions { display: flex; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
 .admin-page .admin-primary { background: #8744b0; border-color: #ae70d0; color: white; }
 .admin-page .admin-secondary { background: transparent; }
 .admin-page .error { color: #f0a1ad; }
