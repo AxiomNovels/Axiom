@@ -2948,6 +2948,11 @@ button {
   padding: 0 8px;
 }
 
+/* Keep role badges out of the layout unless the API explicitly enables them. */
+.account-special-badge[hidden] {
+  display: none;
+}
+
 .home-header .reader-nav a:hover,
 .home-header .reader-nav a[aria-current="page"] {
   background: linear-gradient(135deg, rgba(155, 77, 204, 0.25), rgba(110, 146, 196, 0.13));
