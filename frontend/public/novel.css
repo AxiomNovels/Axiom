@@ -331,23 +331,12 @@
 }
 
 /*
- * Fade over the final 2 lines of the 10-line synopsis.
- * Since the synopsis is exactly 16em tall when collapsed,
- * the fade begins at 12.8em.
+ * The novel detail page has a transparent, multi-colour background, so an
+ * opaque fade cannot blend into it reliably. Keep the collapsed copy clean
+ * and let the Read More control communicate that more text is available.
  */
 .novel-synopsis-fade {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 3.2em; /* 2 × 1.6em */
-  pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    var(--background, #fff) 100%
-  );
-  transition: opacity 180ms ease;
+  display: none;
 }
 
 .novel-synopsis-wrapper.is-expanded .novel-synopsis-fade {
