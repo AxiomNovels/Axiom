@@ -444,11 +444,9 @@ function createThumbsUpIcon() {
   return svg;
 }
 
-// Toggleable like button shown on every review comment. The comment's
-// own author sees a disabled version of the same button (you can never
-// like your own review); everyone else can toggle their like on and off,
-// mirroring the filled/hollow thumbs-up pattern YouTube uses.
-function createLikeControl(review) {
+// Toggleable likes are shared by top-level reviews and replies. Authors see
+// the current count but cannot like their own contribution.
+function createLikeControl(item, kind = "review", reviewId = item.id) {
   const wrapper = document.createElement("div");
   wrapper.className = "review-like";
 
@@ -459,19 +457,20 @@ function createLikeControl(review) {
 
   const count = document.createElement("span");
   count.className = "review-like-count";
-  count.textContent = String(review.like_count || 0);
+  count.textContent = String(item.like_count || 0);
 
-  const isOwnReview = review.user_id === currentUserId();
+  const isOwnContribution = item.user_id === currentUserId();
+  const contributionName = kind === "reply" ? "reply" : "review";
 
-  if (isOwnReview) {
+  if (isOwnContribution) {
     button.disabled = true;
     button.classList.add("is-own");
-    button.title = "You can't like your own review";
-    button.setAttribute("aria-label", "You can't like your own review");
+    button.title = `You can't like your own ${contributionName}`;
+    button.setAttribute("aria-label", `You can't like your own ${contributionName}`);
   } else {
-    button.classList.toggle("is-liked", Boolean(review.viewer_has_liked));
-    button.setAttribute("aria-pressed", String(Boolean(review.viewer_has_liked)));
-    button.setAttribute("aria-label", review.viewer_has_liked ? "Unlike this review" : "Like this review");
+    button.classList.toggle("is-liked", Boolean(item.viewer_has_liked));
+    button.setAttribute("aria-pressed", String(Boolean(item.viewer_has_liked)));
+    button.setAttribute("aria-label", item.viewer_has_liked ? `Unlike this ${contributionName}` : `Like this ${contributionName}`);
 
     button.addEventListener("click", async () => {
       if (!getAccessToken()) {
@@ -479,9 +478,12 @@ function createLikeControl(review) {
         return;
       }
       const currentlyLiked = button.classList.contains("is-liked");
+      const likeUrl = kind === "reply"
+        ? `${API_BASE}/api/reviews/${reviewId}/replies/${item.id}/like`
+        : `${API_BASE}/api/reviews/${item.id}/like`;
       button.disabled = true;
       try {
-        const response = await authFetch(`${API_BASE}/api/reviews/${review.id}/like`, {
+        const response = await authFetch(likeUrl, {
           method: currentlyLiked ? "DELETE" : "POST",
         });
         if (response.status === 401) {
@@ -492,11 +494,11 @@ function createLikeControl(review) {
         if (!response.ok) {
           throw new Error(typeof result.detail === "string" ? result.detail : "Couldn't update your like.");
         }
-        review.like_count = result.like_count;
-        review.viewer_has_liked = result.liked;
+        item.like_count = result.like_count;
+        item.viewer_has_liked = result.liked;
         button.classList.toggle("is-liked", result.liked);
         button.setAttribute("aria-pressed", String(result.liked));
-        button.setAttribute("aria-label", result.liked ? "Unlike this review" : "Like this review");
+        button.setAttribute("aria-label", result.liked ? `Unlike this ${contributionName}` : `Like this ${contributionName}`);
         count.textContent = String(result.like_count ?? 0);
       } catch (error) {
         alert(error.message || "Couldn't update your like. Please try again.");
@@ -724,6 +726,131 @@ function createReplyAction(novelId, reviewId, parentReplyId, targetName) {
   return wrapper;
 }
 
+function createPlaceholderAction(label) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "review-thread-placeholder";
+  button.textContent = label;
+  button.disabled = true;
+  button.title = "Coming soon";
+  return button;
+}
+
+function createMoreActions({ isOwner, onEdit, onDelete }) {
+  const menu = document.createElement("details");
+  menu.className = "review-more-actions";
+  const trigger = document.createElement("summary");
+  trigger.setAttribute("aria-label", "More comment actions");
+  trigger.textContent = "•••";
+  const panel = document.createElement("div");
+  panel.className = "review-more-menu";
+
+  if (isOwner) {
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.textContent = "Edit";
+    edit.addEventListener("click", () => { menu.open = false; onEdit?.(); });
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "is-danger";
+    remove.textContent = "Delete";
+    remove.addEventListener("click", () => { menu.open = false; onDelete?.(); });
+    panel.append(edit, remove);
+    panel.appendChild(document.createElement("hr"));
+  }
+
+  panel.append(
+    createPlaceholderAction("Follow comment"),
+    createPlaceholderAction("Report")
+  );
+  menu.append(trigger, panel);
+  return menu;
+}
+
+function createThreadActionRow({ item, kind, novelId, reviewId, parentReplyId, targetName, onEdit, onDelete }) {
+  const row = document.createElement("div");
+  row.className = "review-thread-actions";
+  row.appendChild(createLikeControl(item, kind, reviewId));
+  row.appendChild(createPlaceholderAction("↓"));
+  row.appendChild(createReplyAction(novelId, reviewId, parentReplyId, targetName));
+  row.appendChild(createMoreActions({
+    isOwner: item.user_id === currentUserId(),
+    onEdit,
+    onDelete,
+  }));
+  return row;
+}
+
+function openReplyEditor(novelId, reviewId, reply, article) {
+  if (article.querySelector(".review-reply-edit-form")) return;
+  const currentComment = article.querySelector(".review-reply-comment");
+  if (!currentComment) return;
+
+  const form = document.createElement("form");
+  form.className = "review-reply-form review-reply-edit-form";
+  const label = document.createElement("label");
+  label.textContent = "Edit your reply";
+  const textarea = document.createElement("textarea");
+  textarea.maxLength = 2000;
+  textarea.rows = 3;
+  textarea.required = true;
+  textarea.value = reply.comment;
+  const footer = document.createElement("div");
+  footer.className = "review-reply-form-footer";
+  const message = document.createElement("span");
+  message.setAttribute("role", "status");
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.className = "ghost-link";
+  cancel.textContent = "Cancel";
+  cancel.addEventListener("click", () => form.remove());
+  const submit = document.createElement("button");
+  submit.type = "submit";
+  submit.textContent = "Save changes";
+  footer.append(message, cancel, submit);
+  label.appendChild(textarea);
+  form.append(label, footer);
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    submit.disabled = true;
+    submit.textContent = "Saving…";
+    message.textContent = "";
+    try {
+      const response = await authFetch(`${API_BASE}/api/novels/${novelId}/reviews/${reviewId}/replies/${reply.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment: textarea.value }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (response.status === 401) { window.location.href = "/login.html"; return; }
+      if (!response.ok) throw new Error(typeof result.detail === "string" ? result.detail : "Couldn't update your reply.");
+      await loadReviews(novelId);
+    } catch (error) {
+      message.textContent = error.message || "Couldn't update your reply.";
+      submit.disabled = false;
+      submit.textContent = "Save changes";
+    }
+  });
+  currentComment.after(form);
+  textarea.focus();
+}
+
+async function deleteReply(novelId, reviewId, reply) {
+  const hasChildren = (reply.replies || []).length > 0;
+  const prompt = hasChildren
+    ? "Delete this reply and its nested replies? This can't be undone."
+    : "Delete your reply? This can't be undone.";
+  if (!window.confirm(prompt)) return;
+  try {
+    const response = await authFetch(`${API_BASE}/api/novels/${novelId}/reviews/${reviewId}/replies/${reply.id}`, { method: "DELETE" });
+    if (response.status === 401) { window.location.href = "/login.html"; return; }
+    if (!response.ok) throw new Error("Delete failed");
+    await loadReviews(novelId);
+  } catch {
+    window.alert("Couldn't delete your reply. Please try again.");
+  }
+}
+
 function createReviewReply(novelId, reviewId, reply) {
   const profileValue = reply.profiles || {};
   const profile = Array.isArray(profileValue) ? (profileValue[0] || {}) : profileValue;
@@ -753,12 +880,22 @@ function createReviewReply(novelId, reviewId, reply) {
   identity.append(name, date);
   header.append(avatar, identity);
   const comment = document.createElement("p");
+  comment.className = "review-reply-comment";
   comment.textContent = reply.comment;
   const children = document.createElement("div");
   children.className = "review-replies";
-  children.appendChild(createReplyAction(novelId, reviewId, reply.id, profile.username));
   (reply.replies || []).forEach((child) => children.appendChild(createReviewReply(novelId, reviewId, child)));
-  article.append(header, comment, children);
+  const actions = createThreadActionRow({
+    item: reply,
+    kind: "reply",
+    novelId,
+    reviewId,
+    parentReplyId: reply.id,
+    targetName: profile.username,
+    onEdit: () => openReplyEditor(novelId, reviewId, reply, article),
+    onDelete: () => deleteReply(novelId, reviewId, reply),
+  });
+  article.append(header, comment, actions, children);
   return article;
 }
 
@@ -793,40 +930,44 @@ function renderReviews(novelId, payload) {
     const stars = document.createElement("span"); stars.className = "review-card-stars"; renderStaticStars(stars, review.rating); stars.setAttribute("aria-label", `${review.rating} out of 5 stars`);
     const topRow = document.createElement("div");
     topRow.className = "review-card-meta-top";
-    topRow.append(stars, createLikeControl(review));
+    topRow.append(stars);
     reviewMeta.appendChild(topRow);
+    let editReview = null;
+    let deleteReview = null;
     if (review.user_id === currentUserId()) {
-      article.classList.add("is-own-review");
-      const actions = document.createElement("div"); actions.className = "review-card-actions";
-      const editButton = document.createElement("button"); editButton.type = "button"; editButton.textContent = "Edit";
-      editButton.addEventListener("click", () => {
+      editReview = () => {
         const composer = document.querySelector("[data-review-composer]");
         composer?.scrollIntoView({ behavior: "smooth", block: "center" });
         setTimeout(() => composer?.querySelector("[data-review-comment]")?.focus(), 350);
-      });
-      const deleteButton = document.createElement("button"); deleteButton.type = "button"; deleteButton.className = "is-delete"; deleteButton.textContent = "Delete";
-      deleteButton.addEventListener("click", async () => {
+      };
+      deleteReview = async () => {
         if (!window.confirm("Delete your review? This can't be undone.")) return;
-        deleteButton.disabled = true; deleteButton.textContent = "Deleting…";
         try {
           const response = await authFetch(`${API_BASE}/api/novels/${novelId}/reviews`, { method: "DELETE" });
           if (response.status === 401) { window.location.href = "/login.html"; return; }
           if (!response.ok) throw new Error("Delete failed");
           await loadReviews(novelId);
         } catch {
-          deleteButton.disabled = false; deleteButton.textContent = "Delete";
           window.alert("Couldn't delete your review. Please try again.");
         }
-      });
-      actions.append(editButton, deleteButton); reviewMeta.appendChild(actions);
+      };
     }
     header.append(profileLink, identity, reviewMeta);
     const comment = document.createElement("p"); comment.textContent = review.comment;
     const replies = document.createElement("div");
     replies.className = "review-replies";
-    replies.appendChild(createReplyAction(novelId, review.id, null, profile.username));
     (review.replies || []).forEach((reply) => replies.appendChild(createReviewReply(novelId, review.id, reply)));
-    article.append(header, comment, replies); list.appendChild(article);
+    const actions = createThreadActionRow({
+      item: review,
+      kind: "review",
+      novelId,
+      reviewId: review.id,
+      parentReplyId: null,
+      targetName: profile.username,
+      onEdit: editReview,
+      onDelete: deleteReview,
+    });
+    article.append(header, comment, actions, replies); list.appendChild(article);
   });
   focusReviewDiscussionTarget();
 }

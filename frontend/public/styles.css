@@ -97,11 +97,16 @@ body {
       rgba(190, 62, 84, 0.16),
       transparent 36%
     ),
+    radial-gradient(
+      ellipse at 52% 43%,
+      rgba(102, 58, 142, 0.24),
+      transparent 47%
+    ),
     linear-gradient(
       140deg,
-      #030108 0%,
-      #0b0511 42%,
-      #1b0a25 72%,
+      #08030e 0%,
+      #160a20 42%,
+      #251033 72%,
       #301333 100%
     );
 

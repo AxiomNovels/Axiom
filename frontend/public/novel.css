@@ -1819,7 +1819,6 @@ body.modal-open { overflow:hidden; }
 .reviews-list { display: grid; gap: 14px; min-width: 0; }
 .review-card { position: relative; overflow: hidden; border: 1px solid rgba(173, 121, 211, .22); border-radius: 12px; background: linear-gradient(145deg, rgba(29, 15, 40, .68), rgba(12, 7, 19, .78)); padding: 22px 24px; box-shadow: 0 16px 38px rgba(0, 0, 0, .14); transition: border-color .18s ease, transform .18s ease; }
 .review-card:hover { border-color: rgba(190, 132, 231, .36); }
-.review-card.is-own-review { padding-bottom: 66px; }
 .review-card-header { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; }
 .review-avatar { width: 46px; height: 46px; overflow: hidden; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.16); border-radius: 50%; background: linear-gradient(145deg, #241031, #5c2782); color: #fff; font-weight: 800; box-shadow: 0 5px 16px rgba(0,0,0,.2); }
 .review-avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -1836,13 +1835,6 @@ body.modal-open { overflow:hidden; }
 .review-card-stars > span[data-fill="full"] { color: #f2b84b; }
 .review-card-stars > span[data-fill="half"] { color: transparent; background: linear-gradient(90deg, #f2b84b 50%, #665f52 50%); background-clip: text; -webkit-background-clip: text; }
 .review-card-meta { display: grid; justify-items: end; gap: 7px; }
-.review-card-actions { position: absolute; right: 24px; bottom: 18px; display: flex; align-items: center; gap: 8px; }
-.review-card-actions button { min-height: auto; border: 1px solid rgba(173,121,211,.24); border-radius: 6px; background: rgba(155,77,204,.08); color: var(--accent); padding: 5px 10px; font-size: .73rem; font-weight: 800; cursor: pointer; }
-.review-card-actions button:hover,
-.review-card-actions button:focus-visible { border-color: var(--accent); color: var(--ink); text-decoration: none; }
-.review-card-actions button.is-delete { border-color: rgba(255,93,98,.3); background: rgba(255,93,98,.08); color: #ff666b; }
-.review-card-actions button.is-delete:hover,
-.review-card-actions button.is-delete:focus-visible { border-color: #ff666b; background: rgba(255,93,98,.15); color: #ff8b8f; }
 .review-card > p { margin: 18px 0 0; border-top: 1px solid rgba(255,255,255,.07); padding-top: 17px; color: var(--muted); font-size: .98rem; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
 .reviews-empty { margin: 0; color: var(--muted); }
 
@@ -3589,20 +3581,39 @@ body.modal-open { overflow:hidden; }
   }
 }
 
-/* Threaded replies on novel reviews. Kept quieter than the review card so
-   the original review remains the visual anchor at every nesting level. */
-.review-replies { display: grid; gap: 12px; margin-top: 16px; }
-.review-reply-action-row { display: flex; align-items: center; }
-.review-reply-button { min-height: auto; border: 0; border-radius: 5px; background: transparent; box-shadow: none; color: var(--dusk); padding: 4px 7px; font-size: .76rem; font-weight: 800; }
+/* Threaded replies stay quieter than the original review, but every entry
+   gets the same compact discussion controls. */
+.review-replies { display: grid; gap: 14px; margin-top: 16px; }
+.review-thread-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; min-height: 32px; margin-top: 11px; color: var(--dim); }
+.review-thread-actions .review-like { gap: 4px; margin-right: 3px; }
+.review-thread-actions .review-like-button { width: 28px; min-height: 28px; border: 0; border-radius: 6px; background: transparent; }
+.review-thread-actions .review-like-button:hover:not(:disabled) { background: var(--dusk-soft); }
+.review-thread-actions .review-like-count { min-width: 8px; font-size: .76rem; }
+.review-thread-placeholder,
+.review-reply-button { width: auto; min-height: 28px; flex: 0 0 auto; border: 0; border-radius: 6px; background: transparent; box-shadow: none; color: var(--dusk); padding: 4px 7px; font-size: .76rem; font-weight: 800; }
+.review-thread-placeholder { color: var(--dim); cursor: not-allowed; opacity: .58; }
 .review-reply-button:hover, .review-reply-button:focus-visible { background: var(--dusk-soft); color: var(--ink); transform: none; box-shadow: none; }
+.review-reply-action-row { display: contents; }
+.review-reply-form { flex: 0 0 100%; }
+.review-more-actions { position: relative; width: auto; flex: 0 0 auto; margin-left: 1px; }
+.review-more-actions > summary { width: 28px; min-height: 28px; display: grid; place-items: center; border: 0; border-radius: 6px; background: transparent; color: var(--dim); cursor: pointer; font-size: .9rem; font-weight: 800; letter-spacing: 1px; list-style: none; }
+.review-more-actions > summary::-webkit-details-marker { display: none; }
+.review-more-actions > summary:hover, .review-more-actions[open] > summary { background: rgba(255,255,255,.07); color: var(--ink); }
+.review-more-menu { position: absolute; z-index: 8; top: calc(100% + 6px); right: 0; width: 168px; display: grid; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 9px; background: linear-gradient(145deg, #261432, #100819); box-shadow: 0 16px 36px rgba(0,0,0,.36); padding: 5px; }
+.review-more-menu button { width: 100%; min-height: 32px; border: 0; border-radius: 5px; background: transparent; color: var(--ink); padding: 0 9px; text-align: left; font: inherit; font-size: .78rem; cursor: pointer; }
+.review-more-menu button:hover, .review-more-menu button:focus-visible { background: var(--dusk-soft); }
+.review-more-menu button.is-danger { color: #ff8388; }
+.review-more-menu button.is-danger:hover, .review-more-menu button.is-danger:focus-visible { background: rgba(209,74,85,.14); }
+.review-more-menu .review-thread-placeholder { color: var(--dim); opacity: .64; }
+.review-more-menu hr { width: 100%; height: 1px; border: 0; background: var(--line); margin: 4px 0; }
 .review-reply-form { display: grid; gap: 9px; border: 1px solid var(--line); border-radius: 10px; background: rgba(110, 146, 196, .055); padding: 12px; }
 .review-reply-form label { display: grid; gap: 7px; color: var(--muted); font-size: .78rem; font-weight: 700; }
 .review-reply-form textarea { width: 100%; min-height: 76px; resize: vertical; border: 1px solid var(--line); border-radius: 7px; background: rgba(3, 1, 8, .5); color: var(--ink); font: inherit; line-height: 1.5; padding: 9px 10px; }
 .review-reply-form textarea:focus { border-color: var(--focus); outline: 2px solid color-mix(in srgb, var(--focus) 22%, transparent); }
 .review-reply-form-footer { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .review-reply-form-footer [role="status"] { margin-right: auto; color: #ef9d9d; font-size: .78rem; }
-.review-reply-form-footer button { min-height: 34px; padding: 0 11px; font-size: .76rem; }
-.review-reply { display: grid; gap: 10px; margin-left: 16px; border-left: 2px solid rgba(110, 146, 196, .30); padding: 2px 0 0 15px; }
+.review-reply-form-footer button { width: auto; min-height: 34px; padding: 0 11px; font-size: .76rem; }
+.review-reply { display: grid; gap: 6px; margin-left: 16px; border-left: 2px solid rgba(110, 146, 196, .30); padding: 2px 0 0 15px; }
 .review-reply-header { display: flex; align-items: center; gap: 9px; }
 .review-reply-avatar { width: 30px; height: 30px; flex: 0 0 30px; overflow: hidden; display: grid; place-items: center; border: 1px solid rgba(110, 146, 196, .35); border-radius: 50%; background: linear-gradient(145deg, #26304c, #3d2e50); color: var(--ink); font-size: .72rem; font-weight: 800; }
 .review-reply-avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -3610,7 +3621,7 @@ body.modal-open { overflow:hidden; }
 .review-reply-header a:hover, .review-reply-header a:focus-visible { color: var(--dusk); text-decoration: underline; text-underline-offset: 3px; }
 .review-reply-header time { display: block; margin-top: 2px; color: var(--dim); font-size: .72rem; }
 .review-reply > p { margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
-.review-reply .review-replies { margin-top: 0; }
+.review-reply .review-replies { margin-top: 4px; }
 .review-card.is-activity-target, .review-reply.is-activity-target { border-color: var(--dusk); background-color: rgba(110, 146, 196, .11); box-shadow: 0 0 0 4px rgba(110, 146, 196, .16), 0 20px 48px rgba(0, 0, 0, .30); }
 .review-reply.is-activity-target { border-left-color: var(--dusk); }
 @media (max-width: 620px) { .review-reply { margin-left: 8px; padding-left: 11px; } }

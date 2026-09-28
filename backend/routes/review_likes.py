@@ -34,6 +34,34 @@ def _count_likes(client, review_id: int) -> int:
     return len(response.data or [])
 
 
+def _get_reply(client, review_id: int, reply_id: int) -> dict | None:
+    try:
+        response = (
+            client.table("review_replies")
+            .select("id, user_id")
+            .eq("id", reply_id)
+            .eq("review_id", review_id)
+            .single()
+            .execute()
+        )
+    except Exception:
+        return None
+    return response.data
+
+
+def _count_reply_likes(client, reply_id: int) -> int:
+    try:
+        response = (
+            client.table("review_reply_likes")
+            .select("id")
+            .eq("reply_id", reply_id)
+            .execute()
+        )
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+    return len(response.data or [])
+
+
 @router.post("/{review_id}/like", status_code=201)
 def like_review(review_id: int, auth=Depends(get_current_user)):
     """Like a review. Liking your own review is rejected; liking a review
@@ -82,3 +110,44 @@ def unlike_review(review_id: int, auth=Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=str(error))
 
     return {"liked": False, "like_count": _count_likes(service_client, review_id)}
+
+
+@router.post("/{review_id}/replies/{reply_id}/like", status_code=201)
+def like_reply(review_id: int, reply_id: int, auth=Depends(get_current_user)):
+    user_id, _client = auth
+    service_client = create_service_client()
+    reply = _get_reply(service_client, review_id, reply_id)
+    if not reply:
+        raise HTTPException(status_code=404, detail="Reply not found.")
+    if reply["user_id"] == user_id:
+        raise HTTPException(status_code=403, detail="You can't like your own reply.")
+
+    try:
+        service_client.table("review_reply_likes").insert(
+            {"reply_id": reply_id, "user_id": user_id}
+        ).execute()
+    except Exception as error:
+        if not _is_unique_violation(error):
+            raise HTTPException(status_code=500, detail=str(error))
+
+    return {"liked": True, "like_count": _count_reply_likes(service_client, reply_id)}
+
+
+@router.delete("/{review_id}/replies/{reply_id}/like")
+def unlike_reply(review_id: int, reply_id: int, auth=Depends(get_current_user)):
+    user_id, _client = auth
+    service_client = create_service_client()
+    reply = _get_reply(service_client, review_id, reply_id)
+    if not reply:
+        raise HTTPException(status_code=404, detail="Reply not found.")
+    try:
+        (
+            service_client.table("review_reply_likes")
+            .delete()
+            .eq("reply_id", reply_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+    return {"liked": False, "like_count": _count_reply_likes(service_client, reply_id)}

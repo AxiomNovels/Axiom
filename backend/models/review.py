@@ -32,3 +32,15 @@ class ReviewReplyCreate(BaseModel):
         if not cleaned:
             raise ValueError("Reply cannot be empty.")
         return cleaned
+
+
+class ReviewReplyUpdate(BaseModel):
+    comment: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("comment")
+    @classmethod
+    def clean_comment(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Reply cannot be empty.")
+        return cleaned
