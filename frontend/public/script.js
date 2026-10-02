@@ -7,6 +7,56 @@ let sessionRefreshPromise = null;
 let sessionRefreshTimer = null;
 const AUTH_MODE_KEY = "axiomAuthMode";
 const NORMAL_SESSION_COOKIE = "axiomNormalSession";
+const BACKEND_WAKE_DELAY_MS = 1_200;
+
+function renderBackendWakeOverlay() {
+  if (document.querySelector("[data-backend-wake-overlay]")) return;
+
+  document.body.insertAdjacentHTML("beforeend", `
+    <section class="backend-wake-overlay" data-backend-wake-overlay role="status" aria-live="polite" aria-label="Starting Axiom's server">
+      <div class="backend-wake-dialog">
+        <span class="backend-wake-mark" aria-hidden="true">A</span>
+        <h1>Waking up Axiom</h1>
+        <p>Our server is starting up. This usually takes a moment.</p>
+        <div class="backend-wake-progress" aria-hidden="true"><span></span></div>
+      </div>
+    </section>
+  `);
+}
+
+function removeBackendWakeOverlay() {
+  const overlay = document.querySelector("[data-backend-wake-overlay]");
+  if (!overlay) return;
+
+  overlay.classList.add("is-leaving");
+  window.setTimeout(() => overlay.remove(), 180);
+}
+
+async function monitorBackendWake() {
+  // The local backend starts alongside the local frontend, so this UI is only
+  // useful for a deployed API that can sleep between visits (such as Render).
+  if (API_BASE === LOCAL_API_BASE) return;
+
+  let overlayTimer = window.setTimeout(renderBackendWakeOverlay, BACKEND_WAKE_DELAY_MS);
+
+  while (true) {
+    try {
+      const response = await fetch(`${API_BASE}/api/health`, { cache: "no-store" });
+      if (response.ok) {
+        window.clearTimeout(overlayTimer);
+        removeBackendWakeOverlay();
+        return;
+      }
+    } catch {
+      // Render can temporarily reject requests while restoring a sleeping
+      // instance. Keep the loading screen visible and try again shortly.
+    }
+
+    await new Promise((resolve) => window.setTimeout(resolve, 2_000));
+  }
+}
+
+monitorBackendWake();
 
 // Shared by the novel page, upload preview, and search results to show
 // chapter counts compactly (e.g. 123456 -> "123.4K").
