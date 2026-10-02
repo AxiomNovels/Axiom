@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 
 from core.auth import get_current_user, get_optional_current_user
 from core.database import create_service_client
-from models.review import ReviewUpsert
-from routes.reviews import _attach_public_profiles, _review_payload
+from models.review import ReviewReplyCreate, ReviewReplyUpdate, ReviewUpsert
+from routes.reviews import _attach_public_profiles, _attach_replies, _review_payload
 from routes.users import _visible_list_levels
 
 
@@ -13,6 +13,8 @@ router = APIRouter(prefix="/api/reading-lists", tags=["reading-list-reviews"])
 
 REVIEW_COLUMNS = "id, reading_list_id, user_id, rating, comment, created_at, updated_at"
 LIKES_TABLE = "reading_list_review_likes"
+REPLIES_TABLE = "reading_list_review_replies"
+REPLY_LIKES_TABLE = "reading_list_review_reply_likes"
 
 
 def _is_unique_violation(error: Exception) -> bool:
@@ -88,6 +90,34 @@ def _count_likes(client, review_id: int) -> int:
     return len(response.data or [])
 
 
+def _get_reply_on_review(client, review_id: int, reply_id: int, detail: str = "Reply not found.") -> dict:
+    """Fetch a reply only if it belongs to this review, else 404."""
+    try:
+        rows = (
+            client.table(REPLIES_TABLE)
+            .select("id, user_id, parent_reply_id")
+            .eq("id", reply_id)
+            .eq("review_id", review_id)
+            .limit(1)
+            .execute()
+            .data
+            or []
+        )
+    except Exception:
+        rows = []
+    if not rows:
+        raise HTTPException(status_code=404, detail=detail)
+    return rows[0]
+
+
+def _count_reply_likes(client, reply_id: int) -> int:
+    try:
+        response = client.table(REPLY_LIKES_TABLE).select("id").eq("reply_id", reply_id).execute()
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+    return len(response.data or [])
+
+
 def _load_viewable_list(client, list_id: str, viewer_id: str | None) -> tuple[dict, bool]:
     """Return (list row, viewer_is_owner), or raise 404.
 
@@ -140,6 +170,8 @@ def list_reading_list_reviews(list_id: str, auth=Depends(get_optional_current_us
 
     rows = _attach_public_profiles(response.data or [], client)
     rows = _attach_like_data(rows, client, viewer_id)
+    # Same nested reply tree the novel pages use, backed by the list tables.
+    rows = _attach_replies(rows, client, viewer_id, REPLIES_TABLE, REPLY_LIKES_TABLE)
     payload = _review_payload(rows)
     payload["is_owner"] = is_owner
     return payload
@@ -244,3 +276,147 @@ def unlike_reading_list_review(list_id: str, review_id: int, auth=Depends(get_cu
         raise HTTPException(status_code=500, detail=str(error))
 
     return {"liked": False, "like_count": _count_likes(client, review_id)}
+
+
+# ---------------------------------------------------------------------------
+# Replies (threaded comments on a review) and reply likes.
+# Every route is gated by _load_viewable_list, exactly like reviews and
+# review likes: whoever can currently see the list may take part, and loses
+# access the moment the owner tightens visibility.
+# ---------------------------------------------------------------------------
+
+@router.post("/{list_id}/reviews/{review_id}/replies", status_code=201)
+def create_reading_list_review_reply(
+    list_id: str, review_id: int, payload: ReviewReplyCreate, auth=Depends(get_current_user)
+):
+    """Reply to a review, or to a reply already on that review."""
+    user_id, _client = auth
+    client = create_service_client()
+    _load_viewable_list(client, list_id, user_id)
+    _get_review_on_list(client, list_id, review_id)
+
+    if payload.parent_reply_id is not None:
+        _get_reply_on_review(
+            client, review_id, payload.parent_reply_id,
+            detail="The reply you selected no longer exists.",
+        )
+
+    try:
+        response = (
+            client.table(REPLIES_TABLE)
+            .insert(
+                {
+                    "review_id": review_id,
+                    "parent_reply_id": payload.parent_reply_id,
+                    "user_id": user_id,  # always the authenticated user
+                    "comment": payload.comment,
+                }
+            )
+            .execute()
+        )
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    if not response.data:
+        raise HTTPException(status_code=500, detail="Reply could not be saved.")
+    return response.data[0]
+
+
+@router.put("/{list_id}/reviews/{review_id}/replies/{reply_id}")
+def update_reading_list_review_reply(
+    list_id: str,
+    review_id: int,
+    reply_id: int,
+    payload: ReviewReplyUpdate,
+    auth=Depends(get_current_user),
+):
+    user_id, _client = auth
+    client = create_service_client()
+    _load_viewable_list(client, list_id, user_id)
+    _get_review_on_list(client, list_id, review_id)
+    reply = _get_reply_on_review(client, review_id, reply_id)
+    if reply["user_id"] != user_id:
+        raise HTTPException(status_code=403, detail="You can only change your own reply.")
+
+    try:
+        response = (
+            client.table(REPLIES_TABLE)
+            .update({"comment": payload.comment, "updated_at": datetime.now(timezone.utc).isoformat()})
+            .eq("id", reply_id)
+            .execute()
+        )
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    if not response.data:
+        raise HTTPException(status_code=500, detail="Reply could not be updated.")
+    return response.data[0]
+
+
+@router.delete("/{list_id}/reviews/{review_id}/replies/{reply_id}", status_code=204)
+def delete_reading_list_review_reply(
+    list_id: str, review_id: int, reply_id: int, auth=Depends(get_current_user)
+):
+    """Delete your own reply (nested replies and likes go with it via cascade)."""
+    user_id, _client = auth
+    client = create_service_client()
+    _load_viewable_list(client, list_id, user_id)
+    _get_review_on_list(client, list_id, review_id)
+    reply = _get_reply_on_review(client, review_id, reply_id)
+    if reply["user_id"] != user_id:
+        raise HTTPException(status_code=403, detail="You can only change your own reply.")
+
+    try:
+        client.table(REPLIES_TABLE).delete().eq("id", reply_id).execute()
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+    return Response(status_code=204)
+
+
+@router.post("/{list_id}/reviews/{review_id}/replies/{reply_id}/like", status_code=201)
+def like_reading_list_review_reply(
+    list_id: str, review_id: int, reply_id: int, auth=Depends(get_current_user)
+):
+    """Like a reply. Own replies are rejected; repeat likes are a no-op."""
+    user_id, _client = auth
+    client = create_service_client()
+    _load_viewable_list(client, list_id, user_id)
+    _get_review_on_list(client, list_id, review_id)
+    reply = _get_reply_on_review(client, review_id, reply_id)
+
+    if reply["user_id"] == user_id:
+        raise HTTPException(status_code=403, detail="You can't like your own reply.")
+
+    try:
+        client.table(REPLY_LIKES_TABLE).insert({"reply_id": reply_id, "user_id": user_id}).execute()
+    except Exception as error:
+        if not _is_unique_violation(error):
+            raise HTTPException(status_code=500, detail=str(error))
+        # Already liked -- treat as success.
+
+    return {"liked": True, "like_count": _count_reply_likes(client, reply_id)}
+
+
+@router.delete("/{list_id}/reviews/{review_id}/replies/{reply_id}/like")
+def unlike_reading_list_review_reply(
+    list_id: str, review_id: int, reply_id: int, auth=Depends(get_current_user)
+):
+    """Withdraw a reply like. Removing a like that doesn't exist is a no-op."""
+    user_id, _client = auth
+    client = create_service_client()
+    _load_viewable_list(client, list_id, user_id)
+    _get_review_on_list(client, list_id, review_id)
+    _get_reply_on_review(client, review_id, reply_id)
+
+    try:
+        (
+            client.table(REPLY_LIKES_TABLE)
+            .delete()
+            .eq("reply_id", reply_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    return {"liked": False, "like_count": _count_reply_likes(client, reply_id)}

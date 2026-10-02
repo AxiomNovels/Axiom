@@ -71,15 +71,24 @@ def _attach_like_data(rows: list[dict], client, viewer_id: str | None) -> list[d
     return rows
 
 
-def _attach_reply_like_data(rows: list[dict], client, viewer_id: str | None) -> list[dict]:
-    """Attach batched like summaries to reply rows before they are nested."""
+def _attach_reply_like_data(
+    rows: list[dict],
+    client,
+    viewer_id: str | None,
+    likes_table: str = "review_reply_likes",
+) -> list[dict]:
+    """Attach batched like summaries to reply rows before they are nested.
+
+    `likes_table` defaults to the novel reply-likes table; reading lists pass
+    their own table so both features share this code.
+    """
     reply_ids = [row["id"] for row in rows if row.get("id")]
     if not reply_ids:
         return rows
 
     try:
         response = (
-            client.table("review_reply_likes")
+            client.table(likes_table)
             .select("reply_id, user_id")
             .in_("reply_id", reply_ids)
             .execute()
@@ -103,26 +112,35 @@ def _attach_reply_like_data(rows: list[dict], client, viewer_id: str | None) -> 
     return rows
 
 
-def _attach_replies(rows: list[dict], client, viewer_id: str | None) -> list[dict]:
+def _attach_replies(
+    rows: list[dict],
+    client,
+    viewer_id: str | None,
+    replies_table: str = "review_replies",
+    reply_likes_table: str = "review_reply_likes",
+) -> list[dict]:
     """Attach replies as a nested tree under each review.
 
     The database retains a simple parent id, which keeps replies easy to
     query and lets the client render an arbitrary reply depth without issuing
     one request per comment.
+
+    The table names default to the novel tables; reading-list reviews pass
+    their own (same column layout), so the tree logic lives in one place.
     """
     review_ids = [row["id"] for row in rows if row.get("id")]
     if not review_ids:
         return rows
 
     response = (
-        client.table("review_replies")
+        client.table(replies_table)
         .select(REPLY_COLUMNS)
         .in_("review_id", review_ids)
         .order("created_at")
         .execute()
     )
     replies = _attach_public_profiles(response.data or [], client)
-    replies = _attach_reply_like_data(replies, client, viewer_id)
+    replies = _attach_reply_like_data(replies, client, viewer_id, reply_likes_table)
     replies_by_id = {reply["id"]: reply for reply in replies}
     roots_by_review: dict[int, list[dict]] = {review_id: [] for review_id in review_ids}
 
