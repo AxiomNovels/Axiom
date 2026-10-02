@@ -2,8 +2,10 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "axiom",
   "compatibility_date": "2026-10-02",
+  "main": "./frontend/worker.js",
   "assets": {
     "directory": "./frontend/public",
+    "binding": "ASSETS",
     "not_found_handling": "404-page",
     "html_handling": "auto-trailing-slash"
   }

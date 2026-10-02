@@ -1,4 +1,4 @@
-const DIRECTORY_API_BASE = "http://localhost:8000";
+const DIRECTORY_API_BASE = API_BASE;
 
 const searchForm = document.querySelector("[data-reader-search]");
 const searchInput = document.querySelector("#reader-query");

@@ -1,4 +1,7 @@
-const API_BASE = "http://localhost:8000";
+const LOCAL_API_BASE = "http://localhost:8000";
+// Cloudflare provides this at request time; local development falls back to
+// the local backend without requiring any environment setup.
+const API_BASE = window.AXIOM_RUNTIME_CONFIG?.apiBase || LOCAL_API_BASE;
 const COVER_CLASSES = ["cover-one", "cover-two", "cover-three", "cover-four", "cover-five"];
 let sessionRefreshPromise = null;
 let sessionRefreshTimer = null;

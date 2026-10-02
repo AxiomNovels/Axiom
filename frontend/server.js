@@ -29,6 +29,18 @@ function safePublicPath(requestUrl) {
 }
 
 async function handleRequest(request, response) {
+  const requestPath = new URL(request.url, `http://localhost:${PORT}`).pathname;
+  if (requestPath === "/runtime-config.js") {
+    const apiBase = (process.env.API_BASE || "http://localhost:8000").replace(/\/+$/, "");
+    const body = `window.AXIOM_RUNTIME_CONFIG = Object.freeze({ apiBase: ${JSON.stringify(apiBase)} });`;
+    response.writeHead(200, {
+      "Content-Type": "text/javascript; charset=utf-8",
+      "Cache-Control": "no-store"
+    });
+    response.end(body);
+    return;
+  }
+
   const filePath = safePublicPath(request.url);
 
   if (!filePath) {
