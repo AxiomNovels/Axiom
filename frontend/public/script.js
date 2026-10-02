@@ -2,6 +2,8 @@ const API_BASE = "http://localhost:8000";
 const COVER_CLASSES = ["cover-one", "cover-two", "cover-three", "cover-four", "cover-five"];
 let sessionRefreshPromise = null;
 let sessionRefreshTimer = null;
+const AUTH_MODE_KEY = "axiomAuthMode";
+const NORMAL_SESSION_COOKIE = "axiomNormalSession";
 
 // Shared by the novel page, upload preview, and search results to show
 // chapter counts compactly (e.g. 123456 -> "123.4K").
@@ -29,11 +31,44 @@ function formatCompactNumber(value) {
   return String(Math.trunc(number));
 }
 
+function hasNormalSessionCookie() {
+  return document.cookie
+    .split(";")
+    .some((cookie) => cookie.trim() === `${NORMAL_SESSION_COOKIE}=1`);
+}
+
+function setNormalSessionCookie() {
+  // No Max-Age or Expires makes this a browser-session cookie: it is shared
+  // by all tabs, but removed when the browser session ends.
+  document.cookie = `${NORMAL_SESSION_COOKIE}=1; Path=/; SameSite=Lax`;
+}
+
+function clearNormalSessionCookie() {
+  document.cookie = `${NORMAL_SESSION_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+}
+
+function hasUsableLocalAuthState() {
+  // Older local-storage sessions predate the mode flag and were remembered
+  // sessions, so retain them during the rollout.
+  return localStorage.getItem(AUTH_MODE_KEY) !== "normal" || hasNormalSessionCookie();
+}
+
 function getStoredValue(key) {
-  // A remembered login survives closing the browser; a normal login is kept
-  // only for the current browser session. Check local storage first so
-  // existing remembered sign-ins continue to work after this change.
-  for (const storage of [localStorage, sessionStorage]) {
+  // Both login modes use localStorage so another tab can authenticate. A
+  // normal login is gated by a session cookie, which is shared by tabs but
+  // disappears after the browser is closed; a remembered login has no gate.
+  try {
+    if (hasUsableLocalAuthState()) {
+      const value = localStorage.getItem(key);
+      if (value) return JSON.parse(value);
+    }
+  } catch {
+    // Invalid or unavailable browser storage is treated as signed out.
+  }
+
+  // Retain an in-progress login from the prior implementation until its tab
+  // closes. New logins are always stored in localStorage as described above.
+  for (const storage of [sessionStorage]) {
     try {
       const value = storage.getItem(key);
       if (value) return JSON.parse(value);
@@ -53,15 +88,18 @@ function getStoredSession() {
 }
 
 function storeAuthState(user, session, remember) {
-  const storage = remember ? localStorage : sessionStorage;
-  const otherStorage = remember ? sessionStorage : localStorage;
-
-  // Keep exactly one authentication lifetime active, so a later normal
-  // login cannot accidentally fall back to an older remembered account.
-  otherStorage.removeItem("axiomUser");
-  otherStorage.removeItem("axiomSession");
-  storage.setItem("axiomUser", JSON.stringify(user));
-  storage.setItem("axiomSession", JSON.stringify(session));
+  // localStorage is shared by tabs. For an unchecked login, a session cookie
+  // provides the browser-session lifetime without isolating each tab.
+  sessionStorage.removeItem("axiomUser");
+  sessionStorage.removeItem("axiomSession");
+  localStorage.setItem("axiomUser", JSON.stringify(user));
+  localStorage.setItem("axiomSession", JSON.stringify(session));
+  localStorage.setItem(AUTH_MODE_KEY, remember ? "remembered" : "normal");
+  if (remember) {
+    clearNormalSessionCookie();
+  } else {
+    setNormalSessionCookie();
+  }
   scheduleSessionRefresh();
 }
 
@@ -74,6 +112,8 @@ function clearAuthState() {
     storage.removeItem("axiomUser");
     storage.removeItem("axiomSession");
   }
+  localStorage.removeItem(AUTH_MODE_KEY);
+  clearNormalSessionCookie();
 }
 
 function getAccessToken() {
@@ -82,6 +122,11 @@ function getAccessToken() {
 
 function sessionIsRemembered() {
   try {
+    const mode = localStorage.getItem(AUTH_MODE_KEY);
+    if (mode) return mode === "remembered";
+
+    // Before the mode flag existed, only remembered sessions were stored in
+    // localStorage; normal sessions were in this tab's sessionStorage.
     return Boolean(localStorage.getItem("axiomSession"));
   } catch {
     return false;

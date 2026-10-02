@@ -71,6 +71,15 @@ def test_complete_reader_journey(page):
         assert stored_user["id"] == user_id
         expect(page.locator("[data-user-actions]")).to_be_visible()
 
+        # An unchecked login is a browser-session login, not a per-tab login.
+        # A second tab must inherit the active login while the browser remains
+        # open.
+        second_page = page.context.new_page()
+        second_page.route("http://localhost:8000/**", route_test_api)
+        second_page.goto(f"{FRONTEND_URL}/")
+        expect(second_page.locator("[data-user-actions]")).to_be_visible()
+        second_page.close()
+
         novels_response = page.request.get(f"{BACKEND_URL}/api/novels")
         assert novels_response.ok
         novels = novels_response.json()
