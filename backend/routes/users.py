@@ -388,9 +388,143 @@ def get_public_profile(user_id: str, auth=Depends(get_optional_current_user)):
     return profile
 
 
+def _reading_list_activity(client, user_id: str, viewer_id: str | None) -> dict:
+    """A reader's reviews and replies on reading lists, for the Activity page.
+
+    Reading lists have their own visibility, so this is filtered for the person
+    *viewing* the page: a review or reply is only included when the viewer can
+    currently see the list it was left on (the same rule the list pages use).
+    Best-effort -- a problem here must never break the novel activity feed.
+    """
+    empty = {
+        "list_activity": [],
+        "list_review_count": 0,
+        "list_reply_count": 0,
+        "list_average_rating": None,
+    }
+    try:
+        reviews = (
+            client.table("reading_list_reviews")
+            .select("id, reading_list_id, rating, comment, created_at, updated_at")
+            .eq("user_id", user_id)
+            .order("updated_at", desc=True)
+            .execute()
+            .data
+            or []
+        )
+        replies = (
+            client.table("reading_list_review_replies")
+            .select("id, review_id, parent_reply_id, comment, created_at")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .execute()
+            .data
+            or []
+        )
+
+        # A reply only knows its review; the review knows which list it is on.
+        reply_review_ids = list({reply["review_id"] for reply in replies})
+        reviews_by_id = {}
+        if reply_review_ids:
+            rows = (
+                client.table("reading_list_reviews")
+                .select("id, reading_list_id")
+                .in_("id", reply_review_ids)
+                .execute()
+                .data
+                or []
+            )
+            reviews_by_id = {row["id"]: row for row in rows}
+
+        list_ids = list(
+            {review["reading_list_id"] for review in reviews}
+            | {review["reading_list_id"] for review in reviews_by_id.values()}
+        )
+        if not list_ids:
+            return empty
+
+        lists = (
+            client.table("reading_lists")
+            .select("id, name, user_id, visibility")
+            .in_("id", list_ids)
+            .execute()
+            .data
+            or []
+        )
+
+        levels_by_owner: dict[str, list[str]] = {}
+        visible_lists: dict[str, dict] = {}
+        for reading_list in lists:
+            owner_id = reading_list["user_id"]
+            if owner_id not in levels_by_owner:
+                levels_by_owner[owner_id] = _visible_list_levels(client, viewer_id, owner_id)
+            if reading_list["visibility"] in levels_by_owner[owner_id]:
+                visible_lists[reading_list["id"]] = reading_list
+        if not visible_lists:
+            return empty
+
+        # Reuse the profile page's helper to get each list's preview covers.
+        _attach_counts_and_previews(client, list(visible_lists.values()))
+        owner_ids = list({reading_list["user_id"] for reading_list in visible_lists.values()})
+        usernames = {
+            row["id"]: row["username"]
+            for row in (
+                client.table("profiles").select("id, username").in_("id", owner_ids).execute().data or []
+            )
+        }
+        summaries = {}
+        for list_id, reading_list in visible_lists.items():
+            previews = reading_list.get("preview_novels") or []
+            summaries[list_id] = {
+                "id": list_id,
+                "name": reading_list["name"],
+                "owner_id": reading_list["user_id"],
+                "owner_username": usernames.get(reading_list["user_id"]),
+                "cover_image_url": previews[0].get("cover_image_url") if previews else None,
+            }
+
+        activity = []
+        visible_reviews = [review for review in reviews if review["reading_list_id"] in summaries]
+        for review in visible_reviews:
+            activity.append({"type": "review", **review, "list": summaries[review["reading_list_id"]]})
+
+        visible_reply_count = 0
+        for reply in replies:
+            parent_review = reviews_by_id.get(reply["review_id"])
+            if not parent_review or parent_review["reading_list_id"] not in summaries:
+                continue
+            visible_reply_count += 1
+            activity.append(
+                {
+                    "type": "reply",
+                    **reply,
+                    "reading_list_id": parent_review["reading_list_id"],
+                    "updated_at": reply["created_at"],
+                    "list": summaries[parent_review["reading_list_id"]],
+                }
+            )
+        activity.sort(key=lambda item: item["updated_at"], reverse=True)
+
+        ratings = [float(review["rating"]) for review in visible_reviews]
+        return {
+            "list_activity": activity,
+            "list_review_count": len(visible_reviews),
+            "list_reply_count": visible_reply_count,
+            "list_average_rating": round(sum(ratings) / len(ratings), 2) if ratings else None,
+        }
+    except Exception as error:
+        print(f"[activity] failed to load reading-list activity for {user_id}: {error}")
+        return empty
+
+
 @router.get("/{user_id}/activity")
-def get_public_activity(user_id: str):
-    """Return a reader's public review and reply history, newest first."""
+def get_public_activity(user_id: str, auth=Depends(get_optional_current_user)):
+    """Return a reader's public review and reply history, newest first.
+
+    Novel activity is public. Reading-list activity is filtered by who is
+    viewing, so the viewer is resolved (optionally) from the bearer token.
+    """
+    viewer_id, _viewer_client = auth
     client = create_service_client()
     try:
         profile_response = (
@@ -472,4 +606,5 @@ def get_public_activity(user_id: str):
         "reply_count": len(replies),
         "average_rating": round(sum(ratings) / len(ratings), 2) if ratings else None,
         "activity": activity,
+        **_reading_list_activity(client, user_id, viewer_id),
     }

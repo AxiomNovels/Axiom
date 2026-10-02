@@ -1,0 +1,5 @@
+/* Novels / Reading Lists tabs on the Activity page. The tab buttons reuse the
+   .friends-tabs / .friends-tab styles from novel.css; only spacing lives here. */
+.activity-tabs {
+  margin: 18px 0 0;
+}

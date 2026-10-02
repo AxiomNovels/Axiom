@@ -6,6 +6,7 @@
     <title>Your Activity | Axiom</title>
     <link rel="stylesheet" href="/styles.css">
     <link rel="stylesheet" href="/novel.css">
+    <link rel="stylesheet" href="/activity.css">
   </head>
   <body>
     <header class="site-header home-header">
@@ -47,8 +48,50 @@
           </div>
           <div class="user-activity-stats" data-user-activity-stats></div>
         </div>
-        <div class="user-activity-feed" data-user-activity-feed aria-live="polite">
-          <p class="user-profile-empty">Loading your activity&hellip;</p>
+
+        <div class="friends-tabs activity-tabs" role="tablist" aria-label="Activity type">
+          <button
+            type="button"
+            role="tab"
+            id="activity-tab-novels"
+            class="friends-tab"
+            aria-selected="true"
+            aria-controls="activity-panel-novels"
+            data-activity-tab="novels"
+          >Novels</button>
+          <button
+            type="button"
+            role="tab"
+            id="activity-tab-lists"
+            class="friends-tab"
+            aria-selected="false"
+            aria-controls="activity-panel-lists"
+            tabindex="-1"
+            data-activity-tab="lists"
+          >Reading Lists</button>
+        </div>
+
+        <div
+          id="activity-panel-novels"
+          role="tabpanel"
+          aria-labelledby="activity-tab-novels"
+          data-activity-panel="novels"
+        >
+          <div class="user-activity-feed" data-user-activity-feed aria-live="polite">
+            <p class="user-profile-empty">Loading your activity&hellip;</p>
+          </div>
+        </div>
+
+        <div
+          id="activity-panel-lists"
+          role="tabpanel"
+          aria-labelledby="activity-tab-lists"
+          data-activity-panel="lists"
+          hidden
+        >
+          <div class="user-activity-feed" data-user-list-activity-feed aria-live="polite">
+            <p class="user-profile-empty">Loading your activity&hellip;</p>
+          </div>
         </div>
       </section>
     </main>
