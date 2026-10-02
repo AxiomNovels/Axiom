@@ -3,6 +3,9 @@
   "name": "axiom",
   "compatibility_date": "2026-10-02",
   "main": "./frontend/worker.js",
+  "vars": {
+    "API_BASE": "https://axiom-s4bp.onrender.com"
+  },
   "assets": {
     "directory": "./frontend/public",
     "binding": "ASSETS",
