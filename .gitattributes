@@ -1,0 +1,3 @@
+# Store and check out text files with consistent Unix-style line endings.
+# Git automatically leaves detected binary files unchanged.
+* text=auto eol=lf

@@ -923,15 +923,31 @@ function createNovelCard(novel, index) {
 async function loadHomeFeature() {
   const featureCard = document.querySelector("[data-home-feature]");
   if (!featureCard) return;
+
+  const inquiry = featureCard.querySelector("[data-home-feature-inquiry]");
+  const description = featureCard.querySelector("[data-home-feature-description]");
+  const tags = featureCard.querySelector("[data-home-feature-tags]");
+  const cover = featureCard.querySelector("[data-home-feature-cover]");
+  const link = featureCard.querySelector("[data-home-feature-link]");
+
+  const showUnavailable = (message) => {
+    inquiry.textContent = "Featured recommendation unavailable";
+    description.textContent = message;
+    tags.replaceChildren();
+    cover.replaceChildren();
+    const label = document.createElement("span");
+    label.textContent = "Axiom";
+    cover.appendChild(label);
+    link.hidden = true;
+  };
+
   try {
     const response = await fetch(`${API_BASE}/api/home-feature`);
     const feature = await response.json().catch(() => null);
-    if (!response.ok || !feature?.novel) return;
-    const inquiry = featureCard.querySelector("[data-home-feature-inquiry]");
-    const description = featureCard.querySelector("[data-home-feature-description]");
-    const tags = featureCard.querySelector("[data-home-feature-tags]");
-    const cover = featureCard.querySelector("[data-home-feature-cover]");
-    const link = featureCard.querySelector("[data-home-feature-link]");
+    if (!response.ok || !feature?.novel) {
+      showUnavailable("There is no featured recommendation to show yet.");
+      return;
+    }
     inquiry.textContent = feature.inquiry;
     description.textContent = feature.description;
     tags.replaceChildren();
@@ -956,7 +972,7 @@ async function loadHomeFeature() {
     link.href = `/novel.html?id=${encodeURIComponent(feature.novel.id)}`;
     link.hidden = false;
   } catch {
-    // The static feature remains visible when no feature has been published.
+    showUnavailable("Please try again shortly.");
   }
 }
 
@@ -978,7 +994,7 @@ async function loadFeaturedNovels() {
       grid.appendChild(createNovelCard(novel, index));
     });
   } catch (error) {
-    grid.innerHTML = "<p>Couldn't load novels. Make sure the backend is running on port 8000.</p>";
+    grid.innerHTML = "<p>Couldn't load novels. Please try again shortly.</p>";
   }
 }
 
