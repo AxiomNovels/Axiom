@@ -1,56 +1,3 @@
-"""
-Discover ~250 of the most popular WebNovel novels, spread across a
-variety of genres, with explicit sexual content hard-filtered out.
-
-This replaces the older philosophy/psychology-focused discovery script.
-The selection logic now has three priorities, in this order:
-
-    1. Hard filter: explicit sexual content is excluded outright.
-    2. Popularity: WebNovel's own review score and review count.
-    3. Genre diversity: no single genre is allowed to dominate the
-       final list.
-
-Method
-------
-1. Crawl WebNovel's cross-genre "all_time" ranking pages (popular,
-   collection, best sellers, engagement) as well as a keyword search
-   for each of WebNovel's own top-level genre categories (Fantasy,
-   Urban, History, Horror, Sci-fi, Sports, Games, Eastern, Realistic,
-   Action, War, Teen -- see https://en.webnovel.com/category), so the
-   candidate pool spans genres instead of being dominated by whatever
-   is broadly trending.
-2. Deduplicate all discovered book URLs.
-3. Scrape every candidate with scraper.webnovel.scrape_webnovel(),
-   which already fetches WebNovel's own review statistics
-   (totalScore / totalReviewNum) as part of the normal scrape.
-4. Hard-exclude any novel whose tags indicate explicit sexual content
-   (see EXCLUDED_TAGS below).
-5. Require a minimum review score/count floor so obscure or
-   low-engagement novels don't dilute the pool.
-6. Rank the remaining candidates by a popularity score, then select
-   up to TARGET novels using a per-genre cap so that popularity
-   dominates the ordering while no single genre can fill the whole
-   list. Unfilled seats are backfilled by raw popularity so the
-   target count is still reached.
-
-Banned-tag research
---------------------
-WebNovel allows free-text "Additional Tags" on user-uploaded original
-novels (distinct from its fixed top-level genre categories), and a
-large share of the explicit/adult titles on the platform advertise
-this openly in their own tag lists (e.g. "R18", "NSFW", "Hentai",
-"Smut", "Harem", "Netorare", "Mature", "18+", "Ecchi"). EXCLUDED_TAGS
-below was built by inspecting real WebNovel tag soups for these
-platform-specific explicit-content markers, mirroring the same intent
-as the existing Wattpad filter but adapted to WebNovel's own tag
-vocabulary.
-
-Output
-------
-popular_webnovel_urls.txt
-popular_webnovel_audit.csv
-"""
-
 from __future__ import annotations
 
 import csv
@@ -71,6 +18,10 @@ from scraper.webnovel import HEADERS, scrape_webnovel
 BASE_URL = "https://www.webnovel.com"
 
 
+# ---------------------------------------------------------------------
+# ORIGINAL SOURCES
+# ---------------------------------------------------------------------
+
 # Cross-genre "all time" rankings. Several independent surfaces are
 # combined since rankings can change and one family alone can be
 # unstable.
@@ -79,13 +30,15 @@ RANKING_SEED_URLS = [
     f"{BASE_URL}/ranking/novel/all_time/collection_rank",
     f"{BASE_URL}/ranking/novel/all_time/best_sellers",
     f"{BASE_URL}/ranking/novel/all_time/engagement_rank",
+    f"{BASE_URL}/ranking/novel/all_time/power_rank",
+    f"{BASE_URL}/ranking/novel/all_time/fandom_rank",
 ]
 
-# WebNovel's own top-level genre categories (see
-# https://en.webnovel.com/category). Searching each by name is a more
-# robust discovery path than guessing WebNovel's internal numeric
-# category IDs, and it reuses the same working search/crawl code as
-# the ranking pages.
+
+# WebNovel's own top-level genre categories.
+#
+# These remain in place as keyword searches because they are already
+# part of the original discovery strategy.
 GENRE_QUERIES = [
     "fantasy",
     "urban",
@@ -101,28 +54,79 @@ GENRE_QUERIES = [
     "teen",
 ]
 
+
+# ---------------------------------------------------------------------
+# ADDITIONAL WEBNOVEL SOURCES
+# ---------------------------------------------------------------------
+#
+# WebNovel currently exposes additional novel discovery surfaces
+# outside the ranking URLs above:
+#
+#   /category
+#       Category browser with Popular / Recommended / Most Collections /
+#       Rating / Time Updated sorting.
+#
+#   /stories/novel
+#       Dedicated novel catalog with genre, lead, status and sorting
+#       controls.
+#
+#   /
+#       WebNovel homepage, which exposes additional Power Ranking and
+#       Collection Ranking sections.
+#
+# We deliberately add these sources rather than replacing the existing
+# ranking/search sources.
+#
+# See:
+#   https://en.webnovel.com/category
+#   https://www.webnovel.com/stories/novel
+#   https://www.webnovel.com/
+#
+ADDITIONAL_SEED_URLS = [
+    f"{BASE_URL}/category",
+    f"{BASE_URL}/stories/novel",
+]
+
+
+# How many pages to crawl from each additional source.
+#
+# Category pages are especially useful because they expose books that
+# may not appear in the global ranking pages.
+MAX_ADDITIONAL_PAGES_PER_SEED = 40
+
+# Category links discovered from /category are themselves added as
+# additional sources. This gives each top-level genre its own crawl.
+MAX_DISCOVERED_CATEGORY_SEEDS = 100
+
+
 TARGET = 250
 TARGET_TOLERANCE = 10
 MIN_TARGET = TARGET - TARGET_TOLERANCE
 
+# This is now a discovery diagnostic rather than a hard stop.
+# We intentionally allow the script to continue if fewer URLs are
+# found, because the additional category/catalog sources can still
+# produce useful results.
 MIN_DISCOVERED = 1500
 
 REQUEST_DELAY = 0.35
 MAX_PAGES_PER_SEED = 40
 
+
 # No single genre may take up more than this share of the final list.
 MAX_GENRE_SHARE = 0.15
 MIN_GENRE_CAP = 8
 
+
 # WebNovel review-statistics floor. Only enforced when the statistics
 # were actually retrieved.
 MIN_TOTAL_SCORE = 3.0
-MIN_TOTAL_REVIEW_NUM = 10
+MIN_TOTAL_REVIEW_NUM = 5
+
 
 # Tags that indicate explicit sexual content on WebNovel. This is a
 # hard filter: any match excludes the novel regardless of popularity
-# or genre. WebNovel normalizes tags to uppercase internally; matching
-# is done against the lowercased form (see normalize_text below).
+# or genre.
 EXCLUDED_TAGS = {
     # explicit / mature labels
     "adult", "adult content", "mature content",
@@ -158,7 +162,7 @@ EXCLUDED_TAGS = {
     "omegaverse", "alpha mate", "alpha romance",
 
     # explicit-coded character/content descriptors seen in WebNovel
-    # "Additional Tags" lists
+    # Additional Tags lists
     "milf", "loli", "legal loli", "lolicon", "shota", "shotacon",
 }
 
@@ -182,14 +186,18 @@ class Candidate:
 
 
 # ---------------------------------------------------------------------
-# URL discovery
+# URL DISCOVERY
 # ---------------------------------------------------------------------
 
 def canonical_book_url(url: str) -> str | None:
     absolute = urljoin(BASE_URL, url)
     parsed = urlparse(absolute)
 
-    if parsed.netloc.lower() not in {"www.webnovel.com", "webnovel.com"}:
+    if parsed.netloc.lower() not in {
+        "www.webnovel.com",
+        "webnovel.com",
+        "en.webnovel.com",
+    }:
         return None
 
     match = re.search(r"/book/[^?#]+", parsed.path)
@@ -198,14 +206,66 @@ def canonical_book_url(url: str) -> str | None:
 
     path = match.group(0).rstrip("/")
 
-    if not (re.search(r"_\d+$", path) or re.search(r"/book/\d+$", path)):
+    # WebNovel book URLs normally look like:
+    #   /book/title_123456
+    #
+    # Keep the existing validation logic, but accept numeric book IDs
+    # as well.
+    if not (
+        re.search(r"_\d+$", path)
+        or re.search(r"/book/\d+$", path)
+    ):
         return None
 
-    return urlunparse(("https", "www.webnovel.com", path, "", "", ""))
+    return urlunparse((
+        "https",
+        "www.webnovel.com",
+        path,
+        "",
+        "",
+        "",
+    ))
+
+
+def canonical_listing_url(url: str) -> str | None:
+    """
+    Normalize listing URLs so that the same page isn't crawled through
+    different hostnames or harmless fragments.
+    """
+    absolute = urljoin(BASE_URL, url)
+    parsed = urlparse(absolute)
+
+    if parsed.netloc.lower() not in {
+        "www.webnovel.com",
+        "webnovel.com",
+        "en.webnovel.com",
+    }:
+        return None
+
+    if not (
+        parsed.path.startswith("/ranking/")
+        or parsed.path.startswith("/search")
+        or parsed.path.startswith("/category")
+        or parsed.path.startswith("/stories/novel")
+    ):
+        return None
+
+    return urlunparse((
+        "https",
+        "www.webnovel.com",
+        parsed.path,
+        "",
+        parsed.query,
+        "",
+    ))
 
 
 def fetch_html(session: requests.Session, url: str) -> str:
-    response = session.get(url, timeout=30, allow_redirects=True)
+    response = session.get(
+        url,
+        timeout=30,
+        allow_redirects=True,
+    )
     response.raise_for_status()
     return response.text
 
@@ -222,23 +282,46 @@ def extract_book_urls(html: str, page_url: str) -> set[str]:
     return urls
 
 
-def is_same_listing_family(seed_url: str, candidate_url: str) -> bool:
+def is_same_listing_family(
+    seed_url: str,
+    candidate_url: str,
+) -> bool:
     seed = urlparse(seed_url)
     candidate = urlparse(candidate_url)
 
-    if candidate.netloc.lower() not in {"www.webnovel.com", "webnovel.com"}:
+    if candidate.netloc.lower() not in {
+        "www.webnovel.com",
+        "webnovel.com",
+        "en.webnovel.com",
+    }:
         return False
 
+    # Existing ranking family.
     if seed.path.startswith("/ranking/"):
         return candidate.path.startswith("/ranking/")
 
-    if seed.path == "/search":
-        return candidate.path == "/search"
+    # Existing search family.
+    if seed.path.startswith("/search"):
+        return candidate.path.startswith("/search")
+
+    # NEW: WebNovel category browser.
+    #
+    # Category pagination and category filter links remain underneath
+    # /category.
+    if seed.path.startswith("/category"):
+        return candidate.path.startswith("/category")
+
+    # NEW: dedicated novel catalog.
+    if seed.path.startswith("/stories/novel"):
+        return candidate.path.startswith("/stories/novel")
 
     return False
 
 
-def listing_next_links(html: str, page_url: str) -> list[str]:
+def listing_next_links(
+    html: str,
+    page_url: str,
+) -> list[str]:
     soup = BeautifulSoup(html, "html.parser")
     found: list[str] = []
 
@@ -249,14 +332,61 @@ def listing_next_links(html: str, page_url: str) -> list[str]:
         if not is_same_listing_family(page_url, href):
             continue
 
-        rel = {str(x).lower() for x in (a.get("rel") or [])}
+        normalized = canonical_listing_url(href)
+        if not normalized:
+            continue
+
+        rel = {
+            str(x).lower()
+            for x in (a.get("rel") or [])
+        }
 
         if (
             "next" in rel
-            or text in {"next", "next >", ">", "\u203a", "\u2192"}
+            or text in {
+                "next",
+                "next >",
+                ">",
+                "\u203a",
+                "\u2192",
+            }
             or text.isdigit()
         ):
-            found.append(href)
+            found.append(normalized)
+
+    return list(dict.fromkeys(found))
+
+
+def extract_category_seed_urls(
+    html: str,
+    page_url: str,
+) -> set[str]:
+    """
+    Extract WebNovel's own /category/... pages.
+
+    This is intentionally discovery-based rather than hard-coding
+    WebNovel's internal numeric category IDs.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    found: set[str] = set()
+
+    for a in soup.select("a[href]"):
+        href = urljoin(page_url, a["href"])
+        parsed = urlparse(href)
+
+        if parsed.netloc.lower() not in {
+            "www.webnovel.com",
+            "webnovel.com",
+            "en.webnovel.com",
+        }:
+            continue
+
+        if not parsed.path.startswith("/category"):
+            continue
+
+        normalized = canonical_listing_url(href)
+        if normalized:
+            found.add(normalized)
 
     return found
 
@@ -273,17 +403,31 @@ def crawl_listing(
     while queue and len(pages) < page_limit:
         url = queue.popleft()
 
+        normalized_seed = canonical_listing_url(url)
+        if not normalized_seed:
+            continue
+
+        url = normalized_seed
+
         if url in seen_pages:
             continue
+
         seen_pages.add(url)
 
         try:
             html = fetch_html(session, url)
         except requests.RequestException as exc:
-            print("LISTING FAILED:", url, type(exc).__name__, exc)
+            print(
+                "LISTING FAILED:",
+                url,
+                type(exc).__name__,
+                exc,
+            )
             continue
 
-        pages.append(extract_book_urls(html, url))
+        pages.append(
+            extract_book_urls(html, url)
+        )
 
         for next_url in listing_next_links(html, url):
             if next_url not in seen_pages:
@@ -295,52 +439,274 @@ def crawl_listing(
 
 
 def search_url(query: str) -> str:
-    return f"{BASE_URL}/search?{urlencode({'keywords': query})}"
+    return (
+        f"{BASE_URL}/search?"
+        f"{urlencode({'keywords': query})}"
+    )
+
+
+# ---------------------------------------------------------------------
+# NEW DISCOVERY SOURCES
+# ---------------------------------------------------------------------
+
+def discover_additional_category_seeds(
+    session: requests.Session,
+) -> list[str]:
+    """
+    Fetch WebNovel's category index and discover the site's actual
+    category URLs.
+
+    This avoids guessing WebNovel's internal category IDs.
+    """
+    category_index = f"{BASE_URL}/category"
+
+    print("\n=== DISCOVERING WEBNOVEL CATEGORY SOURCES ===")
+    print("CATEGORY INDEX:", category_index)
+
+    try:
+        html = fetch_html(session, category_index)
+    except requests.RequestException as exc:
+        print(
+            "CATEGORY INDEX FAILED:",
+            type(exc).__name__,
+            exc,
+        )
+        return []
+
+    category_urls = extract_category_seed_urls(
+        html,
+        category_index,
+    )
+
+    # Don't allow an accidental explosion in the number of sources.
+    category_urls = sorted(category_urls)[
+        :MAX_DISCOVERED_CATEGORY_SEEDS
+    ]
+
+    print(
+        "Discovered category listing sources:",
+        len(category_urls),
+    )
+
+    for url in category_urls:
+        print("  CATEGORY SOURCE:", url)
+
+    return category_urls
 
 
 def discover_candidates() -> dict[str, int]:
     """
-    Return {url: number_of_listing_pages_it_appeared_on}.
+    Return:
+        {book_url: number_of_listing_pages_it_appeared_on}
+
+    Existing ranking/search sources are preserved. Additional
+    WebNovel catalog/category/homepage sources are layered on top.
     """
     session = requests.Session()
     session.headers.update(HEADERS)
 
     popularity_hits: dict[str, int] = {}
 
-    print("\n=== DISCOVERING CROSS-GENRE RANKING CANDIDATES ===")
+    def record_books(books: set[str]) -> None:
+        for url in books:
+            popularity_hits[url] = (
+                popularity_hits.get(url, 0) + 1
+            )
+
+    # -------------------------------------------------------------
+    # ORIGINAL CROSS-GENRE RANKINGS
+    # -------------------------------------------------------------
+    print(
+        "\n=== DISCOVERING CROSS-GENRE RANKING "
+        "CANDIDATES ==="
+    )
 
     for seed in RANKING_SEED_URLS:
         print("RANKING:", seed)
 
-        for books in crawl_listing(session, seed, MAX_PAGES_PER_SEED):
-            for url in books:
-                popularity_hits[url] = popularity_hits.get(url, 0) + 1
+        for books in crawl_listing(
+            session,
+            seed,
+            MAX_PAGES_PER_SEED,
+        ):
+            record_books(books)
 
-        print("Unique candidates so far:", len(popularity_hits))
+        print(
+            "Unique candidates so far:",
+            len(popularity_hits),
+        )
 
-    print("\n=== DISCOVERING PER-GENRE CANDIDATES ===")
+    # -------------------------------------------------------------
+    # ORIGINAL PER-GENRE SEARCHES
+    # -------------------------------------------------------------
+    print("\n=== DISCOVERING PER-GENRE SEARCH CANDIDATES ===")
 
     for genre in GENRE_QUERIES:
         print("GENRE:", genre)
 
         for books in crawl_listing(
-            session, search_url(genre), MAX_PAGES_PER_SEED
+            session,
+            search_url(genre),
+            MAX_PAGES_PER_SEED,
         ):
-            for url in books:
-                popularity_hits[url] = popularity_hits.get(url, 0) + 1
+            record_books(books)
+
+        print(
+            "Unique candidates so far:",
+            len(popularity_hits),
+        )
 
         time.sleep(REQUEST_DELAY)
 
-    print("Total discovered candidates:", len(popularity_hits))
+    # -------------------------------------------------------------
+    # NEW: WEBNOVEL CATEGORY INDEX
+    # -------------------------------------------------------------
+    #
+    # First scrape /category itself.
+    #
+    # This page contains popular novels and links into WebNovel's
+    # genre/category catalog.
+    # -------------------------------------------------------------
+    print("\n=== DISCOVERING WEBNOVEL CATEGORY CATALOG ===")
+
+    category_index = f"{BASE_URL}/category"
+
+    try:
+        category_html = fetch_html(
+            session,
+            category_index,
+        )
+
+        record_books(
+            extract_book_urls(
+                category_html,
+                category_index,
+            )
+        )
+
+        print(
+            "Category index candidates:",
+            len(popularity_hits),
+        )
+
+    except requests.RequestException as exc:
+        print(
+            "CATEGORY INDEX FAILED:",
+            type(exc).__name__,
+            exc,
+        )
+
+    time.sleep(REQUEST_DELAY)
+
+    # -------------------------------------------------------------
+    # NEW: DISCOVER ACTUAL CATEGORY URLS
+    # -------------------------------------------------------------
+    category_seeds = discover_additional_category_seeds(
+        session
+    )
+
+    for seed in category_seeds:
+        print("CATEGORY:", seed)
+
+        for books in crawl_listing(
+            session,
+            seed,
+            MAX_ADDITIONAL_PAGES_PER_SEED,
+        ):
+            record_books(books)
+
+        print(
+            "Unique candidates so far:",
+            len(popularity_hits),
+        )
+
+        time.sleep(REQUEST_DELAY)
+
+    # -------------------------------------------------------------
+    # NEW: DEDICATED NOVEL CATALOG
+    # -------------------------------------------------------------
+    #
+    # /stories/novel is a separate catalog surface from the ranking
+    # URLs. It exposes genre and sorting controls and therefore tends
+    # to surface books that are not captured by the global rankings.
+    # -------------------------------------------------------------
+    print("\n=== DISCOVERING DEDICATED NOVEL CATALOG ===")
+
+    novel_catalog = f"{BASE_URL}/stories/novel"
+
+    for books in crawl_listing(
+        session,
+        novel_catalog,
+        MAX_ADDITIONAL_PAGES_PER_SEED,
+    ):
+        record_books(books)
+
+    print(
+        "Unique candidates so far:",
+        len(popularity_hits),
+    )
+
+    # -------------------------------------------------------------
+    # NEW: WEBNOVEL HOMEPAGE RANKING SECTIONS
+    # -------------------------------------------------------------
+    #
+    # The homepage currently exposes additional Power Ranking and
+    # Collection Ranking book lists. We scrape the homepage itself
+    # rather than trying to guess the underlying internal API.
+    # -------------------------------------------------------------
+    print("\n=== DISCOVERING HOMEPAGE RANKINGS ===")
+
+    homepage = BASE_URL
+
+    try:
+        homepage_html = fetch_html(
+            session,
+            homepage,
+        )
+
+        homepage_books = extract_book_urls(
+            homepage_html,
+            homepage,
+        )
+
+        record_books(homepage_books)
+
+        print(
+            "Homepage book candidates:",
+            len(homepage_books),
+        )
+        print(
+            "Unique candidates so far:",
+            len(popularity_hits),
+        )
+
+    except requests.RequestException as exc:
+        print(
+            "HOMEPAGE FAILED:",
+            type(exc).__name__,
+            exc,
+        )
+
+    time.sleep(REQUEST_DELAY)
+
+    print(
+        "\nTotal discovered candidates:",
+        len(popularity_hits),
+    )
+
     return popularity_hits
 
 
 # ---------------------------------------------------------------------
-# Popularity scoring (no more relevance scoring)
+# POPULARITY SCORING
 # ---------------------------------------------------------------------
 
 def normalize_text(value: str | None) -> str:
-    return re.sub(r"\s+", " ", (value or "").lower()).strip()
+    return re.sub(
+        r"\s+",
+        " ",
+        (value or "").lower(),
+    ).strip()
 
 
 def synopsis_quality_penalty(
@@ -355,24 +721,49 @@ def synopsis_quality_penalty(
     penalty = 0.0
     reasons: list[str] = []
 
-    letters = [char for char in text if char.isalpha()]
+    letters = [
+        char
+        for char in text
+        if char.isalpha()
+    ]
+
     if letters and len(letters) > 30:
-        upper_ratio = sum(char.isupper() for char in letters) / len(letters)
+        upper_ratio = (
+            sum(
+                char.isupper()
+                for char in letters
+            )
+            / len(letters)
+        )
+
         if upper_ratio > 0.45:
             penalty += 4
-            reasons.append("excessive-capitalization")
+            reasons.append(
+                "excessive-capitalization"
+            )
 
-    words = re.findall(r"[A-Za-z']+", (synopsis or "").lower())
+    words = re.findall(
+        r"[A-Za-z']+",
+        (synopsis or "").lower(),
+    )
 
     if len(words) < 20:
         penalty += 4
-        reasons.append("very-short-synopsis")
+        reasons.append(
+            "very-short-synopsis"
+        )
 
     if len(words) >= 40:
-        unique_ratio = len(set(words)) / len(words)
+        unique_ratio = (
+            len(set(words))
+            / len(words)
+        )
+
         if unique_ratio < 0.35:
             penalty += 3
-            reasons.append("low-lexical-variety")
+            reasons.append(
+                "low-lexical-variety"
+            )
 
     return penalty, reasons
 
@@ -390,50 +781,106 @@ def score_popularity(
 
     if total_score is not None:
         confidence = (
-            min(total_review_num or 0, 500) / 500
+            min(
+                total_review_num or 0,
+                500,
+            )
+            / 500
             if total_review_num is not None
             else 0.35
         )
-        adjusted_score = confidence * total_score + (1 - confidence) * 3.8
-        score += max(-2.0, (adjusted_score - 3.0) * 4.0)
-        reasons.append(f"total_score={total_score}")
+
+        adjusted_score = (
+            confidence * total_score
+            + (1 - confidence) * 3.8
+        )
+
+        score += max(
+            -2.0,
+            (adjusted_score - 3.0) * 4.0,
+        )
+
+        reasons.append(
+            f"total_score={total_score}"
+        )
 
     if total_review_num is not None:
-        score += min(6.0, math.log10(total_review_num + 1) * 1.5)
-        reasons.append(f"total_review_num={total_review_num}")
+        score += min(
+            6.0,
+            math.log10(
+                total_review_num + 1
+            ) * 1.5,
+        )
 
-    score += min(popularity_hits, 10) * 1.5
-    reasons.append(f"listing-hits={popularity_hits}")
+        reasons.append(
+            f"total_review_num={total_review_num}"
+        )
 
-    penalty, penalty_reasons = synopsis_quality_penalty(title, synopsis)
+    # Appearance across independent WebNovel discovery surfaces is
+    # useful evidence of popularity. This is intentionally retained
+    # from the original script.
+    score += min(
+        popularity_hits,
+        10,
+    ) * 1.5
+
+    reasons.append(
+        f"listing-hits={popularity_hits}"
+    )
+
+    penalty, penalty_reasons = (
+        synopsis_quality_penalty(
+            title,
+            synopsis,
+        )
+    )
+
     score -= penalty
-    reasons.extend(f"presentation:{reason}" for reason in penalty_reasons)
+
+    reasons.extend(
+        f"presentation:{reason}"
+        for reason in penalty_reasons
+    )
 
     return score, reasons
 
 
 # ---------------------------------------------------------------------
-# Scrape, hard-filter, and score
+# SCRAPE, HARD-FILTER, AND SCORE
 # ---------------------------------------------------------------------
 
-def scrape_and_score(popularity_hits: dict[str, int]) -> list[Candidate]:
+def scrape_and_score(
+    popularity_hits: dict[str, int],
+) -> list[Candidate]:
     candidate_urls = list(popularity_hits)
 
-    print(f"\n=== SCRAPING AND CLASSIFYING {len(candidate_urls)} CANDIDATES ===")
+    print(
+        f"\n=== SCRAPING AND CLASSIFYING "
+        f"{len(candidate_urls)} CANDIDATES ==="
+    )
 
     candidates: list[Candidate] = []
 
-    for index, url in enumerate(candidate_urls, start=1):
-        print(f"[{index}/{len(candidate_urls)}] {url}")
+    for index, url in enumerate(
+        candidate_urls,
+        start=1,
+    ):
+        print(
+            f"[{index}/{len(candidate_urls)}] {url}"
+        )
 
         try:
             novel = scrape_webnovel(url)
         except Exception as exc:
-            print("FAILED:", type(exc).__name__, exc)
+            print(
+                "FAILED:",
+                type(exc).__name__,
+                exc,
+            )
             continue
 
         # ---------------------------------------------------------
-        # Hard filter: explicit sexual content.
+        # HARD FILTER: EXPLICIT SEXUAL CONTENT
         # ---------------------------------------------------------
         novel_tags = {
             normalize_text(tag)
@@ -441,48 +888,69 @@ def scrape_and_score(popularity_hits: dict[str, int]) -> list[Candidate]:
             if normalize_text(tag)
         }
 
-        matched_excluded_tags = novel_tags & EXCLUDED_TAGS
+        matched_excluded_tags = (
+            novel_tags & EXCLUDED_TAGS
+        )
+
         if matched_excluded_tags:
             print(
                 f"SKIPPED: {novel.get('title')!r} "
-                f"(excluded tags: {sorted(matched_excluded_tags)})"
+                f"(excluded tags: "
+                f"{sorted(matched_excluded_tags)})"
             )
+
             time.sleep(REQUEST_DELAY)
             continue
 
         # ---------------------------------------------------------
-        # Popularity floor (review statistics come from the scrape
-        # itself -- scrape_webnovel() already calls WebNovel's review
-        # endpoint).
+        # POPULARITY FLOOR
         # ---------------------------------------------------------
-        total_score = novel.get("total_score")
-        total_review_num = novel.get("total_review_num")
+        total_score = novel.get(
+            "total_score"
+        )
 
-        if total_score is not None and total_score < MIN_TOTAL_SCORE:
+        total_review_num = novel.get(
+            "total_review_num"
+        )
+
+        if (
+            total_score is not None
+            and total_score < MIN_TOTAL_SCORE
+        ):
             print(
                 f"SKIPPED: {novel.get('title')!r} "
-                f"(score={total_score}, required >= {MIN_TOTAL_SCORE})"
+                f"(score={total_score}, "
+                f"required >= {MIN_TOTAL_SCORE})"
             )
+
             time.sleep(REQUEST_DELAY)
             continue
 
         if (
             total_review_num is not None
-            and total_review_num < MIN_TOTAL_REVIEW_NUM
+            and total_review_num
+            < MIN_TOTAL_REVIEW_NUM
         ):
             print(
                 f"SKIPPED: {novel.get('title')!r} "
-                f"(reviews={total_review_num}, required >= {MIN_TOTAL_REVIEW_NUM})"
+                f"(reviews={total_review_num}, "
+                f"required >= {MIN_TOTAL_REVIEW_NUM})"
             )
+
             time.sleep(REQUEST_DELAY)
             continue
 
-        popularity_score, quality_reasons = score_popularity(
-            title=novel.get("title"),
-            synopsis=novel.get("synopsis"),
-            total_score=total_score,
-            total_review_num=total_review_num,
-            popularity_hits=popularity_hits.get(url, 0),
+        popularity_score, quality_reasons = (
+            score_popularity(
+                title=novel.get("title"),
+                synopsis=novel.get("synopsis"),
+                total_score=total_score,
+                total_review_num=total_review_num,
+                popularity_hits=popularity_hits.get(
+                    url,
+                    0,
+                ),
+            )
         )
 
         candidates.append(
@@ -491,11 +959,20 @@ def scrape_and_score(popularity_hits: dict[str, int]) -> list[Candidate]:
                 story_id=novel.get("story_id"),
                 title=novel.get("title"),
                 synopsis=novel.get("synopsis"),
-                genres=novel.get("genres", []),
-                tags=novel.get("tags", []),
+                genres=novel.get(
+                    "genres",
+                    [],
+                ),
+                tags=novel.get(
+                    "tags",
+                    [],
+                ),
                 total_score=total_score,
                 total_review_num=total_review_num,
-                popularity_hits=popularity_hits.get(url, 0),
+                popularity_hits=popularity_hits.get(
+                    url,
+                    0,
+                ),
                 popularity_score=popularity_score,
                 quality_reasons=quality_reasons,
             )
@@ -507,11 +984,17 @@ def scrape_and_score(popularity_hits: dict[str, int]) -> list[Candidate]:
 
 
 # ---------------------------------------------------------------------
-# Popularity-first, genre-diverse selection
+# POPULARITY-FIRST, GENRE-DIVERSE SELECTION
 # ---------------------------------------------------------------------
 
-def primary_genre(candidate: Candidate) -> str:
-    return candidate.genres[0] if candidate.genres else "Unclassified"
+def primary_genre(
+    candidate: Candidate,
+) -> str:
+    return (
+        candidate.genres[0]
+        if candidate.genres
+        else "Unclassified"
+    )
 
 
 def select_popular_diverse(
@@ -520,18 +1003,36 @@ def select_popular_diverse(
 ) -> list[Candidate]:
     """
     Rank by popularity, but cap how much of the final list any single
-    genre can take up, backfilling any unfilled seats by raw
-    popularity so the target count is still reached. See the Royal
-    Road discovery script for the same algorithm with more discussion.
-    """
-    cap = max(MIN_GENRE_CAP, math.ceil(target * MAX_GENRE_SHARE))
+    genre can take up.
 
-    ranked = sorted(candidates, key=lambda c: c.popularity_score, reverse=True)
+    IMPORTANT:
+    The original implementation stopped after filling the target
+    during the capped pass. That is fine when the candidate pool is
+    large, but this version explicitly performs a second backfill pass
+    whenever genre caps prevent the target from being filled.
+
+    Popularity remains the primary ordering signal.
+    """
+    cap = max(
+        MIN_GENRE_CAP,
+        math.ceil(
+            target * MAX_GENRE_SHARE
+        ),
+    )
+
+    ranked = sorted(
+        candidates,
+        key=lambda c: c.popularity_score,
+        reverse=True,
+    )
 
     selected: list[Candidate] = []
     overflow: list[Candidate] = []
     genre_counts: Counter[str] = Counter()
 
+    # -------------------------------------------------------------
+    # PASS 1: popularity-first subject to genre caps
+    # -------------------------------------------------------------
     for candidate in ranked:
         genre = primary_genre(candidate)
 
@@ -544,29 +1045,56 @@ def select_popular_diverse(
         if len(selected) >= target:
             break
 
+    # -------------------------------------------------------------
+    # PASS 2: backfill from overflow by popularity.
+    #
+    # This is deliberately unchanged in spirit from the original
+    # selection algorithm.
+    # -------------------------------------------------------------
     if len(selected) < target:
         for candidate in overflow:
             if len(selected) >= target:
                 break
+
             selected.append(candidate)
 
-    return selected
+    return selected[:target]
 
 
 # ---------------------------------------------------------------------
-# Output
+# OUTPUT
 # ---------------------------------------------------------------------
 
-def write_outputs(selected: list[Candidate], all_candidates: list[Candidate]) -> None:
-    urls = [candidate.url for candidate in selected]
-
-    with open("popular_webnovel_urls.txt", "w", encoding="utf-8") as file:
-        json.dump(urls, file, indent=2)
-
-    selected_urls = {candidate.url for candidate in selected}
+def write_outputs(
+    selected: list[Candidate],
+    all_candidates: list[Candidate],
+) -> None:
+    urls = [
+        candidate.url
+        for candidate in selected
+    ]
 
     with open(
-        "popular_webnovel_audit.csv", "w", newline="", encoding="utf-8"
+        "popular_webnovel_urls.txt",
+        "w",
+        encoding="utf-8",
+    ) as file:
+        json.dump(
+            urls,
+            file,
+            indent=2,
+        )
+
+    selected_urls = {
+        candidate.url
+        for candidate in selected
+    }
+
+    with open(
+        "popular_webnovel_audit.csv",
+        "w",
+        newline="",
+        encoding="utf-8",
     ) as file:
         writer = csv.DictWriter(
             file,
@@ -585,70 +1113,140 @@ def write_outputs(selected: list[Candidate], all_candidates: list[Candidate]) ->
                 "synopsis",
             ],
         )
+
         writer.writeheader()
 
         for candidate in sorted(
             all_candidates,
-            key=lambda item: item.popularity_score,
+            key=lambda item:
+                item.popularity_score,
             reverse=True,
         ):
             writer.writerow({
-                "selected": candidate.url in selected_urls,
-                "url": candidate.url,
-                "story_id": candidate.story_id,
-                "title": candidate.title,
-                "popularity_score": candidate.popularity_score,
-                "total_score": candidate.total_score,
-                "total_review_num": candidate.total_review_num,
-                "popularity_hits": candidate.popularity_hits,
-                "genres": json.dumps(candidate.genres, ensure_ascii=False),
-                "tags": json.dumps(candidate.tags, ensure_ascii=False),
-                "quality_reasons": json.dumps(
-                    candidate.quality_reasons, ensure_ascii=False
-                ),
-                "synopsis": candidate.synopsis,
+                "selected":
+                    candidate.url
+                    in selected_urls,
+
+                "url":
+                    candidate.url,
+
+                "story_id":
+                    candidate.story_id,
+
+                "title":
+                    candidate.title,
+
+                "popularity_score":
+                    candidate.popularity_score,
+
+                "total_score":
+                    candidate.total_score,
+
+                "total_review_num":
+                    candidate.total_review_num,
+
+                "popularity_hits":
+                    candidate.popularity_hits,
+
+                "genres":
+                    json.dumps(
+                        candidate.genres,
+                        ensure_ascii=False,
+                    ),
+
+                "tags":
+                    json.dumps(
+                        candidate.tags,
+                        ensure_ascii=False,
+                    ),
+
+                "quality_reasons":
+                    json.dumps(
+                        candidate.quality_reasons,
+                        ensure_ascii=False,
+                    ),
+
+                "synopsis":
+                    candidate.synopsis,
             })
 
+
+# ---------------------------------------------------------------------
+# MAIN
+# ---------------------------------------------------------------------
 
 def main() -> None:
     popularity_hits = discover_candidates()
 
     if len(popularity_hits) < MIN_DISCOVERED:
         print(
-            f"\nNOTE: only discovered {len(popularity_hits)} candidate URLs "
-            f"(target pool: {MIN_DISCOVERED}). Continuing with what was found."
+            f"\nNOTE: only discovered "
+            f"{len(popularity_hits)} candidate URLs "
+            f"(target pool: {MIN_DISCOVERED}). "
+            f"Continuing with what was found."
         )
 
-    candidates = scrape_and_score(popularity_hits)
-
-    selected = select_popular_diverse(candidates, target=TARGET)
-
-    write_outputs(selected, candidates)
-
-    genre_counts = Counter(primary_genre(c) for c in selected)
+    candidates = scrape_and_score(
+        popularity_hits
+    )
 
     print(
-        f"\n=== SELECTED {len(selected)} WEBNOVEL NOVELS "
-        f"(target: {TARGET}, tolerance: +/-{TARGET_TOLERANCE}) ==="
+        "\nCandidates remaining after "
+        "sexual-content and popularity filters:",
+        len(candidates),
+    )
+
+    selected = select_popular_diverse(
+        candidates,
+        target=TARGET,
+    )
+
+    write_outputs(
+        selected,
+        candidates,
+    )
+
+    genre_counts = Counter(
+        primary_genre(candidate)
+        for candidate in selected
+    )
+
+    print(
+        f"\n=== SELECTED {len(selected)} "
+        f"WEBNOVEL NOVELS "
+        f"(target: {TARGET}, "
+        f"tolerance: +/-{TARGET_TOLERANCE}) ==="
     )
 
     if len(selected) < MIN_TARGET:
         print(
-            "WARNING: Fewer than the minimum acceptable number of novels "
-            "passed the sexual-content and popularity filters. The output "
-            "is intentionally not padded with weaker candidates."
+            "WARNING: Fewer than the minimum acceptable "
+            "number of novels passed the sexual-content "
+            "and popularity filters. The output is "
+            "intentionally not padded with weaker "
+            "candidates."
         )
 
     print("\nGenre spread of the selection:")
-    for genre, count in genre_counts.most_common():
-        print(f"  {genre:<20} {count}")
 
-    for rank, candidate in enumerate(selected, start=1):
+    for genre, count in genre_counts.most_common():
         print(
-            f"{rank:03d} pop={candidate.popularity_score:6.1f} "
-            f"score={candidate.total_score} reviews={candidate.total_review_num} "
-            f"genres={candidate.genres} {candidate.title}"
+            f"  {genre:<20} {count}"
         )
+
+    for rank, candidate in enumerate(
+        selected,
+        start=1,
+    ):
+        print(
+            f"{rank:03d} "
+            f"pop={candidate.popularity_score:6.1f} "
+            f"score={candidate.total_score} "
+            f"reviews={candidate.total_review_num} "
+            f"genres={candidate.genres} "
+            f"{candidate.title}"
+        )
+
         print(candidate.url)
 
     print("\nWrote:")
