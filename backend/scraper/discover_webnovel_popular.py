@@ -13,6 +13,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from scraper.webnovel import HEADERS, scrape_webnovel
+from scraper.content_policy import EXCLUDED_TAGS_BY_SOURCE
 
 
 BASE_URL = "https://www.webnovel.com"
@@ -127,44 +128,9 @@ MIN_TOTAL_REVIEW_NUM = 5
 # Tags that indicate explicit sexual content on WebNovel. This is a
 # hard filter: any match excludes the novel regardless of popularity
 # or genre.
-EXCLUDED_TAGS = {
-    # explicit / mature labels
-    "adult", "adult content", "mature content",
-    "mature", "mature romance", "adult romance", "nsfw", "explicit",
-    "explicit content", "hentai", "ecchi", "sex stories", "sex story",
-    "smut", "erotica", "erotic", "erotic fiction", "steamy", "spicy",
-
-    # explicit-scene shorthand
-    "lemon", "lemons", "lime", "sex scene", "sex scenes",
-    "sexual content",
-
-    # harem / multi-partner
-    "harem", "reverse harem", "all male harem", "all female harem",
-    "harem seeking", "polygamy", "polyamory", "multiple partners",
-
-    # fetish / bdsm / non-consensual
-    "bdsm", "bondage", "domination", "domination play", "fetish",
-    "kink", "kinky", "submissive", "dominant", "master and slave",
-    "sex slave", "noncon", "non-con", "nonconsensual",
-    "non-consensual", "dubcon", "dub-con", "rape", "rape fantasy",
-    "netorare", "ntr", "netori", "cuckold",
-
-    # bestiality / extreme
-    "bestiality", "beastality",
-
-    # incest
-    "incest",
-
-    # pregnancy/breeding fetish framing
-    "mpreg", "breeding", "impregnation",
-
-    # omegaverse
-    "omegaverse", "alpha mate", "alpha romance",
-
-    # explicit-coded character/content descriptors seen in WebNovel
-    # Additional Tags lists
-    "milf", "loli", "legal loli", "lolicon", "shota", "shotacon",
-}
+# Shared with the Upload Novel feature. Edit the list in
+# scraper/content_policy.py, not here, so the two never drift apart.
+EXCLUDED_TAGS = EXCLUDED_TAGS_BY_SOURCE["webnovel"]
 
 
 @dataclass

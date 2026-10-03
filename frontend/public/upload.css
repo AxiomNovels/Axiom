@@ -133,3 +133,24 @@
     padding: 1rem;
   }
 }
+
+/* Content-policy rejection: the message, then the policy link on its own line.
+   The link is built in upload.js (showPolicyViolation). */
+.upload-form-success.is-policy-violation {
+  color: #fda4af;
+}
+
+.upload-policy-link {
+  display: block;
+  width: fit-content;
+  margin-top: 6px;
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.upload-policy-link:hover,
+.upload-policy-link:focus-visible {
+  color: #ffffff;
+}

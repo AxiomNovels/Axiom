@@ -27,19 +27,115 @@ function getUploadElements() {
   };
 }
 
+function renderPolicyMarkdown(text) {
+  const fragment = document.createDocumentFragment();
+
+  // Split into tokens while preserving the supported Markdown syntax.
+  const tokenPattern =
+    /(\*\*[^*\n]+\*\*|\*[^*\n]+\*|_[^_\n]+_|https?:\/\/[^\s<]+|\n)/g;
+
+  let lastIndex = 0;
+
+  for (const match of text.matchAll(tokenPattern)) {
+    const index = match.index;
+
+    // Plain text before this token.
+    if (index > lastIndex) {
+      fragment.appendChild(
+        document.createTextNode(text.slice(lastIndex, index))
+      );
+    }
+
+    const token = match[0];
+
+    if (token === "\n") {
+      fragment.appendChild(document.createElement("br"));
+    } else if (token.startsWith("**") && token.endsWith("**")) {
+      const strong = document.createElement("strong");
+      strong.textContent = token.slice(2, -2);
+      fragment.appendChild(strong);
+    } else if (
+      (token.startsWith("*") && token.endsWith("*")) ||
+      (token.startsWith("_") && token.endsWith("_"))
+    ) {
+      const em = document.createElement("em");
+      em.textContent = token.slice(1, -1);
+      fragment.appendChild(em);
+    } else if (/^https?:\/\//.test(token)) {
+      const link = document.createElement("a");
+      link.href = token;
+      link.textContent = token;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      fragment.appendChild(link);
+    } else {
+      fragment.appendChild(document.createTextNode(token));
+    }
+
+    lastIndex = index + token.length;
+  }
+
+  // Remaining plain text.
+  if (lastIndex < text.length) {
+    fragment.appendChild(
+      document.createTextNode(text.slice(lastIndex))
+    );
+  }
+
+  return fragment;
+}
+
+// Must match POLICY_VIOLATION_CODE in backend/scraper/content_policy.py.
+const CONTENT_POLICY_CODE = "content_policy_violation";
+const POLICY_URL = "/mission.html";
+
 function showError(errorEl, message) {
   errorEl.textContent = message;
-  errorEl.classList.remove("is-hidden");
+  errorEl.classList.remove("is-hidden", "is-policy-violation");
 }
 
 function clearMessage(el) {
   el.textContent = "";
   el.classList.add("is-hidden");
+  el.classList.remove("is-policy-violation");
 }
 
 function showMessage(el, message) {
   el.textContent = message;
+  el.classList.remove("is-hidden", "is-policy-violation");
+}
+
+// The API answers a novel that breaks the content policy with a structured
+// detail ({ code, message }) rather than a plain string.
+function isPolicyViolation(detail) {
+  return Boolean(detail) && typeof detail === "object" && detail.code === CONTENT_POLICY_CODE;
+}
+
+// "<message>" followed by a "Learn more about our policy" link, which opens in
+// a new tab so the reader doesn't lose the form they were filling in.
+function showPolicyViolation(el, detail) {
+  el.replaceChildren();
+
+  const message = document.createElement("span");
+  message.appendChild(
+    renderPolicyMarkdown(
+      detail.message || "This novel violates our content policy."
+    )
+  );
+  el.appendChild(message);
+
+  el.appendChild(document.createElement("br"));
+
+  const link = document.createElement("a");
+  link.className = "upload-policy-link";
+  link.href = POLICY_URL;
+  link.target = "_blank";
+  link.rel = "noopener";
+  link.textContent = "Learn more about our policy";
+  el.appendChild(link);
+
   el.classList.remove("is-hidden");
+  el.classList.add("is-policy-violation");
 }
 
 // "<prefix> <link to the novel>" -- used for both "Added to Axiom" and
@@ -51,7 +147,7 @@ function showNovelLink(el, prefix, novelId, title) {
   link.href = `/novel.html?id=${encodeURIComponent(novelId)}`;
   link.textContent = title || "View novel";
   el.appendChild(link);
-  el.classList.remove("is-hidden");
+  el.classList.remove("is-hidden", "is-policy-violation");
 }
 
 // Chapter counts are optional -- a source page may not expose one,
@@ -306,6 +402,11 @@ async function handleSearch(event, elements) {
 
     const result = await response.json().catch(() => ({}));
 
+    if (isPolicyViolation(result.detail)) {
+      showPolicyViolation(elements.errorEl, result.detail);
+      return;
+    }
+
     if (!response.ok) {
       showError(
         elements.errorEl,
@@ -334,6 +435,7 @@ async function handleAdd(elements) {
   elements.addButton.textContent = "Adding...";
   showMessage(elements.successEl, "Saving the novel and its protagonist profile...");
   let added = false;
+  let blocked = false;
 
   try {
     const response = await authFetch(`${API_BASE}/api/novels`, {
@@ -352,6 +454,12 @@ async function handleAdd(elements) {
     if (response.status === 409) {
       const detail = result.detail || {};
       showNovelLink(elements.successEl, "Novel already exists", detail.novel_id, detail.title);
+      return;
+    }
+
+    if (isPolicyViolation(result.detail)) {
+      showPolicyViolation(elements.successEl, result.detail);
+      blocked = true;
       return;
     }
 
@@ -380,7 +488,7 @@ async function handleAdd(elements) {
     showMessage(elements.successEl, "Couldn't reach the backend. Make sure it is running on port 8000.");
   } finally {
     elements.addButton.textContent = "Add to Axiom";
-    elements.addButton.disabled = added;
+    elements.addButton.disabled = added || blocked;
   }
 }
 

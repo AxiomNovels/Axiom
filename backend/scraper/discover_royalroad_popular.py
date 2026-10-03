@@ -71,6 +71,7 @@ from scraper.royalroad import (
     ROYAL_ROAD_GENRES,
     scrape_royalroad,
 )
+from scraper.content_policy import EXCLUDED_TAGS_BY_SOURCE
 
 
 # ---------------------------------------------------------------------
@@ -118,19 +119,9 @@ POPULAR_SEED_URLS = BROAD_SEED_URLS + GENRE_SEED_URLS
 
 # Tags that indicate explicit sexual content. This is a hard filter:
 # any match excludes the fiction regardless of popularity or genre.
-EXCLUDED_TAGS = {
-    "sexual content",
-    "harem",
-    "multiple love interests",
-    "competing love interest",
-    "competing love interests",
-    "royal harem",
-    "multiple lovers",
-    "reverse harem",
-    "smut",
-    "erotica",
-    "erotic",
-}
+# Shared with the Upload Novel feature. Edit the list in
+# scraper/content_policy.py, not here, so the two never drift apart.
+EXCLUDED_TAGS = EXCLUDED_TAGS_BY_SOURCE["royalroad"]
 
 # Hard popularity floor. Only enforced when the metric is successfully
 # extracted -- a missing metric is recorded in the audit rather than

@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
@@ -5,11 +7,18 @@ from services import novel_profiling_service as novel_profiling
 from services.recommendation_service import recommend_novels
 from core.auth import get_current_user
 from core.database import create_service_client, supabase
+from scraper.content_policy import (
+    POLICY_VIOLATION_CODE,
+    POLICY_VIOLATION_MESSAGE,
+    find_policy_violations,
+)
 from scraper.royalroad import scrape_royalroad
 from scraper.transform import transform_royalroad, transform_wattpad, transform_webnovel
 from scraper.wattpad import scrape_wattpad
 from scraper.webnovel import scrape_webnovel
 
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/novels", tags=["novels"])
 
@@ -45,13 +54,20 @@ class NovelCreateRequest(NovelSourceRequest):
     profile_token: str | None = Field(default=None, max_length=20_000)
 
 
-def _scrape_and_transform(payload: NovelSourceRequest) -> dict:
+def _scrape_and_transform(payload: NovelSourceRequest, user_id: str | None = None) -> dict:
     """Run the matching scraper + transformer for a user-submitted URL.
 
     Any failure -- an unrecognized source, a URL from the wrong site, a
     dead link, or a page the parser can't make sense of -- collapses to
     the same user-facing message, since none of those are meaningfully
     distinguishable to someone pasting a link into the form.
+
+    This is also the single place the content policy is enforced for
+    uploads. Both the preview (POST /scrape) and the add step (POST "")
+    go through here, so a novel that breaks the policy is rejected before
+    anything is profiled or written, and can't be added by calling the
+    add endpoint directly. The same tag lists back the discover_*_popular.py
+    scripts (see scraper/content_policy.py).
     """
     handler = SOURCE_HANDLERS.get(payload.source)
     url = payload.url.strip()
@@ -66,6 +82,21 @@ def _scrape_and_transform(payload: NovelSourceRequest) -> dict:
         novel = transform_fn(raw_payload)
     except Exception:
         raise HTTPException(status_code=422, detail=INVALID_SOURCE_MESSAGE)
+
+    # Deliberately outside the try block above: it would otherwise swallow
+    # this error and report it as an invalid URL.
+    violations = find_policy_violations(payload.source, novel)
+    if violations:
+        # Which tags matched is logged for moderators but not shown to the
+        # uploader, who only needs to know the novel isn't eligible.
+        logger.info(
+            "Upload rejected by content policy: %r (%s) from user %s matched %s",
+            novel.get("title"), url, user_id, violations,
+        )
+        raise HTTPException(
+            status_code=422,
+            detail={"code": POLICY_VIOLATION_CODE, "message": POLICY_VIOLATION_MESSAGE},
+        )
 
     return novel
 
@@ -232,7 +263,7 @@ def preview_novel(payload: NovelSourceRequest, auth=Depends(get_current_user)):
     fields are still returned with a notice explaining why.
     """
     user_id, _client = auth
-    novel = _scrape_and_transform(payload)
+    novel = _scrape_and_transform(payload, user_id)
 
     # Don't spend LLM calls on a novel that can't be added anyway. If the
     # lookup itself fails, carry on: the add step re-checks for duplicates.
@@ -269,7 +300,7 @@ def add_novel(payload: NovelCreateRequest, auth=Depends(get_current_user)):
     which profiles were saved.
     """
     user_id, client = auth
-    novel = _scrape_and_transform(payload)
+    novel = _scrape_and_transform(payload, user_id)
 
     existing_novel = _find_existing_novel(novel)
     if existing_novel:
