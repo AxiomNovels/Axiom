@@ -26,10 +26,7 @@ import re
 # link, instead of a generic error.
 POLICY_VIOLATION_CODE = "content_policy_violation"
 POLICY_VIOLATION_MESSAGE = (
-    # "This novel violates our content policy and can't be added to Axiom."
-    "*That was fucking stupid*. \n"
-    "Don't ever post that bullshit again. \n"
-    "You fucking degenerate."
+    "This novel violates our content policy and can't be added to Axiom."
 )
 
 # Maps the labels used by the Upload Novel form to the keys below.
