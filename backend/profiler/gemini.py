@@ -35,6 +35,45 @@ IDENTIFICATION_SCHEMA = {
 }
 
 
+def _api_status(body: str) -> str | None:
+    """The `error.status` string Gemini puts in its error body, e.g.
+    "RESOURCE_EXHAUSTED" or "UNAVAILABLE". None if the body isn't that shape."""
+    try:
+        data = json.loads(body)
+    except ValueError:
+        return None
+    if isinstance(data, list) and data:
+        data = data[0]
+    error = data.get("error") if isinstance(data, dict) else None
+    status = error.get("status") if isinstance(error, dict) else None
+    return status if isinstance(status, str) else None
+
+
+class GeminiAPIError(RuntimeError):
+    """The Gemini API answered with an HTTP error status.
+
+    This is a RuntimeError with exactly the same message as before, so every
+    existing `except RuntimeError` (the profiler CLI, the upload flow) behaves
+    as it always did. Callers that need to react to a specific failure, such as
+    scraper/publish.py, can read status_code / api_status or the two helpers.
+    """
+
+    def __init__(self, status_code: int, body: str):
+        self.status_code = status_code
+        self.api_status = _api_status(body)
+        super().__init__(f"Gemini API returned HTTP {status_code}: {body[:1000]}")
+
+    @property
+    def is_rate_limited(self) -> bool:
+        """429 Too Many Requests / RESOURCE_EXHAUSTED."""
+        return self.status_code == 429 or self.api_status == "RESOURCE_EXHAUSTED"
+
+    @property
+    def is_unavailable(self) -> bool:
+        """503 Service Unavailable / UNAVAILABLE."""
+        return self.status_code == 503 or self.api_status == "UNAVAILABLE"
+
+
 def response_schema(measures) -> dict:
     return {
         "type": "OBJECT",
@@ -141,8 +180,8 @@ def request_structured(
         with urlopen(request, timeout=timeout) as response:
             body = json.loads(response.read().decode("utf-8"))
     except HTTPError as error:
-        details = error.read().decode("utf-8", errors="replace")[:1000]
-        raise RuntimeError(f"Gemini API returned HTTP {error.code}: {details}") from error
+        details = error.read().decode("utf-8", errors="replace")
+        raise GeminiAPIError(error.code, details) from error
     except URLError as error:
         raise RuntimeError(f"Could not reach Gemini API: {error.reason}") from error
 
