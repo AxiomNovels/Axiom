@@ -1,7 +1,7 @@
 """Generate a protagonist baseline for one novel.
 
 Run from backend:
-    python -m profiler.profile_novel NOVEL_ID --protagonist "Name" -- save
+    python -m profiler.profile_novel NOVEL_ID --protagonist "Name" --save
 """
 
 import argparse
@@ -73,18 +73,22 @@ def print_preview(
     confidence_text = str(name_confidence) if name_confidence is not None else "n/a"
     print(f"Protagonist source:        {name_source} (confidence: {confidence_text})")
     labels = {
-        "impulsivity": "Impulsivity",
-        "arrogance_pride": "Ego",
+        "intellectual_drive": "Intellectual Drive",
+        "arrogance_pride": "Arrogance & Pride",
         "kinship_friendship": "Kinship and Friendship",
         "romantic_attachment": "Romantic Attachment",
-        "sexual_desire": "Lust",
-        "selflessness": "Selflessness",
+        "selflessness_selfishness": "Selfishness / Selflessness",
+        "pragmatism_morality": "Pragmatism / Morality",
+        "individualist_collectivist": "Individualist / Collectivist",
+        "ambition": "Ambition",
+        "cautious_risk_taker": "Cautious / Risk-taker",
+        "leadership": "Leadership",
     }
     for measure in MEASURES:
-        print(f"{labels[measure]:25} {result['scores'][measure]:3}")
-    print(f"{'Confidence':25} {result['confidence']:3}")
-    print(f"Comments analyzed:         {comment_count}")
-    print(f"Comment source:            {', '.join(comment_sources) or 'None'}")
+        print(f"{labels.get(measure, measure):30} {result['scores'][measure]:3}")
+    print(f"{'Confidence':30} {result['confidence']:3}")
+    print(f"Comments analyzed:             {comment_count}")
+    print(f"Comment source:                {', '.join(comment_sources) or 'None'}")
     print(f"Evidence: {result['evidence_summary']}")
 
 
@@ -178,3 +182,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+    

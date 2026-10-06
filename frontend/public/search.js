@@ -1,7 +1,8 @@
 const PROFILE_LABELS = {
-  impulsivity:"Impulsivity", arrogance_pride:"Ego", kinship_friendship:"Kinship & friendship",
-  romantic_attachment:"Romantic attachment", sexual_desire:"Lust", selflessness:"Selflessness",
-
+  intellectual_drive:"Intellectual drive", arrogance_pride:"Arrogance & pride", kinship_friendship:"Kinship & friendship",
+  romantic_attachment:"Romantic attachment", selflessness_selfishness:"Selfishness / selflessness",
+  pragmatism_morality:"Pragmatism / morality", individualist_collectivist:"Individualist / collectivist",
+  ambition:"Ambition", cautious_risk_taker:"Cautious / risk-taker", leadership:"Leadership",
 };
 
 function showActiveFilters(params) {

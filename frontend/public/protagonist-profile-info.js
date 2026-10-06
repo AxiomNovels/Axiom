@@ -1,104 +1,172 @@
 const TRAIT_GUIDES = [
   {
-    name: "Impulsivity", low: "Deliberate", high: "Impulsive",
-    description: "How readily the protagonist acts before thinking through consequences. It measures decision style, not intelligence or speed.",
+    name: "Intellectual drive", low: "Absent", high: "Defining",
+    description: "How strongly the protagonist is motivated by curiosity, understanding, investigation, learning, experimentation, or discovery. It measures motivation, not intelligence, education, or competence.",
     levels: [
-      "Explicitly and consistently deliberate; refusing rash action is central to their identity.",
-      "Almost always plans first, with only an isolated rushed or emotional decision.",
-      "Mostly deliberate, though evidence may be sparse or a few questionable choices appear.",
-      "Occasionally acts too quickly, but reflection and planning remain the norm.",
-      "A noticeable mix: impulsive choices recur without defining their behavior.",
-      "Equally likely to plan or act on instinct depending on the situation.",
-      "Frequently acts first and deals with consequences later, though capable of restraint.",
-      "Impulsive decisions regularly redirect the plot or create serious problems.",
-      "Strongly driven by immediate emotion, instinct, or opportunity rather than forethought.",
-      "Rarely pauses to consider consequences even when the risks are obvious.",
-      "Extreme impulsivity is a defining identity; virtually every major choice is immediate and unrestrained."
+      "No meaningful interest in exploring, understanding, or discovering things; intellectual exploration is not part of their characterization.",
+      "Almost no intellectual curiosity, with only isolated practical learning.",
+      "Curiosity is weak, incidental, or supported mainly by limited evidence.",
+      "Sometimes investigates, learns, or asks questions beyond immediate necessity, but it remains secondary.",
+      "Curiosity or learning regularly influences behavior but is not a major motivation.",
+      "Intellectual exploration is a clear recurring motivation alongside other goals.",
+      "Frequently seeks knowledge, investigates systems, or experiments even when it is not strictly necessary.",
+      "Intellectual discovery or understanding materially shapes major decisions and plot development.",
+      "Curiosity, investigation, experimentation, or mastery of knowledge is one of their principal motivations.",
+      "Intellectual exploration is a defining part of their identity and drives many major choices, sacrifices, or conflicts.",
+      "The pursuit of understanding is one of the dominant themes of their story and virtually inseparable from their major decisions."
     ]
   },
   {
-    name: "Ego", low: "Humble", high: "Egotistical",
-    description: "How strongly superiority, ego, status, or refusal to yield shapes the protagonist’s self-image and decisions.",
+    name: "Arrogance & pride", low: "Humble", high: "Egotistical",
+    description: "How strongly pride, ego, status-consciousness, and a sense of superiority shape the protagonist, including resistance to admitting weakness. Confidence or competence alone does not establish arrogance.",
     levels: [
-      "Explicitly humble; lack of ego is repeatedly emphasized as a core quality.",
-      "Very modest, with only rare flashes of pride or sensitivity about status.",
-      "Generally humble, or pride is largely outside the story and weakly evidenced.",
-      "Shows occasional pride, competitiveness, or reluctance to admit fault.",
-      "Pride is noticeable and sometimes affects relationships or decisions.",
-      "Balances confidence and humility; ego matters but does not consistently lead.",
-      "Often proud and status-conscious, with recurring difficulty yielding or apologizing.",
-      "Arrogance regularly shapes judgments, conflicts, and treatment of others.",
-      "Assumes superiority and resists humiliation or correction in most situations.",
-      "Overwhelming ego governs major choices despite repeated consequences.",
-      "Extreme arrogance is defining; the protagonist consistently treats their superiority as unquestionable."
+      "Explicit, defining humility and little concern for status or superiority.",
+      "Very modest, with rare or minor expressions of pride.",
+      "Generally humble, or evidence of ego is weak and limited.",
+      "Occasional pride, competitiveness, sensitivity to disrespect, or a desire to prove themselves.",
+      "Pride sometimes affects behavior or decisions but remains secondary.",
+      "Confidence and humility are broadly balanced.",
+      "Often proud, status-conscious, or sensitive to challenges to their competence or dignity.",
+      "Arrogance or pride regularly shapes conflict, judgment, relationships, or choices.",
+      "Commonly assumes superiority, strongly resists humiliation, or places substantial importance on status and personal greatness.",
+      "Overwhelming ego or pride governs many major choices and relationships.",
+      "Unquestioned superiority or extreme ego is a defining feature of virtually every major decision and interaction."
     ]
   },
   {
     name: "Kinship & friendship", low: "Detached", high: "Devoted",
     description: "How strongly family, friendship, loyalty, and chosen bonds motivate the protagonist. It measures influence on decisions, not the number of acquaintances.",
     levels: [
-      "The story explicitly establishes no meaningful personal bonds, and detachment is central to the character.",
-      "Nearly isolated; one faint bond may exist but has almost no influence.",
-      "Relationships are not part of the main storyline, evidence is unclear, or bonds remain weak.",
-      "A few connections matter emotionally but rarely alter important decisions.",
-      "Friends or family sometimes motivate action, though personal goals usually come first.",
-      "Bonds and individual priorities carry roughly equal weight.",
-      "Relationships frequently affect risks, loyalties, and important choices.",
+      "Explicit, defining detachment or absence of meaningful bonds.",
+      "Nearly isolated, with at most one faint or weak bond.",
+      "Relationships are outside the main story, unclear, or only weakly meaningful.",
+      "A few bonds matter emotionally but rarely determine important choices.",
+      "Friendships or family relationships sometimes motivate meaningful action.",
+      "Close relationships and personal priorities receive roughly equal weight.",
+      "Relationships frequently affect risks, loyalties, priorities, or major decisions.",
       "Protecting or supporting close people is a major recurring motivation.",
-      "Deep loyalty governs many central decisions, often at substantial personal cost.",
-      "The protagonist repeatedly sacrifices major goals or safety for loved ones.",
-      "Devotion to family or friends is defining and dominates virtually every major choice."
+      "Deep loyalty to friends, family, or comrades drives major sacrifices and decisions.",
+      "Repeatedly accepts severe losses, danger, or setbacks for loved ones or close companions.",
+      "Devotion to close relationships dominates virtually every major choice, above personal interests."
     ]
   },
   {
     name: "Romantic attachment", low: "Unattached", high: "Romance-driven",
-    description: "How strongly romantic love or attachment influences the protagonist’s inner life and choices. It is separate from lust and sexual behavior.",
+    description: "How strongly romantic love, attachment to a partner, or pursuit of a romantic relationship motivates the protagonist. A slow-burning romance describes pacing, not weakness.",
     levels: [
-      "Romantic attachment is explicitly absent: the protagonist’s heart never wavers, and the story treats this as part of their identity.",
-      "Almost entirely unattached, with at most one slight or ambiguous emotional moment.",
-      "Romance is outside the main storyline, barely discussed, or evidence is too limited for a stronger score.",
-      "Minor attraction or a slow, early bond appears without materially driving the plot.",
-      "A recurring romantic relationship or attachment matters, but remains secondary.",
-      "Romance is a clear and regular motivation alongside other equally important goals.",
-      "Romantic attachment materially shapes several major decisions or risks.",
-      "The relationship is one of the protagonist’s principal emotional and narrative motivations.",
-      "Love repeatedly outweighs safety, strategy, duty, or other major priorities.",
-      "Nearly every defining choice is organized around a romantic partner or attachment.",
-      "Romantic attachment wholly defines the protagonist’s motivations and dominates the story."
+      "Explicitly absent: romantic life is genuinely irrelevant to their characterization, and the story treats this as meaningful.",
+      "Almost entirely unattached, with only an ambiguous or negligible romantic element.",
+      "Romance is outside the main story, evidence is unclear, or attraction has little meaningful influence.",
+      "Minor attraction or an early, limited romantic bond with little effect on the plot.",
+      "A recurring romantic relationship or attachment exists but remains secondary.",
+      "Romance is a clear and regular motivation alongside other major priorities.",
+      "Romantic attachment materially shapes several important decisions.",
+      "Romantic love or pursuit is one of their principal motivations.",
+      "Love repeatedly outweighs safety, strategy, ambition, duty, or other major goals.",
+      "Nearly every defining choice is substantially influenced by a romantic partner or attachment.",
+      "Romance wholly dominates their major motivations and decisions."
     ]
   },
   {
-    name: "Lust", low: "Absent", high: "Very lustful",
-    description: "How strongly sexual desire appears and influences behavior. It is separate from romantic devotion, affection, or emotional attachment.",
+    name: "Selfishness / selflessness", low: "Self-interested", high: "Self-sacrificing",
+    description: "How readily the protagonist places other people's welfare above their own interests, safety, and ambitions. Helping others is not automatically selflessness: personal cost and a genuinely other-directed motive matter.",
     levels: [
-      "Lust is explicitly absent: the protagonist never wavers sexually, and this absence is specifically established by the story.",
-      "Sexual desire is nearly absent, with only one or two slight or questionable moments.",
-      "Lust is not part of the main storyline, comments provide little evidence, or available evidence is unclear.",
-      "Some lust or attraction is present, but it remains occasional and has little effect on decisions.",
-      "Sexual desire recurs and is clearly acknowledged, though it remains secondary.",
-      "Lust is a regular motivation but shares influence with relationships, goals, and restraint.",
-      "Sexual desire frequently influences attention, relationships, or meaningful choices.",
-      "Lust strongly motivates repeated behavior and produces notable consequences.",
-      "Sexual pursuit is prominent and regularly outweighs judgment or other priorities.",
-      "The protagonist is persistently lust-driven across most relevant situations.",
-      "Extreme lust is a defining characteristic and dominates virtually all relationships and choices."
+      "Explicit, defining refusal to sacrifice for others and a consistent prioritization of personal interests.",
+      "Nearly always prioritizes themselves and rarely accepts meaningful costs for other people.",
+      "Mostly self-interested, or altruism is weakly evidenced.",
+      "Helps others at little personal cost but rarely gives up something important for them.",
+      "Recurring generosity or concern for others, but personal goals usually come first.",
+      "Balances their own interests and the interests of others.",
+      "Often accepts meaningful inconvenience, risk, expense, or lost opportunities for other people.",
+      "Regularly sacrifices meaningful resources, opportunities, safety, or goals for others.",
+      "Other people's welfare usually outweighs their own ambition or comfort.",
+      "Repeatedly accepts severe personal loss, danger, or deprivation to protect or benefit others.",
+      "Extreme self-sacrifice is defining: consistently places others' welfare above their own survival, ambitions, freedom, or happiness."
     ]
   },
   {
-    name: "Selflessness", low: "Self-interested", high: "Self-sacrificing",
-    description: "How readily the protagonist places other people’s welfare above personal benefit, safety, or ambition.",
+    name: "Pragmatism / morality", low: "Pragmatic", high: "Principled",
+    description: "How strongly the protagonist holds to moral principles when they conflict with practical advantage. Being kind or heroic is not enough for a high score, and being effective or strategic is not enough for a low one.",
     levels: [
-      "Explicitly self-interested; refusal to sacrifice for others is central to their identity.",
-      "Almost always prioritizes personal gain, with only a rare minor act for someone else.",
-      "Mostly self-interested, or altruistic behavior is weakly evidenced and outside the main story.",
-      "Sometimes helps others when the personal cost is small or interests overlap.",
-      "Shows recurring generosity, but generally protects their own goals first.",
-      "Balances personal needs and others’ welfare with no consistent priority.",
-      "Often accepts inconvenience or risk for others, though limits remain.",
-      "Regularly sacrifices meaningful opportunities, resources, or safety for others.",
-      "Other people’s welfare usually outweighs personal ambition and comfort.",
-      "Repeatedly accepts severe personal loss to protect or benefit others.",
-      "Extreme self-sacrifice is defining; the protagonist consistently places everyone else before themselves."
+      "Strongly pragmatic or amoral, readily abandoning moral principles whenever it advances their goals.",
+      "Practical outcomes overwhelmingly determine decisions, with little resistance to morally questionable methods.",
+      "Generally pragmatic and flexible about moral boundaries.",
+      "Has some moral limits but frequently compromises them for practical reasons.",
+      "Morality matters but is often negotiable when stakes are high.",
+      "Practical considerations and moral principles are broadly balanced.",
+      "Usually tries to preserve moral principles even when doing so is costly or inefficient.",
+      "Ethical principles regularly constrain important decisions and methods.",
+      "Strongly prioritizes doing what they believe is right even at substantial practical cost.",
+      "A consistent moral code governs most major choices, even when violating it would bring obvious benefits.",
+      "Principled morality is defining: they would accept extreme loss, danger, or failure rather than knowingly violate their core ethics."
+    ]
+  },
+  {
+    name: "Individualist / collectivist", low: "Individualist", high: "Collectivist",
+    description: "Whether the protagonist understands themselves and decides as an independent individual or as a member of a group, community, family, or organization. Strong friendships or selflessness do not by themselves make a protagonist collectivist.",
+    levels: [
+      "Extreme individualism: personal autonomy and independent goals dominate, and group-based obligations or identity are strongly resisted.",
+      "Highly self-directed; rarely lets group expectations constrain important choices.",
+      "Generally prioritizes personal autonomy but maintains some meaningful group ties.",
+      "Mostly independent while accepting some obligations to groups or communities.",
+      "Individual priorities usually come first, but group identity and obligations are meaningful.",
+      "Individual autonomy and collective belonging are of roughly equal importance.",
+      "Regularly weighs the needs, expectations, or interests of their group alongside their own.",
+      "Group loyalty, community identity, or collective goals frequently influence major decisions.",
+      "Strongly identifies with and prioritizes a family, community, faction, nation, or organization.",
+      "Collective welfare and group obligations routinely outweigh personal preferences, ambitions, or safety.",
+      "Collectivism is defining: identity and virtually all major decisions are organized around belonging to and serving a collective."
+    ]
+  },
+  {
+    name: "Ambition", low: "Unambitious", high: "Power-hungry",
+    description: "How strongly the protagonist actively pursues advancement, power, status, wealth, influence, achievement, or mastery. Being powerful is not the same as wanting power.",
+    levels: [
+      "Virtually no desire for advancement; content with their existing circumstances.",
+      "Advancement is rarely desired and they generally accept their position.",
+      "Ambition is weak, secondary, or supported mainly by limited evidence.",
+      "Has some aspirations but rarely lets them drive major decisions.",
+      "Advancement is a recurring goal but remains secondary to other motivations.",
+      "Consistently wants to improve their position, abilities, or status, balanced against other major priorities.",
+      "Ambition frequently influences important choices; actively seeks opportunities for advancement.",
+      "Becoming stronger, more successful, influential, or powerful is a major recurring motivation.",
+      "Ambition is a principal motivation and regularly outweighs comfort, safety, relationships, or other interests.",
+      "Relentless advancement governs most major choices, accepting substantial costs to keep progressing.",
+      "Extreme hunger for power is defining: continual advancement dominates virtually every major decision."
+    ]
+  },
+  {
+    name: "Cautious / risk-taker", low: "Cautious", high: "Risk-taking",
+    description: "The protagonist's willingness to accept uncertainty, danger, or loss in pursuit of a goal. It is separate from impulsivity (a careful planner can still be an extreme risk-taker), and being placed in dangerous situations does not by itself make someone a risk-taker.",
+    levels: [
+      "Extreme caution: consistently avoids unnecessary danger and strongly prioritizes minimizing uncertainty and loss.",
+      "Highly cautious; takes serious risks only under exceptional circumstances.",
+      "Generally avoids unnecessary risks, with limited evidence of risk-taking.",
+      "Somewhat cautious but accepts manageable risks when justified.",
+      "Usually weighs risks carefully but sometimes accepts substantial uncertainty.",
+      "Caution and risk-taking are broadly balanced.",
+      "Regularly accepts significant risks when opportunities or goals justify them.",
+      "Frequently chooses dangerous or uncertain approaches despite safer alternatives.",
+      "Actively embraces major risks and treats danger as an acceptable cost of pursuing their goals.",
+      "Extreme risk-taking is common: repeatedly accepts severe danger or potentially catastrophic consequences.",
+      "Reckless risk-taking is defining, routinely choosing highly dangerous courses of action despite obvious consequences."
+    ]
+  },
+  {
+    name: "Leadership", low: "Non-leader", high: "Defining leader",
+    description: "How strongly the protagonist takes responsibility for directing, organizing, motivating, protecting, or governing other people. Charisma, popularity, competence, or power alone do not establish leadership.",
+    levels: [
+      "Does not meaningfully lead others and consistently avoids leadership responsibilities when they arise.",
+      "Almost always follows others and has little interest in directing or organizing people.",
+      "Leadership is outside the main story, unclear, or limited to isolated situations.",
+      "Occasionally takes charge in small or temporary situations.",
+      "Sometimes organizes or directs others, but leadership remains secondary.",
+      "Regularly takes responsibility for coordinating or directing others while also functioning comfortably as a peer or follower.",
+      "Leadership frequently affects their role, relationships, and decisions.",
+      "A significant leader whose decisions materially affect a group, organization, party, community, or faction.",
+      "Leadership is one of their principal roles; regularly accepts responsibility for others' actions, welfare, or direction.",
+      "A major leader whose ability to organize, command, inspire, or govern drives much of the story.",
+      "Leadership is defining: identity and virtually all major choices are tied to directing, protecting, organizing, or governing others."
     ]
   }
 ];

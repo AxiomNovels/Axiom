@@ -1,8 +1,11 @@
 let voteView = null;
 let voteViewVersion = 0;
 const VOTE_LABELS = {
-  impulsivity: "Impulsivity", arrogance_pride: "Ego", kinship_friendship: "Kinship and Friendship",
-  romantic_attachment: "Romantic Attachment", sexual_desire: "Lust", selflessness: "Selflessness",
+  intellectual_drive: "Intellectual Drive", arrogance_pride: "Arrogance & Pride",
+  kinship_friendship: "Kinship and Friendship", romantic_attachment: "Romantic Attachment",
+  selflessness_selfishness: "Selfishness / Selflessness", pragmatism_morality: "Pragmatism / Morality",
+  individualist_collectivist: "Individualist / Collectivist", ambition: "Ambition",
+  cautious_risk_taker: "Cautious / Risk-taker", leadership: "Leadership",
 };
 
 async function deleteAllUserVotes(id, name) {
@@ -35,7 +38,7 @@ async function openVotes(kind, id, name, page = 1, scroll = true) {
   if (data.summary) {
     const summary = data.summary;
     host.append(element("p", `${summary.voter_count} reader${summary.voter_count === 1 ? "" : "s"} · ${summary.vote_count} trait vote${summary.vote_count === 1 ? "" : "s"}. The default counts as one score in each unlocked trait's average.`));
-    if (!summary.eligible) host.append(element("p", "Voting opens when all six protagonist scores are filled in, including zeros."));
+    if (!summary.eligible) host.append(element("p", "Voting opens when all ten protagonist scores are filled in, including zeros."));
     host.append(element("p", summary.scores_locked
       ? "Scores locked. Votes are collected without changing the displayed profile. Moderators can still edit scores."
       : "Scores unlocked. Reader votes can change this profile."));

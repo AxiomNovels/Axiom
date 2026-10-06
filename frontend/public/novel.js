@@ -2,24 +2,21 @@
 // for the info page. Kept here too so this page can render nice labels
 // without depending on that endpoint existing yet.
 const TRAIT_LABELS = {
-  // Protagonist Profile
-  impulsivity: "Impulsivity",
-  arrogance_pride: "Ego",
+  // Protagonist Profile. Slash labels read low -> high (0 -> 100).
+  intellectual_drive: "Intellectual Drive",
+  arrogance_pride: "Arrogance & Pride",
   kinship_friendship: "Kinship and Friendship",
   romantic_attachment: "Romantic Attachment",
-  sexual_desire: "Lust",
-  selflessness: "Selflessness",
-
+  selflessness_selfishness: "Selfishness / Selflessness",
+  pragmatism_morality: "Pragmatism / Morality",
+  individualist_collectivist: "Individualist / Collectivist",
+  ambition: "Ambition",
+  cautious_risk_taker: "Cautious / Risk-taker",
+  leadership: "Leadership",
 };
 
-const PROTAGONIST_MEASURES = [
-  { key: "impulsivity" },
-  { key: "arrogance_pride" },
-  { key: "kinship_friendship" },
-  { key: "romantic_attachment" },
-  { key: "sexual_desire" },
-  { key: "selflessness" },
-];
+// Display order follows TRAIT_LABELS.
+const PROTAGONIST_MEASURES = Object.keys(TRAIT_LABELS).map((key) => ({ key }));
 
 function getNovelIdFromUrl() {
   return new URLSearchParams(window.location.search).get("id");
@@ -37,12 +34,15 @@ function renderTraitRow(key, score) {
   track.className = "trait-bar-track";
   const fill = document.createElement("div");
   fill.className = "trait-bar-fill";
-  fill.style.width = `${Math.max(0, Math.min(100, score))}%`;
+  // A trait with no saved score yet (e.g. a novel not re-profiled since the
+  // trait set changed) shows an empty bar and a dash instead of a misleading 0.
+  const hasScore = Number.isFinite(score);
+  fill.style.width = hasScore ? `${Math.max(0, Math.min(100, score))}%` : "0%";
   track.appendChild(fill);
 
   const scoreEl = document.createElement("div");
   scoreEl.className = "trait-score";
-  scoreEl.textContent = score;
+  scoreEl.textContent = hasScore ? score : "\u2014";
 
   row.appendChild(label);
   row.appendChild(track);
@@ -66,7 +66,8 @@ function renderProtagonistProfile(profile) {
   }
 
   PROTAGONIST_MEASURES.forEach((measure) => {
-    const score = normalizedScore(profile[measure.key]);
+    const raw = profile[measure.key];
+    const score = raw === null || raw === undefined ? null : normalizedScore(raw);
     const element = renderTraitRow(measure.key, score);
 
     if (!measure.poles) {

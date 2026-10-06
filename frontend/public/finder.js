@@ -1,10 +1,14 @@
 const PROFILE_MEASURES = [
-  ["impulsivity", "Impulsivity", "Deliberate", "Impulsive"],
-  ["arrogance_pride", "Ego", "Humble", "Egotistical"],
+  ["intellectual_drive", "Intellectual drive", "Absent", "Defining"],
+  ["arrogance_pride", "Arrogance & pride", "Humble", "Egotistical"],
   ["kinship_friendship", "Kinship & friendship", "Detached", "Devoted"],
   ["romantic_attachment", "Romantic attachment", "Unattached", "Romantic"],
-  ["sexual_desire", "Lust", "Absent", "Dominant"],
-  ["selflessness", "Selflessness", "Self-interested", "Self-sacrificing"]
+  ["selflessness_selfishness", "Selfishness / selflessness", "Self-interested", "Self-sacrificing"],
+  ["pragmatism_morality", "Pragmatism / morality", "Pragmatic", "Principled"],
+  ["individualist_collectivist", "Individualist / collectivist", "Individualist", "Collectivist"],
+  ["ambition", "Ambition", "Unambitious", "Power-hungry"],
+  ["cautious_risk_taker", "Cautious / risk-taker", "Cautious", "Risk-taking"],
+  ["leadership", "Leadership", "Non-leader", "Leader"]
 ];
 
 
@@ -286,7 +290,7 @@ function renderSelectedTags() {
       const remove = document.createElement("button");
       remove.type = "button";
       remove.className = "tag-remove";
-      remove.textContent = "×";
+      remove.textContent = "ï¿½";
       remove.setAttribute("aria-label", `Remove ${tag} from ${mode === "include" ? "included" : "excluded"} tags`);
       remove.addEventListener("click", () => {
         selectedTags[mode].delete(tag);

@@ -39,8 +39,8 @@ def test_relationship_evidence_is_prioritized_and_has_score_floors():
         "Example Hero",
         selected,
     )
-    assert "confirmed slow/minor romance >=25" in prompt
-    assert "pregnancy, or children normally >=25" in prompt
+    assert "Confirmed slow/minor romance: generally >=25" in prompt
+    assert "Recurring partner, spouse, or significant romantic attachment: generally >=40" in prompt
 
 
 def test_profile_prompt_matches_public_scoring_guide():
@@ -52,19 +52,54 @@ def test_profile_prompt_matches_public_scoring_guide():
     assert "0 means explicit, narratively meaningful absence" in prompt
     assert "20 is the cautious limited-evidence region" in prompt
     assert "Score and confidence are different" in prompt
-    assert "LUST (database key sexual_desire" in prompt
-    assert "Keep lust separate from romantic love" in prompt
+    # Every measure has its own rubric section and the key distinctions are present.
+    for measure in MEASURES:
+        assert f"{measure.upper()} (" in prompt, measure
+    assert "Cautious/risk-taker measures willingness to accept danger and uncertainty" in prompt
     for score in range(0, 101, 10):
         assert f"{score} " in prompt
 
 
-def test_validate_profile_accepts_exact_six_scores():
+def test_trait_set_is_the_ten_agreed_measures():
+    assert MEASURES == (
+        "intellectual_drive",
+        "arrogance_pride",
+        "kinship_friendship",
+        "romantic_attachment",
+        "selflessness_selfishness",
+        "pragmatism_morality",
+        "individualist_collectivist",
+        "ambition",
+        "cautious_risk_taker",
+        "leadership",
+    )
+
+
+def test_search_service_measures_match_profiler():
+    from services.search_service import PROFILE_MEASURES
+
+    assert tuple(PROFILE_MEASURES) == tuple(MEASURES)
+
+
+def test_validate_profile_accepts_exact_ten_scores():
     profile = validate_profile({
         "scores": {measure: 10 for measure in MEASURES},
         "confidence": 75,
         "evidence_summary": "The available evidence is consistent.",
     })
-    assert profile["scores"]["impulsivity"] == 10
+    assert set(profile["scores"]) == set(MEASURES)
+    assert profile["scores"]["leadership"] == 10
+
+
+def test_validate_profile_rejects_the_retired_six_trait_payload():
+    retired = ("impulsivity", "arrogance_pride", "kinship_friendship",
+               "romantic_attachment", "sexual_desire", "selflessness")
+    with pytest.raises(ValueError):
+        validate_profile({
+            "scores": {measure: 10 for measure in retired},
+            "confidence": 75,
+            "evidence_summary": "Old trait set.",
+        })
 
 
 def test_validate_profile_rejects_out_of_range_score():

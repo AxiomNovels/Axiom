@@ -78,12 +78,16 @@ def rank_novels(novels, query):
 
 
 PROFILE_MEASURES = (
-    "impulsivity",
+    "intellectual_drive",
     "arrogance_pride",
     "kinship_friendship",
     "romantic_attachment",
-    "sexual_desire",
-    "selflessness",
+    "selflessness_selfishness",
+    "pragmatism_morality",
+    "individualist_collectivist",
+    "ambition",
+    "cautious_risk_taker",
+    "leadership",
 )
 
 

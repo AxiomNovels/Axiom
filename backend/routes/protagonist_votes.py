@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, get_args
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -7,12 +7,17 @@ from postgrest.exceptions import APIError
 
 from core.auth import get_current_user, get_optional_current_user
 from core.database import create_service_client
+from profiler.prompt import MEASURES
 from routes.admin import find_novel, require_special
 
 
 router = APIRouter(prefix="/api", tags=["protagonist votes"])
-Trait = Literal["impulsivity", "arrogance_pride", "kinship_friendship",
-                "romantic_attachment", "sexual_desire", "selflessness"]
+Trait = Literal["intellectual_drive", "arrogance_pride", "kinship_friendship",
+                "romantic_attachment", "selflessness_selfishness",
+                "pragmatism_morality", "individualist_collectivist", "ambition",
+                "cautious_risk_taker", "leadership"]
+# Fail fast if this list and the profiler's measures ever drift apart.
+assert set(get_args(Trait)) == set(MEASURES), "Trait must match profiler.prompt.MEASURES"
 
 
 class Vote(BaseModel):
@@ -64,7 +69,7 @@ def vote(novel_id: int, trait: Trait, payload: Vote, auth=Depends(get_current_us
         }).execute()
     except APIError as error:
         if error.code == "P0001":
-            raise HTTPException(409, "Voting opens when all six protagonist scores are filled in.") from error
+            raise HTTPException(409, "Voting opens when all ten protagonist scores are filled in.") from error
         raise
     return summary(client, novel_id, auth[0])
 

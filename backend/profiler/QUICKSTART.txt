@@ -16,8 +16,18 @@ Options:
   --save                     Offer to save after preview
   --yes                      Save without confirmation; requires --save
 
-The profile measures impulsivity, ego, kinship and friendship,
-romantic attachment, lust, and selflessness.
+The profile measures ten traits: intellectual drive, arrogance/pride,
+kinship/friendship, romantic attachment, selflessness/selfishness,
+pragmatism/morality, individualist/collectivist, ambition,
+cautious/risk-taker, and leadership.
+
+Re-profile every novel that is missing any of the ten scores
+(e.g. after the trait set changed):
+  python -m profiler.regenerate_profiles --dry-run --limit 3
+  python -m profiler.regenerate_profiles --sleep 2
+  python -m profiler.regenerate_profiles --all        # redo every novel
+  python -m profiler.regenerate_profiles --novel-ids 12 15 40
+
 The profile_all command remains a compatibility entry point for this profile.
 
 Required backend/.env values:

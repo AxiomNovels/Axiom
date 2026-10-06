@@ -1,0 +1,18 @@
+[
+  {
+    "proname": "protagonist_score_values",
+    "definition": "CREATE OR REPLACE FUNCTION public.protagonist_score_values(profile jsonb)\n RETURNS jsonb\n LANGUAGE sql\n IMMUTABLE\n SET search_path TO ''\nAS $function$\r\n  select jsonb_build_object('impulsivity', profile->'impulsivity',\r\n    'arrogance_pride', profile->'arrogance_pride', 'kinship_friendship', profile->'kinship_friendship',\r\n    'romantic_attachment', profile->'romantic_attachment', 'sexual_desire', profile->'sexual_desire',\r\n    'selflessness', profile->'selflessness');\r\n$function$\n"
+  },
+  {
+    "proname": "protagonist_votes_changed",
+    "definition": "CREATE OR REPLACE FUNCTION public.protagonist_votes_changed()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\r\nbegin\r\n  if TG_OP = 'DELETE' then\r\n    perform public.recalculate_protagonist(old.novel_id);\r\n    return old;\r\n  end if;\r\n  perform public.recalculate_protagonist(new.novel_id);\r\n  if TG_OP = 'UPDATE' and old.novel_id <> new.novel_id then\r\n    perform public.recalculate_protagonist(old.novel_id);\r\n  end if;\r\n  return new;\r\nend;\r\n$function$\n"
+  },
+  {
+    "proname": "recalculate_protagonist",
+    "definition": "CREATE OR REPLACE FUNCTION public.recalculate_protagonist(p_novel_id bigint)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\r\ndeclare entry record; calibrated integer; previous_setting text;\r\nbegin\r\n  perform pg_advisory_xact_lock(718204619);\r\n  if not exists(select 1 from public.protagonist_profiles p where p.novel_id=p_novel_id\r\n    and not p.scores_locked and public.valid_protagonist_scores(public.protagonist_score_values(to_jsonb(p)))) then\r\n    return;\r\n  end if;\r\n  previous_setting := current_setting('axiom.recalculating_protagonist',true);\r\n  perform set_config('axiom.recalculating_protagonist','true',true);\r\n  for entry in select key,value from public.protagonist_baselines b,\r\n    lateral jsonb_each_text(b.scores) where b.novel_id=p_novel_id\r\n  loop\r\n    select round((entry.value::numeric + coalesce(sum(score),0))/(count(*)+1))\r\n      into calibrated from public.protagonist_votes where novel_id=p_novel_id and trait=entry.key;\r\n    execute format('update public.protagonist_profiles set %I=$1 where novel_id=$2',entry.key)\r\n      using calibrated,p_novel_id;\r\n  end loop;\r\n  perform set_config('axiom.recalculating_protagonist',coalesce(previous_setting,''),true);\r\nend;\r\n$function$\n"
+  },
+  {
+    "proname": "valid_protagonist_scores",
+    "definition": "CREATE OR REPLACE FUNCTION public.valid_protagonist_scores(scores jsonb)\n RETURNS boolean\n LANGUAGE sql\n IMMUTABLE\n SET search_path TO ''\nAS $function$\r\n  select case\r\n    when jsonb_typeof(scores) <> 'object' then false\r\n    else\r\n      (\r\n        select count(*) = 10\r\n          and bool_and(\r\n            key = any(array[\r\n              'intellectual_drive',\r\n              'arrogance_pride',\r\n              'kinship_friendship',\r\n              'romantic_attachment',\r\n              'selflessness_selfishness',\r\n              'pragmatism_morality',\r\n              'individualist_collectivist',\r\n              'ambition',\r\n              'cautious_risk_taker',\r\n              'leadership'\r\n            ])\r\n            and jsonb_typeof(value) = 'number'\r\n            and value::text ~ '^(100|[0-9]{1,2})$'\r\n          )\r\n        from jsonb_each(scores)\r\n      )\r\n  end;\r\n$function$\n"
+  }
+]

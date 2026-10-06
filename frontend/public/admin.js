@@ -113,7 +113,7 @@ async function openEditor(id) {
   heading.append(title, novelLink);
   editor.replaceChildren(heading);
   const descriptions = {
-    protagonist: "All six filled scores enable voting, including zeros. Saved edits become the new defaults. Use Vote distribution → Lock scores to keep all protagonist scores fixed while votes continue to be collected.",
+    protagonist: "All ten scores must be filled in to enable voting, including zeros. Saved edits become the new defaults. Use Vote distribution → Lock scores to keep all protagonist scores fixed while votes continue to be collected.",
   };
   for (const [kind, profile] of Object.entries(data.profiles)) {
     const form = element("form", undefined, "admin-profile");
@@ -146,7 +146,8 @@ async function openEditor(id) {
       feedback.textContent = changed ? "Unsaved changes" : "No unsaved changes.";
     }
     function labelFor(key) {
-      return ({arrogance_pride: "Ego", kinship_friendship: "Kinship & friendship", sexual_desire: "Lust"})[key] || key.replaceAll("_", " ").replace(/^./, ch => ch.toUpperCase());
+      // VOTE_LABELS (admin-votes.js, loaded first) is the single trait-label table for this page.
+      return VOTE_LABELS[key] || key.replaceAll("_", " ").replace(/^./, ch => ch.toUpperCase());
     }
     if (kind === "protagonist") {
       const label = element("label", "Protagonist name", "admin-name-field");

@@ -155,7 +155,7 @@ def request_structured(
 
 def generate_profile(prompt: str, timeout: int = 90) -> dict:
     return validate_profile(
-        request_structured(prompt, RESPONSE_SCHEMA, max_output_tokens=700, timeout=timeout)
+        request_structured(prompt, RESPONSE_SCHEMA, max_output_tokens=1000, timeout=timeout)
     )
 
 
