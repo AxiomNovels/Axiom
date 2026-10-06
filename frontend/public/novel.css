@@ -2888,10 +2888,6 @@ body.modal-open { overflow:hidden; }
   margin-bottom: 28px;
 }
 
-.reading-lists-page .search-results-heading .eyebrow {
-  color: var(--dusk);
-}
-
 .reading-lists-page .search-results-heading h1 {
   margin-bottom: 10px;
   font-size: clamp(2.3rem, 4.6vw, 3.4rem);

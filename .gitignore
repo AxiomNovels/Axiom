@@ -7,6 +7,8 @@ venv/
 tests/.env.test
 __pycache__/
 *.pyc
+.pytest_cache/
+backend/.pytest_cache/
 .ipynb_checkpoints/
 .vscode/
 .idea/
