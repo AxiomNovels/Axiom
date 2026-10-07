@@ -1369,6 +1369,164 @@ button {
 @media (max-width: 600px) { .team-members { grid-template-columns: 1fr; gap: 20px; } .team-member, .team-member + .team-member { border-left: 0; padding: 0; } }
 @media (max-width: 680px) { .about-page { padding-top: 32px; } .about-articles { grid-template-columns: 1fr; } }
 
+/* Team page: a founder note set like a small newspaper feature. */
+.team-page .team-heading {
+  margin-bottom: 24px;
+}
+
+.team-page .team-members {
+  width: min(1040px, 100%);
+  margin: 0 auto 58px;
+  border-top: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 0 0 28px;
+}
+
+.team-feature {
+  border-top: 3px double var(--line-strong);
+  color: var(--muted);
+  padding-top: 24px;
+}
+
+.team-feature-masthead {
+  max-width: 760px;
+  margin: 0 auto 32px;
+  color: var(--ink);
+  text-align: center;
+}
+
+.team-feature-kicker {
+  margin: 0 0 10px;
+  color: var(--gold);
+  font-size: .73rem;
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.longform-article .team-feature-masthead h2 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.3rem);
+  line-height: 1.08;
+}
+
+.team-feature-dek {
+  max-width: 580px;
+  margin: 14px auto 16px;
+  color: var(--muted);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.13rem;
+  font-style: italic;
+  line-height: 1.55;
+}
+
+.team-feature-byline {
+  display: flex;
+  justify-content: center;
+  gap: 9px;
+  color: var(--dim);
+  font-size: .76rem;
+  font-weight: 750;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.team-feature-copy {
+  column-count: 2;
+  column-gap: 52px;
+  column-rule: 1px solid var(--line);
+}
+
+.team-feature-copy p,
+.team-feature-copy h3 {
+  break-inside: avoid;
+}
+
+.team-feature-copy p {
+  margin: 0 0 1.25rem;
+}
+
+.team-feature-copy .team-feature-lead {
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.28rem;
+  line-height: 1.58;
+}
+
+.team-feature-copy .team-feature-lead::first-letter {
+  float: left;
+  margin: .06em .12em 0 0;
+  color: var(--gold);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 4.25em;
+  font-weight: 700;
+  line-height: .78;
+}
+
+.team-feature-copy h3 {
+  margin: .35rem 0 .7rem;
+  color: var(--ink);
+  font-size: 1.38rem;
+}
+
+@media (max-width: 720px) {
+  .team-page .team-members { margin-bottom: 42px; }
+  .team-feature-copy { column-count: 1; column-rule: 0; }
+}
+
+/* Axiom-styled founder feature: editorial structure without leaving the site palette. */
+.team-page {
+  width: min(1120px, calc(100% - 32px));
+  padding: 48px 0 84px;
+}
+
+.team-page .info-back-link {
+  width: 100%;
+  margin-bottom: 26px;
+}
+
+.team-page .team-heading {
+  max-width: none;
+  margin-right: auto;
+  margin-bottom: 24px;
+  margin-left: auto;
+  text-align: left;
+}
+
+.team-page .team-heading > p:last-of-type {
+  max-width: 720px;
+  margin: 0 0 18px;
+}
+
+.team-page .team-feature-byline {
+  justify-content: flex-start;
+  color: var(--dim);
+}
+
+.team-page .team-members {
+  width: 100%;
+  margin: 46px auto 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 20px 0;
+}
+
+.team-page .team-feature {
+  width: 100%;
+  max-width: none;
+  margin: 0 auto;
+  border-top-color: var(--line-strong);
+}
+
+.team-page .team-feature-copy {
+  column-count: 1;
+  column-rule: 0;
+}
+
+@media (max-width: 680px) {
+  .team-page { width: min(100% - 32px, 1120px); padding-top: 32px; }
+}
+
 .meta-row {
   display: flex;
   flex-wrap: wrap;
