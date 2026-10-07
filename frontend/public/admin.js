@@ -3,6 +3,7 @@ const adminContent = document.getElementById("admin-content");
 let adminId;
 let dirty = false;
 let editorVersion = 0;
+let rebuildPoll;
 const state = { users: { page: 1, query: "", version: 0 }, novels: { page: 1, query: "", version: 0 } };
 
 function element(tag, text, className) {
@@ -33,6 +34,53 @@ function action(text, handler) {
     finally { button.disabled = false; }
   });
   return button;
+}
+function rebuildStatus(text, error = false) {
+  const target = document.getElementById("profile-rebuild-status");
+  target.textContent = text;
+  target.classList.toggle("error", error);
+}
+function renderRebuildItems(items) {
+  const host = document.getElementById("profile-rebuild-results");
+  host.replaceChildren();
+  const processed = items.filter(item => item.status === "completed" || item.status === "failed");
+  if (!processed.length) return;
+  const heading = element("h4", "Rebuild results");
+  host.append(heading);
+  const list = element("div", undefined, "profile-rebuild-results-list");
+  processed.forEach((item) => {
+    const row = element("div", undefined, `profile-rebuild-result is-${item.status}`);
+    const novel = item.novels?.title || `Novel #${item.novel_id}`;
+    const copy = element("div");
+    copy.append(element("strong", novel), element("small", item.status === "completed" ? "Profile saved" : item.error || "Profile generation failed"));
+    row.append(element("span", item.status === "completed" ? "Saved" : "Failed", "admin-badge"), copy);
+    list.append(row);
+  });
+  host.append(list);
+}
+async function watchRebuild(jobId) {
+  clearInterval(rebuildPoll);
+  const refresh = async () => {
+    try {
+      const job = await request(`/protagonist-rebuilds/${jobId}`);
+      const details = await request(`/protagonist-rebuilds/${jobId}/items`);
+      renderRebuildItems(details.items || []);
+      rebuildStatus(`${job.status === "completed" ? "Finished" : "Running"}: ${job.processed}/${job.total} processed · ${job.succeeded} saved · ${job.failed} failed.`);
+      if (job.status === "completed") clearInterval(rebuildPoll);
+    } catch (error) { clearInterval(rebuildPoll); rebuildStatus(error.message, true); }
+  };
+  await refresh();
+  rebuildPoll = setInterval(refresh, 4000);
+}
+async function startRebuild(includeComplete) {
+  const label = includeComplete ? "every protagonist profile" : "only incomplete or outdated protagonist profiles";
+  if (!confirm(`Rebuild ${label}? This uses Gemini for each selected novel and can take a while.`)) return;
+  const job = await request("/protagonist-rebuilds", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ include_complete: includeComplete }),
+  });
+  rebuildStatus(`Queued ${job.total} profiles…`);
+  await watchRebuild(job.id);
 }
 async function loadList(kind) {
   const current = state[kind];
@@ -344,6 +392,8 @@ document.getElementById("home-feature-form").addEventListener("submit", async (e
   } catch (error) { statusEl.textContent = error.message; statusEl.classList.add("error"); }
   finally { submit.disabled = false; }
 });
+document.getElementById("rebuild-outdated").addEventListener("click", () => startRebuild(false).catch(error => rebuildStatus(error.message, true)));
+document.getElementById("rebuild-all").addEventListener("click", () => startRebuild(true).catch(error => rebuildStatus(error.message, true)));
 
 for (const kind of ["users", "novels"]) {
   document.getElementById(`${kind}-tab`).addEventListener("click", () => {

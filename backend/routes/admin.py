@@ -1,13 +1,14 @@
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, field_validator
 
 from core.auth import get_current_user
 from core.database import create_service_client
 from profiler.prompt import MEASURES
 from services.novel_profiling_service import generate_protagonist_preview
+from services.protagonist_rebuild_service import create_job, job_items, job_status, run_job
 
 
 PROFILES = {
@@ -73,9 +74,44 @@ class HomeFeatureUpdate(BaseModel):
         return cleaned
 
 
+class RebuildRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    include_complete: StrictBool = False
+
+
 @router.get("/me")
 def admin_me(admin=Depends(require_special)):
     return {"id": admin[0], "special": True}
+
+
+@router.get("/protagonist-rebuilds/{job_id}")
+def protagonist_rebuild_status(job_id: str, admin=Depends(require_special)):
+    try:
+        result = job_status(job_id)
+    except Exception as error:
+        raise HTTPException(503, "Profile rebuilds are not set up yet. Run database/protagonist_rebuild_jobs.sql in Supabase.") from error
+    if not result:
+        raise HTTPException(404, "Profile rebuild job not found.")
+    return result
+
+
+@router.get("/protagonist-rebuilds/{job_id}/items")
+def protagonist_rebuild_items(job_id: str, admin=Depends(require_special)):
+    if not job_status(job_id):
+        raise HTTPException(404, "Profile rebuild job not found.")
+    return {"items": job_items(job_id)}
+
+
+@router.post("/protagonist-rebuilds")
+def start_protagonist_rebuild(payload: RebuildRequest, background_tasks: BackgroundTasks, admin=Depends(require_special)):
+    try:
+        job = create_job(str(admin[0]), payload.include_complete)
+    except ValueError as error:
+        raise HTTPException(409, str(error)) from error
+    except Exception as error:
+        raise HTTPException(503, "Profile rebuilds are not set up yet. Run database/protagonist_rebuild_jobs.sql in Supabase.") from error
+    background_tasks.add_task(run_job, job["id"])
+    return job
 
 
 @router.get("/home-feature")
