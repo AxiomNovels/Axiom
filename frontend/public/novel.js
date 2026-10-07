@@ -1133,7 +1133,7 @@ async function loadNovel() {
     if (titleEl) titleEl.textContent = "Couldn't load this novel";
     const synopsisEl = document.getElementById("novel-synopsis");
     if (synopsisEl) {
-      synopsisEl.textContent = "Make sure the backend is running on port 8000, and that this novel exists.";
+      synopsisEl.textContent = "Try again in a few minutes. If the issue persists, please report it to axiomnovels@gmail.com.";
     }
   }
 }

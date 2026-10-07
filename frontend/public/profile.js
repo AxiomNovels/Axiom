@@ -210,7 +210,7 @@ async function loadProfile() {
     if (usernameEl) usernameEl.textContent = "Couldn't load";
     if (joinDateEl) joinDateEl.textContent = "Couldn't load";
     console.error("[profile.js] failed to load profile:", error);
-    showProfileMessage("Couldn't load your profile. Make sure the backend is running on port 8000.", true);
+    showProfileMessage("Couldn't load your profile. Try again in a few minutes. If the issue persists, please report it to axiomnovels@gmail.com..", true);
   }
 }
 

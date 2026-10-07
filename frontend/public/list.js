@@ -151,7 +151,7 @@ async function loadReadingList() {
     novels.forEach((novel, index) => grid.appendChild(createListNovelCard(novel, index, listId)));
   } catch (error) {
     if (titleEl) titleEl.textContent = "Couldn't load this list";
-    if (grid) grid.innerHTML = "<p class=\"search-empty\">Make sure the backend is running on port 8000.</p>";
+    if (grid) grid.innerHTML = "<p class=\"search-empty\">Try again in a few minutes. If the issue persists, please report it to axiomnovels@gmail.com..</p>";
   }
 }
 

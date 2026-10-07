@@ -56,7 +56,7 @@ async function loadSharedList() {
     novels.forEach((novel, index) => grid.appendChild(createNovelCard(novel, index)));
   } catch (error) {
     titleEl.textContent = "Couldn't load this list";
-    grid.innerHTML = '<p class="search-empty">Make sure the backend is running on port 8000.</p>';
+    grid.innerHTML = '<p class="search-empty">Try again in a few minutes. If the issue persists, please report it to axiomnovels@gmail.com..</p>';
   }
 }
 

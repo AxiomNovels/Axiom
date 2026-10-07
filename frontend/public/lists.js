@@ -340,7 +340,7 @@ async function loadReadingLists() {
     lists.forEach((list) => grid.appendChild(createListCard(list)));
     grid.appendChild(createGhostListCard());
   } catch (error) {
-    grid.innerHTML = "<p class=\"search-empty\">Couldn't load your reading lists. Make sure the backend is running on port 8000.</p>";
+    grid.innerHTML = "<p class=\"search-empty\">Couldn't load your reading lists. Try again in a few minutes. If the issue persists, please report it to axiomnovels@gmail.com..</p>";
   }
 }
 

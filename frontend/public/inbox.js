@@ -271,7 +271,7 @@ async function loadInbox() {
   } catch (error) {
     const summary = document.querySelector("[data-inbox-summary]");
     if (summary) summary.textContent = "Inbox is temporarily unavailable.";
-    list.innerHTML = "<p class=\"search-empty\">Couldn't load your inbox. Make sure the backend is running on port 8000.</p>";
+    list.innerHTML = "<p class=\"search-empty\">Couldn't load your inbox. Try again in a few minutes. If the issue persists, please report it to axiomnovels@gmail.com..</p>";
   }
 }
 

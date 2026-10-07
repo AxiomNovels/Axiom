@@ -65,6 +65,6 @@ async function loadSearchResults() {
     const novels = await response.json(); summary.textContent = hasFilters ? `${novels.length} matching series, ordered by relevance.` : `${novels.length} series in the Axiom catalogue.`; results.innerHTML = "";
     if (!novels.length) { results.innerHTML = '<p class="search-empty">No series match every filter. Try removing one of your criteria.</p>'; return; }
     novels.forEach((novel, index) => results.appendChild(resultCard(novel, index)));
-  } catch { summary.textContent = "Search is temporarily unavailable."; results.innerHTML = "<p class=\"search-empty\">Couldn't load results. Make sure the backend is running on port 8000.</p>"; }
+  } catch { summary.textContent = "Search is temporarily unavailable."; results.innerHTML = "<p class=\"search-empty\">Couldn't load results. Try again in a few minutes. If the issue persists, please report it to axiomnovels@gmail.com..</p>"; }
 }
 loadSearchResults();

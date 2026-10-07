@@ -269,7 +269,7 @@ async function loadFriends() {
   } catch (error) {
     if (summary) summary.textContent = "Friends are temporarily unavailable.";
     [allList, pendingList, incomingList].forEach((list) => {
-      renderEmptyState(list, "Couldn't load your friends. Make sure the backend is running on port 8000.");
+      renderEmptyState(list, "Couldn't load your friends. Try again in a few minutes. If the issue persists, please report it to axiomnovels@gmail.com..");
     });
   }
 }
