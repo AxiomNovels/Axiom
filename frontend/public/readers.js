@@ -37,7 +37,7 @@ function renderUsers(users, query) {
     const tagMarkup = tags.length
       ? `<div class="reader-directory-tags">${tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}</div>`
       : "";
-    const location = user.country ? `<p class="reader-directory-location">${escapeHtml(user.country)}</p>` : "";
+    const location = user.country ? `<p class="reader-directory-location">${escapeHtml(formatCountry(user.country))}</p>` : "";
     const about = user.about_me
       ? `<p class="reader-directory-about">${escapeHtml(user.about_me)}</p>`
       : `<p class="reader-directory-about is-empty">A fellow Axiom reader.</p>`;

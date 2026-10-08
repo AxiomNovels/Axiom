@@ -8,6 +8,7 @@ function requireSession() {
 
 const preferredTags = new Set();
 let allTags = [];
+let setProfileCountry;
 
 // Matches backend/models/profile.py's SOCIAL_PLATFORMS. Used to loop
 // over the four platform fields instead of repeating the same
@@ -191,7 +192,7 @@ async function loadProfile() {
 
     form.gender.value = profile.gender || "Prefer not to say";
     form.city.value = profile.city || "";
-    form.country.value = profile.country || "";
+    setProfileCountry(profile.country || "");
     aboutMeEl.value = profile.about_me || "";
     counterEl.textContent = `${(profile.about_me || "").length}/500 characters`;
     form.online_status_public.checked = (profile.online_status_visibility || "public") === "public";
@@ -520,6 +521,7 @@ function setupAvatarEditor() {
 }
 
 if (requireSession()) {
+  setProfileCountry = setupCountryCombobox();
   setupTagCombobox();
   setupAboutMeCounter();
   setupAvatarEditor();

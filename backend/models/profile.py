@@ -2,6 +2,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+from core.countries import normalize_country
+
 
 GENDER_OPTIONS = ("♀️Female", "♂️Male", "⚧️Non-Binary", "Prefer not to say")
 
@@ -38,7 +40,6 @@ class ProfileUpdate(BaseModel):
 
     @field_validator(
         "city",
-        "country",
         "discord_username",
         "instagram_username",
         "reddit_username",
@@ -50,6 +51,11 @@ class ProfileUpdate(BaseModel):
             return None
         value = value.strip()
         return value or None
+
+    @field_validator("country")
+    @classmethod
+    def validate_country(cls, value: Optional[str]) -> Optional[str]:
+        return normalize_country(value)
 
     @field_validator("about_me")
     @classmethod

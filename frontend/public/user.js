@@ -428,7 +428,7 @@ async function loadPublicProfile() {
     renderUserAvatar(profile);
 
     if (genderEl) genderEl.textContent = formatOrFallback(profile.gender, "Prefer not to say");
-    if (countryEl) countryEl.textContent = formatOrFallback(profile.country, "Not specified");
+    if (countryEl) countryEl.textContent = formatCountry(profile.country);
     if (cityEl) cityEl.textContent = formatOrFallback(profile.city, "Not specified");
 
     renderUserTags(profile.tag_preferences);

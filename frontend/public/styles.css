@@ -4100,3 +4100,31 @@ button {
 .genre-choice[data-state="include"] .genre-check { background: var(--gold); border-color: var(--gold); color: var(--bg, #100a17); }
 .genre-choice[data-state="exclude"] { color: #f2c7ce; }
 .genre-choice[data-state="exclude"] .genre-check { background: #702b39; border-color: #c87586; color: #fff; }
+.country-combobox { position: relative; }
+.country-combobox::after {
+  content: "\25BE";
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.country-combobox #country-search { padding-right: 36px; }
+.country-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--background-soft);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.country-options [role="option"], .country-options p { padding: 12px 13px; margin: 0; }
+.country-options [role="option"] { cursor: pointer; }
+.country-options [role="option"]:hover,
+.country-options [aria-selected="true"] { background: rgba(168, 85, 247, 0.2); }
+#country-help { color: var(--muted); font-size: 0.8rem; margin: 6px 0 0; }
