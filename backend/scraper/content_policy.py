@@ -12,11 +12,8 @@ Each source has its own list because each site uses its own tag vocabulary
 (e.g. Royal Road's "Sexual Content" warning vs. Wattpad's "smut"/"lemon").
 Edit a list here and every caller picks the change up.
 
-The lists below are kept exactly as the discovery scripts used them, so the
-batch pipeline's behaviour is unchanged. For uploads, matching is slightly more
-forgiving than the scripts' exact lowercase comparison: case, spaces, hyphens
-and other punctuation are ignored, so "Reverse Harem", "reverse-harem" and
-"REVERSEHAREM" are all treated as the same tag.
+Matching ignores case, spaces, hyphens and other punctuation, so "Reverse
+Harem", "reverse-harem" and "REVERSEHAREM" are all treated as the same tag.
 """
 
 import re
@@ -41,11 +38,9 @@ SOURCE_KEYS = {
 # ---------------------------------------------------------------------------
 # Royal Road
 #
-# Confirmed against Royal Road's own tag vocabulary: the "Sexual Content"
-# content warning; the former "Harem" tag, split into "Multiple Love
-# Interests" / "Competing Love Interest" / "Royal Harem" in late 2025; and the
-# newer "Smut" tag. Unrelated warnings such as Gore or Profanity are
-# deliberately NOT listed -- this filter is for sexual content only.
+# Includes Royal Road's Sexual Content warning and relationship labels,
+# plus explicit-content aliases for imported or legacy metadata. These aliases
+# are policy terms; they are not all official Royal Road tags.
 # ---------------------------------------------------------------------------
 ROYALROAD_EXCLUDED_TAGS = {
     "sexual content",
@@ -59,6 +54,37 @@ ROYALROAD_EXCLUDED_TAGS = {
     "smut",
     "erotica",
     "erotic",
+    "sexual themes",
+    "sexual scenes",
+    "sex scene",
+    "sex scenes",
+    "explicit sexual content",
+    "sexually explicit",
+    "explicit content",
+    "adult content",
+    "mature content",
+    "adult only",
+    "18+",
+    "nsfw",
+    "porn",
+    "pornographic",
+    "pornography",
+    "erotic romance",
+    "erotic fiction",
+    "smutty",
+    "spicy romance",
+    "steamy romance",
+    "hentai",
+    "ecchi",
+    "lemon",
+    "lemons",
+    "bdsm",
+    "fetish",
+    "kink",
+    "incest",
+    "sexual violence",
+    "sexual assault",
+    "rape",
 }
 
 # ---------------------------------------------------------------------------

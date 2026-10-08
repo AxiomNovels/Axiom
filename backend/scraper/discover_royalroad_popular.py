@@ -1,54 +1,15 @@
-"""
-Discover ~250 of the most popular Royal Road fictions, spread across a
-variety of genres, with explicit sexual content hard-filtered out.
+"""Discover popular Royal Road novels with conservative sexual-content filtering.
 
-This replaces the older philosophy/psychology-focused discovery script.
-The selection logic now has three priorities, in this order:
+Follower-ranked searches (overall and per genre) build the candidate pool.
+Each fiction is fetched once using Royal Road's shared transport and parser.
+Warnings, normalized policy labels, and explicit disclosures in the full
+untrimmed description are checked before popularity floors and ranking.
 
-    1. Hard filter: explicit sexual content is excluded outright.
-    2. Popularity: followers, rating, and rating count.
-    3. Genre diversity: no single genre is allowed to dominate the
-       final list, so the output spans Fantasy, Sci-fi, Romance,
-       Mystery, Horror, Action, Comedy, Drama, and so on.
-
-Method
-------
-1. Crawl several cross-genre Royal Road listing pages (Best Rated,
-   Trending, Active Popular, Popular This Week) as well as each of
-   Royal Road's official genres via the `?genre=` filter on the
-   Best Rated / Trending pages, so the candidate pool already spans
-   many genres rather than being dominated by whatever is broadly
-   trending (on Royal Road that tends to be LitRPG/progression
-   fantasy).
-2. Deduplicate all discovered fiction URLs.
-3. Scrape every candidate with scraper.royalroad.scrape_royalroad().
-4. Hard-exclude any fiction whose tags indicate explicit sexual
-   content (see EXCLUDED_TAGS below).
-5. Require a minimum popularity floor (followers / rating / rating
-   count) so obscure or abandoned fictions don't dilute the pool.
-6. Rank the remaining candidates by a popularity score, then select
-   up to TARGET fictions using a per-genre cap so that popularity
-   dominates the ordering while no single genre can fill the whole
-   list. If the cap leaves seats unfilled, they are backfilled by
-   raw popularity regardless of genre, so the target count is still
-   reached.
-
-Banned-tag research
---------------------
-Royal Road's tag/content-warning vocabulary was confirmed against
-Royal Road's own knowledge base and tag-description threads (the
-"Sexual Content" content warning; the former "Harem" tag, which was
-split into "Multiple Love Interests" / "Competing Love Interest" /
-"Royal Harem" in late 2025; and the newer "Smut" tag). Only tags that
-signal explicit sexual content are banned -- unrelated content
-warnings such as Gore or Profanity are left alone, since the request
-here is specifically to filter sexual content, not violence or
-language.
-
-Output
-------
-popular_royalroad_urls.txt
-popular_royalroad_audit.csv
+80% of seats go to the most-followed eligible novels. The remaining 20%
+prefer underrepresented genres, with a popularity floor relative to the
+ordinary top-N cutoff. All genre labels count, regardless of tag order.
+Outputs retain the existing JSON URL list and CSV audit formats. Page
+metadata cannot certify the contents of chapters an author has not flagged.
 """
 
 from __future__ import annotations
@@ -60,25 +21,29 @@ import re
 import time
 from collections import Counter, deque
 from dataclasses import dataclass, field
-from urllib.parse import urljoin, urlparse, urlunparse
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse, urlunparse
 
 import httpx
 from selectolax.parser import HTMLParser
 
 from scraper.royalroad import (
     BASE_URL,
-    HEADERS,
     ROYAL_ROAD_GENRES,
-    scrape_royalroad,
+    RoyalRoadChallengeError,
+    RoyalRoadClient,
+    extract_description_node,
+    extract_statistics,
+    fetch,
+    parse_royalroad,
 )
-from scraper.content_policy import EXCLUDED_TAGS_BY_SOURCE
+from scraper.content_policy import EXCLUDED_TAGS_BY_SOURCE, find_policy_violations
 
 
 # ---------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------
 
-TARGET = 250
+TARGET = 500
 TARGET_TOLERANCE = 10
 MIN_TARGET = TARGET - TARGET_TOLERANCE
 
@@ -87,33 +52,35 @@ MIN_DISCOVERED = 1500
 REQUEST_DELAY = 0.4
 MAX_PAGES_PER_SEED = 15
 
-# No single genre may take up more than this share of the final list.
-MAX_GENRE_SHARE = 0.15
-MIN_GENRE_CAP = 8
+# Popularity takes most seats; diversity only draws from established novels.
+DIVERSITY_SHARE = 0.20
+DIVERSITY_POPULARITY_RATIO = 0.25
 
-# Cross-genre listings. These surface whatever is broadly popular right
-# now, regardless of genre.
-BROAD_SEED_URLS = [
-    f"{BASE_URL}/fictions/best-rated",
-    f"{BASE_URL}/fictions/trending",
-    f"{BASE_URL}/fictions/active-popular",
-    f"{BASE_URL}/fictions/weekly-popular",
-]
-
-# Genre-scoped listings. Royal Road's Best Rated / Trending pages accept
-# a `?genre=<slug>` filter (confirmed via Royal Road's own "Trending is
-# currently limited to 50 fictions per genre" documentation), so every
-# official genre gets its own popularity-ranked seed instead of relying
-# on whatever genre happens to dominate the unfiltered lists.
-def _genre_slug(genre: str) -> str:
-    return genre.lower().replace(" ", "-")
-
-
-GENRE_SEED_URLS = [
-    f"{BASE_URL}/fictions/{listing}?genre={_genre_slug(genre)}"
-    for listing in ("best-rated", "trending")
+# Verified against the current advanced-search form. Display labels do not
+# always match the parameter values (e.g. Romance and Short Story).
+GENRE_SEARCH_TAGS = {
+    genre: {
+        "Romance": "romance_main",
+        "Sci-fi": "sci_fi",
+        "Short Story": "one_shot",
+    }.get(genre, genre.lower())
     for genre in ROYAL_ROAD_GENRES
-]
+}
+
+
+def search_seed(order: str, genre: str | None = None) -> str:
+    params = [
+        ("orderBy", order), ("dir", "desc"),
+        ("tagsRemove", "sexuality"), ("tagsRemove", "harem"),
+        ("tagsRemove", "competing_love"),
+    ]
+    if genre is not None:
+        params.append(("tagsAdd", GENRE_SEARCH_TAGS[genre]))
+    return f"{BASE_URL}/fictions/search?{urlencode(params)}"
+
+
+BROAD_SEED_URLS = [search_seed("followers"), search_seed("popularity")]
+GENRE_SEED_URLS = [search_seed("followers", genre) for genre in ROYAL_ROAD_GENRES]
 
 POPULAR_SEED_URLS = BROAD_SEED_URLS + GENRE_SEED_URLS
 
@@ -123,12 +90,11 @@ POPULAR_SEED_URLS = BROAD_SEED_URLS + GENRE_SEED_URLS
 # scraper/content_policy.py, not here, so the two never drift apart.
 EXCLUDED_TAGS = EXCLUDED_TAGS_BY_SOURCE["royalroad"]
 
-# Hard popularity floor. Only enforced when the metric is successfully
-# extracted -- a missing metric is recorded in the audit rather than
-# treated as a failure.
-MIN_FOLLOWERS = 50
-MIN_RATING = 3.0
-MIN_RATING_COUNT = 10
+# Missing followers cannot establish popularity and are rejected. Optional
+# rating metrics enforce their floors whenever available.
+MIN_FOLLOWERS = 250
+MIN_RATING = 3.5
+MIN_RATING_COUNT = 25
 
 
 @dataclass
@@ -173,29 +139,32 @@ def canonical_fiction_url(url: str) -> str | None:
     return urlunparse((
         "https",
         "www.royalroad.com",
-        parsed.path.rstrip("/"),
+        f"/fiction/{int(match.group(1))}",
         "",
         "",
         "",
     ))
 
 
-def fetch_html(client: httpx.Client, url: str) -> str:
-    response = client.get(url, follow_redirects=True)
-    response.raise_for_status()
+def fetch_html(client: RoyalRoadClient, url: str) -> str:
+    return fetch(url, client=client)
 
-    content_type = response.headers.get("content-type", "")
-    if "text/html" not in content_type.lower():
-        raise ValueError(f"Expected HTML, got: {content_type}")
 
-    return response.text
+def stop_if_blocked(error: Exception) -> None:
+    """Stop the run on access failures rather than repeatedly hitting the site."""
+    if isinstance(error, RoyalRoadChallengeError):
+        raise error
+    if isinstance(error, httpx.HTTPStatusError):
+        status = error.response.status_code
+        if status in {401, 403, 429} or status >= 500:
+            raise error
 
 
 def extract_fiction_urls(html: str, page_url: str) -> set[str]:
     tree = HTMLParser(html)
     urls: set[str] = set()
 
-    for node in tree.css("a[href]"):
+    for node in tree.css(".fiction-list-item h2 a[href]"):
         href = node.attributes.get("href")
         if not href:
             continue
@@ -208,61 +177,31 @@ def extract_fiction_urls(html: str, page_url: str) -> set[str]:
 
 
 def extract_next_listing_urls(html: str, page_url: str) -> list[str]:
-    """
-    Follow explicit pagination links rather than assuming one fixed
-    Royal Road pagination format. The genre filter (if present in the
-    seed URL's query string) is preserved automatically because it is
-    only the page number that changes on Royal Road's own "next" links.
-    """
+    """Follow only the next page of this listing, keeping every seed filter."""
     tree = HTMLParser(html)
     current = urlparse(page_url)
-    results: list[str] = []
-
-    for node in tree.css("a[href]"):
-        href = node.attributes.get("href")
-        if not href:
-            continue
-
-        absolute = urljoin(page_url, href)
-        parsed = urlparse(absolute)
-
+    filters = parse_qs(current.query)
+    current_page = int(filters.get("page", ["1"])[0])
+    for node in tree.css(".pagination a[href], a[rel='next'][href]"):
+        parsed = urlparse(urljoin(page_url, node.attributes["href"]))
         if parsed.netloc.lower() not in {"www.royalroad.com", "royalroad.com"}:
             continue
-
-        if parsed.path.startswith("/fiction/"):
+        if parsed.path != current.path:
             continue
-
-        if not (
-            parsed.path.startswith("/fictions")
-            or parsed.path.startswith("/search")
-        ):
+        params = parse_qs(parsed.query)
+        page = params.get("page", [""])[0]
+        if not page.isdigit() or int(page) != current_page + 1:
             continue
-
-        if (
-            current.path.startswith("/search")
-            and not parsed.path.startswith("/search")
-        ):
+        if any(key != "page" and key in filters and sorted(values) != sorted(filters[key])
+               for key, values in params.items()):
             continue
-
-        text = re.sub(
-            r"\s+", " ", node.text(separator=" ", strip=True)
-        ).strip().lower()
-
-        rel = (node.attributes.get("rel") or "").lower()
-
-        if (
-            "next" in rel
-            or text in {"next", ">", "\u203a", "\u2192"}
-            or text.isdigit()
-            or "page=" in parsed.query.lower()
-        ):
-            results.append(absolute)
-
-    return list(dict.fromkeys(results))
+        merged = {**filters, **params}
+        return [urlunparse(current._replace(query=urlencode(merged, doseq=True), fragment=""))]
+    return []
 
 
 def crawl_listing(
-    client: httpx.Client,
+    client: RoyalRoadClient,
     seed_url: str,
     page_limit: int,
 ) -> list[set[str]]:
@@ -280,10 +219,15 @@ def crawl_listing(
         try:
             html = fetch_html(client, url)
         except Exception as exc:
+            stop_if_blocked(exc)
             print("LISTING FAILED:", url, type(exc).__name__, exc)
+            time.sleep(REQUEST_DELAY)
             continue
 
-        pages.append(extract_fiction_urls(html, url))
+        fictions = extract_fiction_urls(html, url)
+        if not fictions:
+            break
+        pages.append(fictions)
 
         for next_url in extract_next_listing_urls(html, url):
             if next_url not in seen:
@@ -300,15 +244,15 @@ def discover_candidates() -> dict[str, int]:
     """
     popularity_hits: dict[str, int] = {}
 
-    with httpx.Client(headers=HEADERS, timeout=30) as client:
+    with RoyalRoadClient() as client:
         print("\n=== DISCOVERING POPULAR ROYAL ROAD FICTIONS ===")
 
         for seed in POPULAR_SEED_URLS:
             print("SEED:", seed)
 
-            for fictions in crawl_listing(client, seed, MAX_PAGES_PER_SEED):
-                for url in fictions:
-                    popularity_hits[url] = popularity_hits.get(url, 0) + 1
+            seed_fictions = set().union(*crawl_listing(client, seed, MAX_PAGES_PER_SEED))
+            for url in sorted(seed_fictions):
+                popularity_hits[url] = popularity_hits.get(url, 0) + 1
 
             print("Unique candidates so far:", len(popularity_hits))
 
@@ -319,10 +263,6 @@ def discover_candidates() -> dict[str, int]:
 # ---------------------------------------------------------------------
 # Metric extraction
 # ---------------------------------------------------------------------
-
-def normalize_text(value: str | None) -> str:
-    return re.sub(r"\s+", " ", (value or "").lower()).strip()
-
 
 def parse_count(value: str | int | float | None) -> int | None:
     if value is None:
@@ -353,12 +293,13 @@ def extract_metric_after_label(
     labels: tuple[str, ...],
 ) -> int | None:
     tree = HTMLParser(html)
-    page_text = tree.text(separator=" ", strip=True)
+    stats = tree.css_first(".fiction-stats")
+    page_text = (stats or tree).text(separator=" ", strip=True)
 
     for label in labels:
         patterns = [
-            rf"(\d+(?:,\d{{3}})*(?:\.\d+)?\s*[KkMm]?)\s+{re.escape(label)}\b",
             rf"\b{re.escape(label)}\s*[:\-]?\s*(\d+(?:,\d{{3}})*(?:\.\d+)?\s*[KkMm]?)",
+            rf"(\d+(?:,\d{{3}})*(?:\.\d+)?\s*[KkMm]?)\s+{re.escape(label)}\b",
         ]
 
         for pattern in patterns:
@@ -372,6 +313,10 @@ def extract_metric_after_label(
 
 
 def extract_rating_metrics(html: str) -> tuple[float | None, int | None]:
+    count, score = extract_statistics(HTMLParser(html))
+    if count is not None or score is not None:
+        return score, count
+
     patterns = [
         r"(\d(?:\.\d+)?)\s*/\s*5\s*(?:from\s*)?(\d[\d,]*)\s*ratings?",
         r"(\d(?:\.\d+)?)\s+stars?\s+from\s+(\d[\d,]*)",
@@ -464,28 +409,24 @@ def score_popularity(
     reasons: list[str] = []
 
     if followers is not None:
-        score += min(10.0, math.log10(followers + 1) * 2.0)
+        score += math.log10(followers + 1) * 10.0
         reasons.append(f"followers={followers}")
 
     if rating is not None:
-        confidence = (
-            min(rating_count or 0, 500) / 500
-            if rating_count is not None
-            else 0.35
-        )
+        count = rating_count or 0
+        confidence = count / (count + 100)
         adjusted_rating = confidence * rating + (1 - confidence) * 3.8
-        score += max(-2.0, (adjusted_rating - 3.0) * 4.0)
+        score += max(-2.0, adjusted_rating - 3.8)
         reasons.append(f"rating={rating}")
 
     if rating_count is not None:
-        score += min(4.0, math.log10(rating_count + 1))
+        score += min(4.0, math.log10(rating_count + 1)) * 0.25
         reasons.append(f"rating_count={rating_count}")
 
-    score += min(popularity_hits, 10) * 1.5
+    score += min(popularity_hits, 10) * 0.05
     reasons.append(f"listing-hits={popularity_hits}")
 
-    penalty, penalty_reasons = synopsis_quality_penalty(title, synopsis)
-    score -= penalty
+    _, penalty_reasons = synopsis_quality_penalty(title, synopsis)
     reasons.extend(f"presentation:{reason}" for reason in penalty_reasons)
 
     return score, reasons
@@ -495,100 +436,100 @@ def score_popularity(
 # Scrape, hard-filter, and score
 # ---------------------------------------------------------------------
 
+# Check untrimmed story descriptions, including disclosures after a separator
+# that synopsis cleanup deliberately drops. Do not inspect reviews or ads.
+SEXUAL_DISCLOSURE = re.compile(
+    r"\b(?:sex(?:ual)? (?:content|scenes?|themes|acts)|sexually explicit|"
+    r"explicit sexual content|smut(?:ty)?|erotica?|nsfw|porn(?:ography|ographic)?|"
+    r"hentai|ecchi|harem|bdsm|incest|sexual (?:assault|violence)|rape|"
+    r"(?:spicy|steamy|erotic) romance)\b",
+    re.IGNORECASE,
+)
+NEGATED_DISCLOSURE = re.compile(
+    r"\b(?:no|not|without|free of|does not contain|doesn't contain|will not contain)"
+    r"\s+(?:(?:any|explicit|sexual|graphic)\s+)*$",
+    re.IGNORECASE,
+)
+
+
+def sexual_content_reasons(html: str, novel: dict) -> list[str]:
+    reasons = find_policy_violations("royalroad", novel)
+    tree = HTMLParser(html)
+    description = extract_description_node(tree)
+    texts = [novel.get("title") or ""]
+    if description is not None:
+        texts.append(description.text(separator=" ", strip=True))
+    for text in texts:
+        for match in SEXUAL_DISCLOSURE.finditer(text):
+            prefix = text[max(0, match.start() - 70):match.start()]
+            suffix = text[match.end():match.end() + 6]
+            if NEGATED_DISCLOSURE.search(prefix) or re.match(r"[- ]free\b", suffix, re.I):
+                continue
+            label = f"description:{match.group(0).casefold()}"
+            if label not in reasons:
+                reasons.append(label)
+    return reasons
+
+
 def scrape_and_score(popularity_hits: dict[str, int]) -> list[Candidate]:
-    candidate_urls = list(popularity_hits)
-
-    print(f"\n=== SCRAPING AND CLASSIFYING {len(candidate_urls)} CANDIDATES ===")
-
+    # Defensively combine slug aliases even when called with an external pool.
+    unique_hits: dict[str, int] = {}
+    for url, hits in popularity_hits.items():
+        canonical = canonical_fiction_url(url)
+        if canonical:
+            unique_hits[canonical] = max(hits, unique_hits.get(canonical, 0))
     candidates: list[Candidate] = []
+    consecutive_server_errors = 0
+    print(f"\n=== SCRAPING AND CLASSIFYING {len(unique_hits)} CANDIDATES ===")
 
-    with httpx.Client(headers=HEADERS, timeout=30) as client:
-        for index, url in enumerate(candidate_urls, start=1):
-            print(f"[{index}/{len(candidate_urls)}] {url}")
-
-            try:
-                novel = scrape_royalroad(url)
-            except Exception as exc:
-                print("FAILED:", type(exc).__name__, exc)
-                continue
-
-            # ---------------------------------------------------------
-            # Hard filter: explicit sexual content.
-            # ---------------------------------------------------------
-            novel_tags = {
-                normalize_text(tag)
-                for tag in novel.get("tags", [])
-                if normalize_text(tag)
-            }
-
-            matched_excluded_tags = novel_tags & EXCLUDED_TAGS
-            if matched_excluded_tags:
-                print(
-                    f"SKIPPED: {novel.get('title')!r} "
-                    f"(excluded tags: {sorted(matched_excluded_tags)})"
-                )
-                time.sleep(REQUEST_DELAY)
-                continue
-
+    with RoyalRoadClient() as client:
+        for index, (url, hits) in enumerate(unique_hits.items(), start=1):
+            print(f"[{index}/{len(unique_hits)}] {url}")
             try:
                 html = fetch_html(client, url)
+                consecutive_server_errors = 0
+                novel = parse_royalroad(html, url)
+                violations = sexual_content_reasons(html, novel)
+                if violations:
+                    print(f"SKIPPED: {novel['title']!r} (content policy: {violations})")
+                    continue
+
                 followers, rating, rating_count = extract_fiction_metrics(html)
+                if followers is None or followers < MIN_FOLLOWERS:
+                    print(f"SKIPPED: {novel['title']!r} (followers={followers})")
+                    continue
+                if rating is not None and rating < MIN_RATING:
+                    print(f"SKIPPED: {novel['title']!r} (rating={rating})")
+                    continue
+                if rating_count is not None and rating_count < MIN_RATING_COUNT:
+                    print(f"SKIPPED: {novel['title']!r} (rating_count={rating_count})")
+                    continue
+
+                score, reasons = score_popularity(
+                    title=novel.get("title"), synopsis=novel.get("synopsis"),
+                    followers=followers, rating=rating, rating_count=rating_count,
+                    popularity_hits=hits,
+                )
+                candidates.append(Candidate(
+                    url=url, fiction_id=novel["fiction_id"], title=novel["title"],
+                    synopsis=novel.get("synopsis"), genres=novel["genres"],
+                    tags=novel["tags"], followers=followers, rating=rating,
+                    rating_count=rating_count, popularity_hits=hits,
+                    popularity_score=score, quality_reasons=reasons,
+                ))
             except Exception as exc:
-                print("METADATA FAILED:", type(exc).__name__, exc)
-                followers, rating, rating_count = None, None, None
-
-            if followers is not None and followers < MIN_FOLLOWERS:
-                print(
-                    f"SKIPPED: {novel.get('title')!r} "
-                    f"(followers={followers}, required >= {MIN_FOLLOWERS})"
-                )
+                if isinstance(exc, httpx.HTTPStatusError) and 500 <= exc.response.status_code < 600:
+                    # An individual broken novel must not discard the batch.
+                    # Repeated failures indicate a source outage; stop normally.
+                    consecutive_server_errors += 1
+                    if consecutive_server_errors >= 3:
+                        stop_if_blocked(exc)
+                else:
+                    consecutive_server_errors = 0
+                    stop_if_blocked(exc)
+                print("FAILED:", type(exc).__name__, exc)
+            finally:
                 time.sleep(REQUEST_DELAY)
-                continue
-
-            if rating is not None and rating < MIN_RATING:
-                print(
-                    f"SKIPPED: {novel.get('title')!r} "
-                    f"(rating={rating}, required >= {MIN_RATING})"
-                )
-                time.sleep(REQUEST_DELAY)
-                continue
-
-            if rating_count is not None and rating_count < MIN_RATING_COUNT:
-                print(
-                    f"SKIPPED: {novel.get('title')!r} "
-                    f"(rating_count={rating_count}, required >= {MIN_RATING_COUNT})"
-                )
-                time.sleep(REQUEST_DELAY)
-                continue
-
-            popularity_score, quality_reasons = score_popularity(
-                title=novel.get("title"),
-                synopsis=novel.get("synopsis"),
-                followers=followers,
-                rating=rating,
-                rating_count=rating_count,
-                popularity_hits=popularity_hits.get(url, 0),
-            )
-
-            candidates.append(
-                Candidate(
-                    url=url,
-                    fiction_id=novel.get("fiction_id"),
-                    title=novel.get("title"),
-                    synopsis=novel.get("synopsis"),
-                    genres=novel.get("genres", []),
-                    tags=novel.get("tags", []),
-                    followers=followers,
-                    rating=rating,
-                    rating_count=rating_count,
-                    popularity_hits=popularity_hits.get(url, 0),
-                    popularity_score=popularity_score,
-                    quality_reasons=quality_reasons,
-                )
-            )
-
-            time.sleep(REQUEST_DELAY)
-
     return candidates
 
 
@@ -596,50 +537,70 @@ def scrape_and_score(popularity_hits: dict[str, int]) -> list[Candidate]:
 # Popularity-first, genre-diverse selection
 # ---------------------------------------------------------------------
 
-def primary_genre(candidate: Candidate) -> str:
-    return candidate.genres[0] if candidate.genres else "Unclassified"
+
+def popularity_rank(candidate: Candidate) -> tuple:
+    # Followers dominate; quality and listing frequency only break ties.
+    return (candidate.followers or 0, candidate.popularity_score,
+            candidate.rating_count or 0, -(candidate.fiction_id or 0))
+
+
+def candidate_genres(candidate: Candidate) -> set[str]:
+    return set(candidate.genres)
 
 
 def select_popular_diverse(
-    candidates: list[Candidate],
-    target: int = TARGET,
+    candidates: list[Candidate], target: int = TARGET,
 ) -> list[Candidate]:
-    """
-    Rank by popularity, but cap how much of the final list any single
-    genre can take up. If the cap leaves seats unfilled -- because
-    there simply aren't enough qualifying fictions in other genres --
-    the remaining seats are backfilled by raw popularity so the target
-    count is still reached. This keeps popularity as the dominant
-    factor while still guaranteeing genre variety whenever the pool
-    supports it.
-    """
-    cap = max(MIN_GENRE_CAP, math.ceil(target * MAX_GENRE_SHARE))
+    """Keep a popular core and use a bounded share of seats for genre coverage."""
+    if target <= 0:
+        return []
+    ranked = sorted(candidates, key=popularity_rank, reverse=True)
+    unique: dict[str, Candidate] = {}
+    for candidate in ranked:
+        key = str(candidate.fiction_id) if candidate.fiction_id is not None else (
+            canonical_fiction_url(candidate.url) or candidate.url
+        )
+        unique.setdefault(key, candidate)
+    ranked = list(unique.values())
+    if len(ranked) <= target:
+        return ranked
 
-    ranked = sorted(candidates, key=lambda c: c.popularity_score, reverse=True)
+    diversity_seats = min(target - 1, math.floor(target * DIVERSITY_SHARE))
+    selected = ranked[:target - diversity_seats]
+    selected_urls = {c.url for c in selected}
+    counts = Counter(genre for c in selected for genre in candidate_genres(c))
+    cutoff = max(MIN_FOLLOWERS, (ranked[target - 1].followers or 0)
+                 * DIVERSITY_POPULARITY_RATIO)
+    pools: dict[str, list[Candidate]] = {}
+    for candidate in ranked[len(selected):]:
+        if (candidate.followers or 0) < cutoff:
+            continue
+        for genre in sorted(candidate_genres(candidate)):
+            pools.setdefault(genre, []).append(candidate)
 
-    selected: list[Candidate] = []
-    overflow: list[Candidate] = []
-    genre_counts: Counter[str] = Counter()
+    while len(selected) < target:
+        options = []
+        for genre, pool in pools.items():
+            while pool and pool[0].url in selected_urls:
+                pool.pop(0)
+            if pool:
+                options.append((genre, pool[0]))
+        if not options:
+            break
+        _, candidate = min(options, key=lambda item: (
+            counts[item[0]], tuple(-value for value in popularity_rank(item[1])), item[0],
+        ))
+        selected.append(candidate)
+        selected_urls.add(candidate.url)
+        counts.update(candidate_genres(candidate))
 
     for candidate in ranked:
-        genre = primary_genre(candidate)
-
-        if genre_counts[genre] < cap:
-            selected.append(candidate)
-            genre_counts[genre] += 1
-        else:
-            overflow.append(candidate)
-
         if len(selected) >= target:
             break
-
-    if len(selected) < target:
-        for candidate in overflow:
-            if len(selected) >= target:
-                break
+        if candidate.url not in selected_urls:
             selected.append(candidate)
-
-    return selected
+            selected_urls.add(candidate.url)
+    return sorted(selected, key=popularity_rank, reverse=True)
 
 
 # ---------------------------------------------------------------------
@@ -679,7 +640,7 @@ def write_outputs(selected: list[Candidate], all_candidates: list[Candidate]) ->
 
         for candidate in sorted(
             all_candidates,
-            key=lambda item: item.popularity_score,
+            key=popularity_rank,
             reverse=True,
         ):
             writer.writerow({
@@ -714,9 +675,11 @@ def main() -> None:
 
     selected = select_popular_diverse(candidates, target=TARGET)
 
+    if not selected:
+        raise RuntimeError("No eligible Royal Road novels found; existing outputs were preserved.")
     write_outputs(selected, candidates)
 
-    genre_counts = Counter(primary_genre(c) for c in selected)
+    genre_counts = Counter(genre for c in selected for genre in candidate_genres(c))
 
     print(
         f"\n=== SELECTED {len(selected)} ROYAL ROAD FICTIONS "
@@ -730,7 +693,7 @@ def main() -> None:
             "is intentionally not padded with weaker candidates."
         )
 
-    print("\nGenre spread of the selection:")
+    print("\nGenre coverage (novels can count in multiple genres):")
     for genre, count in genre_counts.most_common():
         print(f"  {genre:<20} {count}")
 

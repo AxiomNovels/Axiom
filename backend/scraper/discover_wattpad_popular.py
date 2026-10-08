@@ -1,44 +1,8 @@
-"""
-Discover ~250 of the most popular Wattpad stories, spread across a
-variety of genres, with explicit sexual content hard-filtered out.
+"""Discover popular Wattpad stories with strict metadata content filtering.
 
-This replaces the older philosophy/psychology-focused discovery script.
-The selection logic now has three priorities, in this order:
-
-    1. Hard filter: explicit sexual content is excluded outright.
-    2. Popularity: reads, votes, and comments.
-    3. Genre diversity: no single genre is allowed to dominate the
-       final list.
-
-The EXCLUDED_TAGS list below is unchanged from the previous version of
-this script -- it was already built specifically to hard-filter
-sexual/explicit content on Wattpad, so it is kept as-is here.
-
-Method
-------
-1. Crawl Wattpad's general "stories" listing plus each of Wattpad's
-   own genre/category pages (Romance, Fantasy, Mystery, Thriller,
-   Horror, Science Fiction, Adventure, Paranormal, Humor, Teen
-   Fiction, Historical Fiction, Werewolf, Short Story, Poetry,
-   Classics, Non-Fiction, General Fiction, Chick Lit, Fanfiction --
-   see Wattpad's own category navigation), so the candidate pool
-   already spans genres rather than being dominated by whatever is
-   broadly trending.
-2. Deduplicate all discovered story URLs.
-3. Scrape every candidate with scraper.wattpad.scrape_wattpad().
-4. Hard-exclude any story whose tags indicate explicit sexual content.
-5. Require a minimum popularity floor (reads / votes) so obscure
-   stories don't dilute the pool.
-6. Rank the remaining candidates by a popularity score, then select
-   up to TARGET stories using a per-genre cap so that popularity
-   dominates the ordering while no single genre can fill the whole
-   list. Unfilled seats are backfilled by raw popularity so the
-   target count is still reached.
-
-Output
-------
-popular_wattpad_urls.txt
-popular_wattpad_audit.csv
+Each story page is fetched once. Story-scoped reads drive ranking; votes and
+comments break ties. Keep a popular 80% core and use 20% of seats to improve
+genre coverage, subject to an established-popularity floor.
 """
 
 from __future__ import annotations
@@ -51,13 +15,14 @@ import time
 from collections import Counter, deque
 from dataclasses import dataclass, field
 from typing import Any
-from urllib.parse import urljoin, urlparse, urlunparse
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse, urlunparse
 
 import httpx
+from curl_cffi import requests as browser_requests
 from selectolax.parser import HTMLParser
 
-from scraper.wattpad import BASE_URL, HEADERS, scrape_wattpad
-from scraper.content_policy import EXCLUDED_TAGS_BY_SOURCE
+from scraper.wattpad import BASE_URL, HEADERS, parse_wattpad
+from scraper.content_policy import EXCLUDED_TAGS_BY_SOURCE, find_policy_violations
 
 
 # ---------------------------------------------------------------------
@@ -73,9 +38,9 @@ MIN_DISCOVERED = 1500
 REQUEST_DELAY = 0.40
 MAX_PAGES_PER_SEED = 20
 
-# No single genre may take up more than this share of the final list.
-MAX_GENRE_SHARE = 0.15
-MIN_GENRE_CAP = 8
+# Most seats follow popularity; a bounded share improves genre coverage.
+DIVERSITY_SHARE = 0.20
+DIVERSITY_POPULARITY_RATIO = 0.25
 
 # Wattpad discovery surfaces, covering the general feed plus Wattpad's
 # own genre/category pages so the pool spans genres from the start.
@@ -106,8 +71,7 @@ POPULAR_SEED_URLS = [
     f"{BASE_URL}/stories/fanfiction",
 ]
 
-# Strict lewd-content exclusion. Unchanged from the previous version of
-# this script -- filtering has already been done for Wattpad.
+# Source-specific banned labels are matched using the shared policy normalizer.
 # Shared with the Upload Novel feature. Edit the list in
 # scraper/content_policy.py, not here, so the two never drift apart.
 EXCLUDED_TAGS = EXCLUDED_TAGS_BY_SOURCE["wattpad"]
@@ -156,20 +120,109 @@ def canonical_story_url(url: str) -> str | None:
     if not match:
         return None
 
-    path = parsed.path.rstrip("/")
+    path = f"/story/{int(match.group(1))}"
 
     return urlunparse(("https", "www.wattpad.com", path, "", "", ""))
 
 
-def fetch_html(client: httpx.Client, url: str) -> str:
-    response = client.get(url, follow_redirects=True)
-    response.raise_for_status()
+PROXY_URL = None
 
-    content_type = response.headers.get("content-type", "")
-    if "text/html" not in content_type.lower():
-        raise ValueError(f"Expected HTML from Wattpad, got: {content_type}")
 
-    return response.text
+class DiscoveryChallengeError(httpx.RequestError):
+    """Wattpad served a browser challenge instead of the requested page."""
+
+
+def is_challenge(response) -> bool:
+    return (
+        response.headers.get("cf-mitigated", "").casefold() == "challenge"
+        or bool(re.search(
+            r"<title[^>]*>\s*Just a moment(?:\.\.\.|\u2026)?\s*</title>",
+            response.text,
+            re.IGNORECASE,
+        ))
+        or "window._cf_chl_opt" in response.text
+    )
+
+
+class DiscoveryClient:
+    """Reuse connections/cookies and switch transport once if HTTP is refused."""
+
+    def __init__(self):
+        self.direct = httpx.Client(headers=HEADERS, follow_redirects=True, timeout=20)
+        self.browser = None
+        self.proxy = PROXY_URL
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.direct.close()
+        if self.browser is not None:
+            self.browser.close()
+
+    def _browser_get(self, url: str) -> httpx.Response:
+        if self.browser is None:
+            # Let curl_cffi supply matching browser headers, TLS and HTTP/2.
+            # The old User-Agent must not override the Chrome profile.
+            self.browser = browser_requests.Session(
+                impersonate="chrome",
+                headers={"Accept-Language": "en-US,en;q=0.9"},
+                timeout=20,
+                allow_redirects=True,
+            )
+        request = httpx.Request("GET", url)
+        try:
+            response = self.browser.get(url, proxy=self.proxy)
+        except browser_requests.exceptions.RequestException as error:
+            raise httpx.RequestError(
+                f"Wattpad browser request failed ({type(error).__name__}).",
+                request=request,
+            ) from None
+        # Preserve the existing httpx exception contract for API callers.
+        return httpx.Response(
+            response.status_code,
+            # curl_cffi already decompressed the body; do not ask httpx to
+            # decode it again using the original wire encoding/length.
+            headers={key: value for key, value in response.headers.items()
+                     if key.casefold() not in {"content-encoding", "content-length"}},
+            text=response.text,
+            request=httpx.Request("GET", response.url),
+        )
+
+    def fetch(self, url: str) -> str:
+        if self.browser is not None or self.proxy:
+            response = self._browser_get(url)
+        else:
+            response = self.direct.get(url)
+            if response.status_code == 403 or is_challenge(response):
+                response = self._browser_get(url)
+
+        if is_challenge(response):
+            raise DiscoveryChallengeError(
+                "Wattpad is blocking access with a browser challenge.",
+                request=response.request,
+            )
+        response.raise_for_status()
+
+        content_type = response.headers.get("content-type", "")
+        if "text/html" not in content_type.lower():
+            raise ValueError(f"Expected HTML from Wattpad, got: {content_type}")
+        return response.text
+
+
+
+def stop_if_blocked(error: Exception) -> None:
+    """Stop the run on access failures rather than repeatedly hitting the site."""
+    if isinstance(error, DiscoveryChallengeError):
+        raise error
+    if isinstance(error, httpx.HTTPStatusError):
+        status = error.response.status_code
+        if status in {401, 403, 429} or status >= 500:
+            raise error
+
+
+def fetch_html(client: DiscoveryClient, url: str) -> str:
+    return client.fetch(url)
 
 
 def extract_story_urls(html: str, page_url: str) -> set[str]:
@@ -188,59 +241,49 @@ def extract_story_urls(html: str, page_url: str) -> set[str]:
     return urls
 
 
-def extract_listing_links(html: str, page_url: str) -> list[str]:
-    """
-    Find same-family listing/search links. Wattpad's pagination has
-    changed historically, so this follows explicit links instead of
-    assuming a fixed page query parameter.
-    """
+def next_listing_page(html: str, page_url: str) -> list[str]:
+    """Follow one next page in the same listing, preserving its filters."""
     tree = HTMLParser(html)
     current = urlparse(page_url)
-    links: list[str] = []
-
+    filters = parse_qs(current.query)
+    page_keys = {"page", "pageIndex", "p", "offset"}
     for node in tree.css("a[href]"):
-        href = node.attributes.get("href")
-        if not href:
+        parsed = urlparse(urljoin(page_url, node.attributes["href"]))
+        if parsed.netloc.lower() != current.netloc.lower() or parsed.path != current.path:
             continue
-
-        absolute = urljoin(page_url, href)
-        parsed = urlparse(absolute)
-
-        if parsed.netloc.lower() not in {"www.wattpad.com", "wattpad.com"}:
+        params = parse_qs(parsed.query)
+        changed = [key for key in page_keys if key in params and params[key] != filters.get(key)]
+        if len(changed) != 1:
             continue
-
-        if parsed.path.startswith("/story/"):
+        key = changed[0]
+        value = params[key][0]
+        old = filters.get(key, ["0" if key == "offset" else "1"])[0]
+        if not value.isdigit() or not old.isdigit():
             continue
-
-        if not (
-            parsed.path.startswith("/stories") or parsed.path.startswith("/search")
-        ):
+        text = node.text(separator=" ", strip=True).casefold()
+        explicit_next = "next" in node.attributes.get("rel", "").split() or text in {
+            "next", "next >", ">", "\u203a", "\u2192",
+        }
+        if int(value) <= int(old):
             continue
-
-        if current.path.startswith("/search") and not parsed.path.startswith(
-            "/search"
-        ):
+        if key == "offset" and not explicit_next:
             continue
+        if key != "offset" and int(value) != int(old) + 1:
+            continue
+        if any(k not in page_keys and k in filters and sorted(v) != sorted(filters[k])
+               for k, v in params.items()):
+            continue
+        merged = {**filters, **params}
+        return [urlunparse(current._replace(query=urlencode(merged, doseq=True), fragment=""))]
+    return []
 
-        text = re.sub(
-            r"\s+", " ", node.text(separator=" ", strip=True)
-        ).strip().lower()
 
-        rel = (node.attributes.get("rel") or "").lower()
-
-        if (
-            "next" in rel
-            or text in {"next", "next >", ">", "\u203a", "\u2192"}
-            or text.isdigit()
-            or "page=" in parsed.query.lower()
-        ):
-            links.append(absolute)
-
-    return list(dict.fromkeys(links))
+def extract_listing_links(html: str, page_url: str) -> list[str]:
+    return next_listing_page(html, page_url)
 
 
 def crawl_listing(
-    client: httpx.Client,
+    client: DiscoveryClient,
     seed_url: str,
     page_limit: int,
 ) -> list[set[str]]:
@@ -258,10 +301,15 @@ def crawl_listing(
         try:
             html = fetch_html(client, url)
         except Exception as exc:
+            stop_if_blocked(exc)
+            time.sleep(REQUEST_DELAY)
             print("LISTING FAILED:", url, type(exc).__name__, exc)
             continue
 
-        pages.append(extract_story_urls(html, url))
+        stories = extract_story_urls(html, url)
+        if not stories:
+            break
+        pages.append(stories)
 
         for next_url in extract_listing_links(html, url):
             if next_url not in seen:
@@ -278,15 +326,15 @@ def discover_candidates() -> dict[str, int]:
     """
     popularity_hits: dict[str, int] = {}
 
-    with httpx.Client(headers=HEADERS, timeout=30) as client:
+    with DiscoveryClient() as client:
         print("\n=== DISCOVERING POPULAR WATTPAD CANDIDATES ===")
 
         for seed in POPULAR_SEED_URLS:
             print("SEED:", seed)
 
-            for stories in crawl_listing(client, seed, MAX_PAGES_PER_SEED):
-                for url in stories:
-                    popularity_hits[url] = popularity_hits.get(url, 0) + 1
+            stories = set().union(*crawl_listing(client, seed, MAX_PAGES_PER_SEED))
+            for url in sorted(stories):
+                popularity_hits[url] = popularity_hits.get(url, 0) + 1
 
             print("Unique candidates so far:", len(popularity_hits))
 
@@ -329,28 +377,6 @@ def parse_count(value: Any) -> int | None:
     return int(number)
 
 
-def find_metric_values(value: Any, aliases: set[str], found: list[int]) -> None:
-    """
-    Recursively inspect Wattpad Remix data. Only values from explicitly
-    named metric keys are collected; generic keys such as "count" are
-    intentionally ignored.
-    """
-    if isinstance(value, dict):
-        for key, child in value.items():
-            normalized_key = re.sub(r"[^a-z0-9]", "", str(key).lower())
-
-            if normalized_key in aliases:
-                parsed = parse_count(child)
-                if parsed is not None:
-                    found.append(parsed)
-
-            find_metric_values(child, aliases, found)
-
-    elif isinstance(value, list):
-        for child in value:
-            find_metric_values(child, aliases, found)
-
-
 def extract_remix_context(html: str) -> Any | None:
     tree = HTMLParser(html)
     marker = "window.__remixContext = "
@@ -374,59 +400,59 @@ def extract_remix_context(html: str) -> Any | None:
     return None
 
 
+def story_records(value: Any, story_id: int) -> list[dict]:
+    """Find only this story's records, excluding users and recommendations."""
+    found = []
+    if isinstance(value, dict):
+        identity = value.get("story_id", value.get("storyId", value.get("id")))
+        if str(identity) == str(story_id) and "title" in value:
+            found.append(value)
+        for child in value.values():
+            found.extend(story_records(child, story_id))
+    elif isinstance(value, list):
+        for child in value:
+            found.extend(story_records(child, story_id))
+    return found
+
+
 def extract_story_metrics(
-    html: str,
+    html: str, story_id: int | None = None,
 ) -> tuple[int | None, int | None, int | None]:
-    """
-    Best-effort extraction of reads, votes and comments. Searches
-    embedded Remix metadata first, then falls back to visible labels.
-    """
+    """Read story-scoped Remix counts, then fall back to visible story labels."""
     context = extract_remix_context(html)
-
-    read_values: list[int] = []
-    vote_values: list[int] = []
-    comment_values: list[int] = []
-
-    if context is not None:
-        find_metric_values(
-            context,
-            {"readcount", "reads", "numreads", "totalreads", "readnumber"},
-            read_values,
-        )
-        find_metric_values(
-            context,
-            {"votecount", "votes", "numvotes", "totalvotes", "voteamount"},
-            vote_values,
-        )
-        find_metric_values(
-            context,
-            {"commentcount", "comments", "numcomments", "totalcomments"},
-            comment_values,
-        )
-
-    def visible_metric(labels: tuple[str, ...]) -> int | None:
-        for label in labels:
-            patterns = [
-                rf"(\d+(?:\.\d+)?\s*[KkMm]?)\s+{label}\b",
-                rf"\b{label}\s*[:\-]?\s*(\d+(?:\.\d+)?\s*[KkMm]?)",
-            ]
-            for pattern in patterns:
-                match = re.search(pattern, html, flags=re.IGNORECASE)
-                if match:
-                    parsed = parse_count(match.group(1))
-                    if parsed is not None:
-                        return parsed
-        return None
-
-    read_count = max(read_values) if read_values else visible_metric(("reads", "read"))
-    vote_count = max(vote_values) if vote_values else visible_metric(("votes", "vote"))
-    comment_count = (
-        max(comment_values)
-        if comment_values
-        else visible_metric(("comments", "comment"))
+    records = story_records(context, story_id) if story_id is not None else []
+    aliases = (
+        {"readcount", "reads", "numreads", "totalreads", "readnumber"},
+        {"votecount", "votes", "numvotes", "totalvotes", "voteamount"},
+        {"commentcount", "comments", "numcomments", "totalcomments"},
     )
-
-    return read_count, vote_count, comment_count
+    metrics: list[int | None] = []
+    tree = HTMLParser(html)
+    scope = tree.css_first("[data-testid='story-stats'], .story-stats, .story-info")
+    # Unscoped recommendations cannot supply a missing metric.
+    text = (scope or tree).text(separator=" ", strip=True) if context is None or scope else ""
+    for names, label in zip(aliases, ("reads?", "votes?", "comments?")):
+        values = []
+        for record in records:
+            for key, child in record.items():
+                if re.sub(r"[^a-z0-9]", "", str(key).casefold()) in names:
+                    number = parse_count(child)
+                    if number is not None and number >= 0:
+                        values.append(number)
+        if values:
+            metrics.append(max(values))
+            continue
+        value = None
+        for pattern in (
+            rf"\b{label}\s*[:\-]?\s*(\d[\d,]*(?:\.\d+)?\s*[KkMm]?)",
+            rf"(\d[\d,]*(?:\.\d+)?\s*[KkMm]?)\s+{label}\b",
+        ):
+            match = re.search(pattern, text, re.I)
+            if match:
+                value = parse_count(match.group(1))
+                break
+        metrics.append(value)
+    return tuple(metrics)
 
 
 # ---------------------------------------------------------------------
@@ -486,22 +512,21 @@ def score_popularity(
     reasons: list[str] = []
 
     if read_count is not None:
-        score += min(8.0, math.log10(read_count + 1) * 1.2)
+        score += math.log10(read_count + 1) * 10.0
         reasons.append(f"reads={read_count}")
 
     if vote_count is not None:
-        score += min(8.0, math.log10(vote_count + 1) * 1.5)
+        score += min(4.0, math.log10(vote_count + 1)) * 0.25
         reasons.append(f"votes={vote_count}")
 
     if comment_count is not None:
-        score += min(4.0, math.log10(comment_count + 1))
+        score += min(4.0, math.log10(comment_count + 1)) * 0.10
         reasons.append(f"comments={comment_count}")
 
-    score += min(popularity_hits, 10) * 1.5
+    score += min(popularity_hits, 10) * 0.05
     reasons.append(f"listing-hits={popularity_hits}")
 
-    penalty, penalty_reasons = synopsis_quality_penalty(title, synopsis)
-    score -= penalty
+    _, penalty_reasons = synopsis_quality_penalty(title, synopsis)
     reasons.extend(f"presentation:{reason}" for reason in penalty_reasons)
 
     return score, reasons
@@ -511,99 +536,118 @@ def score_popularity(
 # Scrape, hard-filter, and score
 # ---------------------------------------------------------------------
 
-# Minimum popularity floor. Only enforced when the metric is
-# successfully extracted -- a missing metric is recorded in the audit
-# rather than treated as a failure.
+# Reads are required to establish popularity. Votes enforce their floor when
+# available; missing reads cannot be replaced by listing appearances.
 MIN_VOTE_COUNT = 50
 MIN_READ_COUNT = 5_000
 
 
+SEXUAL_DISCLOSURE = re.compile(
+    r"\b(?:sex(?:ual)? (?:content|scenes?|themes|acts)|sexually explicit|"
+    r"explicit sexual content|smut(?:ty)?|erotica?|nsfw|porn(?:ography|ographic)?|"
+    r"hentai|ecchi|harem|bdsm|incest|sexual (?:assault|violence)|rape|"
+    r"(?:spicy|steamy|erotic) romance)\b",
+    re.IGNORECASE,
+)
+NEGATED_DISCLOSURE = re.compile(
+    r"\b(?:no|not|without|free of|does not contain|doesn't contain|will not contain)"
+    r"\s+(?:(?:any|explicit|sexual|graphic)\s+)*$",
+    re.IGNORECASE,
+)
+
+
+
+def description_disclosures(*texts: str) -> list[str]:
+    reasons = []
+    for text in texts:
+        text = re.sub(r"\s+", " ", text or "")
+        for match in SEXUAL_DISCLOSURE.finditer(text):
+            prefix = text[max(0, match.start() - 70):match.start()]
+            suffix = text[match.end():match.end() + 6]
+            if NEGATED_DISCLOSURE.search(prefix) or re.match(r"[- ]free\b", suffix, re.I):
+                continue
+            label = f"description:{match.group(0).casefold()}"
+            if label not in reasons:
+                reasons.append(label)
+    return reasons
+
+
+def sexual_content_reasons(html: str, novel: dict) -> list[str]:
+    reasons = find_policy_violations("wattpad", novel)
+    tree = HTMLParser(html)
+    texts = [novel.get("title") or "", novel.get("synopsis") or ""]
+    if tree.css_first("[data-testid='mature-badge'], [aria-label='Mature']") is not None:
+        reasons.append("metadata:mature")
+    for node in tree.css(".story-description, [data-testid='story-description'], div._66soR.waz33"):
+        texts.append(node.text(separator=" ", strip=True))
+    for record in story_records(extract_remix_context(html), novel["story_id"]):
+        # Mature is a conservative discovery exclusion, even if no tags say so.
+        for key in ("mature", "isMature", "is_mature"):
+            if record.get(key) is True or str(record.get(key)).casefold() in {"1", "true"}:
+                reasons.append("metadata:mature")
+                break
+        for key in ("description", "synopsis"):
+            if isinstance(record.get(key), str):
+                texts.append(HTMLParser(record[key]).text(separator=" ", strip=True))
+    reasons.extend(description_disclosures(*texts))
+    return list(dict.fromkeys(reasons))
+
+
 def scrape_and_score(popularity_hits: dict[str, int]) -> list[Candidate]:
-    candidate_urls = list(popularity_hits)
-
-    print(f"\n=== SCRAPING AND CLASSIFYING {len(candidate_urls)} CANDIDATES ===")
-
+    unique_hits: dict[str, int] = {}
+    for url, hits in popularity_hits.items():
+        canonical = canonical_story_url(url)
+        if canonical:
+            unique_hits[canonical] = max(hits, unique_hits.get(canonical, 0))
     candidates: list[Candidate] = []
-
-    with httpx.Client(headers=HEADERS, timeout=30) as client:
-        for index, url in enumerate(candidate_urls, start=1):
-            print(f"[{index}/{len(candidate_urls)}]", url)
-
-            try:
-                novel = scrape_wattpad(url)
-            except Exception as exc:
-                print("FAILED:", type(exc).__name__, exc)
-                continue
-
-            # ---------------------------------------------------------
-            # Hard filter: explicit sexual content.
-            # ---------------------------------------------------------
-            novel_tags = {
-                normalize_text(tag)
-                for tag in novel.get("tags", [])
-                if normalize_text(tag)
-            }
-
-            matched_excluded_tags = novel_tags & EXCLUDED_TAGS
-            if matched_excluded_tags:
-                print(
-                    f"SKIPPED: {novel.get('title')!r} "
-                    f"(excluded tags: {sorted(matched_excluded_tags)})"
-                )
-                time.sleep(REQUEST_DELAY)
-                continue
-
+    consecutive_server_errors = 0
+    print(f"\n=== SCRAPING AND CLASSIFYING {len(unique_hits)} CANDIDATES ===")
+    with DiscoveryClient() as client:
+        for index, (url, hits) in enumerate(unique_hits.items(), start=1):
+            print(f"[{index}/{len(unique_hits)}] {url}")
             try:
                 html = fetch_html(client, url)
-                read_count, vote_count, comment_count = extract_story_metrics(html)
+                consecutive_server_errors = 0
+                novel = parse_wattpad(html, url)
+                if not novel.get("title") or not novel.get("author"):
+                    print("SKIPPED: incomplete story metadata")
+                    continue
+                violations = sexual_content_reasons(html, novel)
+                if violations:
+                    print(f"SKIPPED: {novel['title']!r} (content policy: {violations})")
+                    continue
+                reads, votes, comments = extract_story_metrics(html, novel["story_id"])
+                if reads is None or reads < MIN_READ_COUNT:
+                    print(f"SKIPPED: {novel['title']!r} (reads={reads})")
+                    continue
+                if votes is not None and votes < MIN_VOTE_COUNT:
+                    print(f"SKIPPED: {novel['title']!r} (votes={votes})")
+                    continue
+                score, reasons = score_popularity(
+                    title=novel["title"], synopsis=novel.get("synopsis"),
+                    read_count=reads, vote_count=votes, comment_count=comments,
+                    popularity_hits=hits,
+                )
+                candidates.append(Candidate(
+                    url=url, story_id=novel["story_id"], title=novel["title"],
+                    synopsis=novel.get("synopsis"), genres=novel["genres"],
+                    tags=novel["tags"], read_count=reads, vote_count=votes,
+                    comment_count=comments, popularity_hits=hits,
+                    popularity_score=score, quality_reasons=reasons,
+                ))
             except Exception as exc:
-                print("METADATA FAILED:", type(exc).__name__, exc)
-                read_count, vote_count, comment_count = None, None, None
-
-            if read_count is not None and read_count < MIN_READ_COUNT:
-                print(
-                    f"SKIPPED: {novel.get('title')!r} "
-                    f"(reads={read_count:,}, required >= {MIN_READ_COUNT:,})"
-                )
+                if isinstance(exc, httpx.HTTPStatusError) and 500 <= exc.response.status_code < 600:
+                    # An individual broken novel must not discard the batch.
+                    # Repeated failures indicate a source outage; stop normally.
+                    consecutive_server_errors += 1
+                    if consecutive_server_errors >= 3:
+                        stop_if_blocked(exc)
+                else:
+                    consecutive_server_errors = 0
+                    stop_if_blocked(exc)
+                print("FAILED:", type(exc).__name__, exc)
+            finally:
                 time.sleep(REQUEST_DELAY)
-                continue
-
-            if vote_count is not None and vote_count < MIN_VOTE_COUNT:
-                print(
-                    f"SKIPPED: {novel.get('title')!r} "
-                    f"(votes={vote_count:,}, required >= {MIN_VOTE_COUNT:,})"
-                )
-                time.sleep(REQUEST_DELAY)
-                continue
-
-            popularity_score, quality_reasons = score_popularity(
-                title=novel.get("title"),
-                synopsis=novel.get("synopsis"),
-                read_count=read_count,
-                vote_count=vote_count,
-                comment_count=comment_count,
-                popularity_hits=popularity_hits.get(url, 0),
-            )
-
-            candidates.append(
-                Candidate(
-                    url=url,
-                    story_id=novel.get("story_id"),
-                    title=novel.get("title"),
-                    synopsis=novel.get("synopsis"),
-                    genres=novel.get("genres", []),
-                    tags=novel.get("tags", []),
-                    read_count=read_count,
-                    vote_count=vote_count,
-                    comment_count=comment_count,
-                    popularity_hits=popularity_hits.get(url, 0),
-                    popularity_score=popularity_score,
-                    quality_reasons=quality_reasons,
-                )
-            )
-
-            time.sleep(REQUEST_DELAY)
-
     return candidates
 
 
@@ -611,47 +655,67 @@ def scrape_and_score(popularity_hits: dict[str, int]) -> list[Candidate]:
 # Popularity-first, genre-diverse selection
 # ---------------------------------------------------------------------
 
-def primary_genre(candidate: Candidate) -> str:
-    return candidate.genres[0] if candidate.genres else "Unclassified"
+def popularity_rank(candidate: Candidate) -> tuple:
+    return (candidate.read_count or 0, candidate.vote_count or 0, candidate.comment_count or 0, candidate.popularity_score, -(candidate.story_id or 0))
+
+
+def candidate_genres(candidate: Candidate) -> set[str]:
+    return set(candidate.genres)
 
 
 def select_popular_diverse(
-    candidates: list[Candidate],
-    target: int = TARGET,
+    candidates: list[Candidate], target: int = TARGET,
 ) -> list[Candidate]:
-    """
-    Rank by popularity, but cap how much of the final list any single
-    genre can take up, backfilling any unfilled seats by raw
-    popularity so the target count is still reached. See the Royal
-    Road discovery script for the same algorithm with more discussion.
-    """
-    cap = max(MIN_GENRE_CAP, math.ceil(target * MAX_GENRE_SHARE))
+    """Keep a popular core and use a bounded share of seats for genre coverage."""
+    if target <= 0:
+        return []
+    ranked = sorted(candidates, key=popularity_rank, reverse=True)
+    unique: dict[str, Candidate] = {}
+    for candidate in ranked:
+        key = str(candidate.story_id) if candidate.story_id is not None else (
+            canonical_story_url(candidate.url) or candidate.url
+        )
+        unique.setdefault(key, candidate)
+    ranked = list(unique.values())
+    if len(ranked) <= target:
+        return ranked
 
-    ranked = sorted(candidates, key=lambda c: c.popularity_score, reverse=True)
+    diversity_seats = min(target - 1, math.floor(target * DIVERSITY_SHARE))
+    selected = ranked[:target - diversity_seats]
+    selected_urls = {c.url for c in selected}
+    counts = Counter(genre for c in selected for genre in candidate_genres(c))
+    cutoff = max(MIN_READ_COUNT, (ranked[target - 1].read_count or 0)
+                 * DIVERSITY_POPULARITY_RATIO)
+    pools: dict[str, list[Candidate]] = {}
+    for candidate in ranked[len(selected):]:
+        if (candidate.read_count or 0) < cutoff:
+            continue
+        for genre in sorted(candidate_genres(candidate)):
+            pools.setdefault(genre, []).append(candidate)
 
-    selected: list[Candidate] = []
-    overflow: list[Candidate] = []
-    genre_counts: Counter[str] = Counter()
+    while len(selected) < target:
+        options = []
+        for genre, pool in pools.items():
+            while pool and pool[0].url in selected_urls:
+                pool.pop(0)
+            if pool:
+                options.append((genre, pool[0]))
+        if not options:
+            break
+        _, candidate = min(options, key=lambda item: (
+            counts[item[0]], tuple(-value for value in popularity_rank(item[1])), item[0],
+        ))
+        selected.append(candidate)
+        selected_urls.add(candidate.url)
+        counts.update(candidate_genres(candidate))
 
     for candidate in ranked:
-        genre = primary_genre(candidate)
-
-        if genre_counts[genre] < cap:
-            selected.append(candidate)
-            genre_counts[genre] += 1
-        else:
-            overflow.append(candidate)
-
         if len(selected) >= target:
             break
-
-    if len(selected) < target:
-        for candidate in overflow:
-            if len(selected) >= target:
-                break
+        if candidate.url not in selected_urls:
             selected.append(candidate)
-
-    return selected
+            selected_urls.add(candidate.url)
+    return sorted(selected, key=popularity_rank, reverse=True)
 
 
 # ---------------------------------------------------------------------
@@ -691,7 +755,7 @@ def write_outputs(selected: list[Candidate], all_candidates: list[Candidate]) ->
 
         for candidate in sorted(
             all_candidates,
-            key=lambda item: item.popularity_score,
+            key=popularity_rank,
             reverse=True,
         ):
             writer.writerow({
@@ -726,9 +790,11 @@ def main() -> None:
 
     selected = select_popular_diverse(candidates, target=TARGET)
 
+    if not selected:
+        raise RuntimeError("No eligible novels found; existing outputs were preserved.")
     write_outputs(selected, candidates)
 
-    genre_counts = Counter(primary_genre(c) for c in selected)
+    genre_counts = Counter(genre for c in selected for genre in candidate_genres(c))
 
     print(
         f"\n=== SELECTED {len(selected)} WATTPAD STORIES "
@@ -742,7 +808,7 @@ def main() -> None:
             "is intentionally not padded with weaker candidates."
         )
 
-    print("\nGenre spread of the selection:")
+    print("\nGenre coverage (novels can count in multiple genres):")
     for genre, count in genre_counts.most_common():
         print(f"  {genre:<20} {count}")
 

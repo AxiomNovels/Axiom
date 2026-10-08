@@ -2,6 +2,7 @@ import re
 from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
+from curl_cffi import requests as browser_requests
 from selectolax.parser import HTMLParser
 
 from .genres import IN_HOUSE_GENRES
@@ -140,23 +141,89 @@ def normalize_url(url: str) -> str:
     return urljoin(BASE_URL, path)
 
 
-def fetch(url: str) -> str:
-    with httpx.Client(
-        headers=HEADERS,
-        follow_redirects=True,
-        timeout=20,
-    ) as client:
-        response = client.get(url)
-        response.raise_for_status()
+class RoyalRoadChallengeError(httpx.RequestError):
+    """Royal Road served a browser challenge instead of the requested page."""
 
-    content_type = response.headers.get("content-type", "")
 
-    if "text/html" not in content_type.lower():
-        raise ValueError(
-            f"Expected HTML from Royal Road, got: {content_type}"
+def is_challenge(response) -> bool:
+    return (
+        response.headers.get("cf-mitigated", "").casefold() == "challenge"
+        or bool(re.search(
+            r"<title[^>]*>\s*Just a moment(?:\.\.\.|\u2026)?\s*</title>",
+            response.text,
+            re.IGNORECASE,
+        ))
+        or "window._cf_chl_opt" in response.text
+    )
+
+
+class RoyalRoadClient:
+    """Reuse connections/cookies and switch transport once if HTTP is refused."""
+
+    def __init__(self):
+        self.direct = httpx.Client(headers=HEADERS, follow_redirects=True, timeout=20)
+        self.browser = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.direct.close()
+        if self.browser is not None:
+            self.browser.close()
+
+    def _browser_get(self, url: str) -> httpx.Response:
+        if self.browser is None:
+            # Let curl_cffi supply matching browser headers, TLS and HTTP/2.
+            # The old User-Agent must not override the Chrome profile.
+            self.browser = browser_requests.Session(
+                impersonate="chrome",
+                headers={"Accept-Language": "en-US,en;q=0.9"},
+                timeout=20,
+                allow_redirects=True,
+            )
+        request = httpx.Request("GET", url)
+        try:
+            response = self.browser.get(url)
+        except browser_requests.exceptions.RequestException as error:
+            raise httpx.RequestError(
+                f"Royal Road browser request failed ({type(error).__name__}).",
+                request=request,
+            ) from None
+        # Preserve the existing httpx exception contract for API callers.
+        return httpx.Response(
+            response.status_code,
+            headers=dict(response.headers),
+            text=response.text,
+            request=httpx.Request("GET", response.url),
         )
 
-    return response.text
+    def fetch(self, url: str) -> str:
+        if self.browser is not None:
+            response = self._browser_get(url)
+        else:
+            response = self.direct.get(url)
+            if response.status_code == 403 or is_challenge(response):
+                response = self._browser_get(url)
+
+        if is_challenge(response):
+            raise RoyalRoadChallengeError(
+                "Royal Road is blocking access with a browser challenge.",
+                request=response.request,
+            )
+        response.raise_for_status()
+
+        content_type = response.headers.get("content-type", "")
+        if "text/html" not in content_type.lower():
+            raise ValueError(f"Expected HTML from Royal Road, got: {content_type}")
+        return response.text
+
+
+def fetch(url: str, client: RoyalRoadClient | None = None) -> str:
+    if client is not None:
+        return client.fetch(url)
+    with RoyalRoadClient() as session:
+        return session.fetch(url)
 
 
 def extract_title(tree: HTMLParser) -> str:
@@ -311,7 +378,7 @@ def extract_status(tree: HTMLParser) -> str | None:
 def extract_tag_links(tree: HTMLParser) -> list[str]:
     tags = []
 
-    for node in tree.css("a"):
+    for node in tree.css(".fiction-info .tags a") or tree.css("a"):
         href = node.attributes.get("href", "")
 
         if not href:
@@ -442,8 +509,22 @@ def extract_tags(tree: HTMLParser) -> list[str]:
         if tag not in tags:
             tags.append(tag)
 
+    tags.extend(extract_content_warnings(tree))
     tags = normalize_tags(tags)
     return tags
+
+
+def extract_content_warnings(tree: HTMLParser) -> list[str]:
+    """Warnings are plain list items, not searchable tag links."""
+    warnings = []
+    for heading in tree.css(".fiction-info strong"):
+        if (clean_text(heading) or "").casefold() != "warning":
+            continue
+        for node in heading.parent.css("ul li"):
+            text = clean_text(node)
+            if text and text not in warnings:
+                warnings.append(text)
+    return warnings
 
 
 def extract_description_node(tree: HTMLParser):
@@ -702,6 +783,19 @@ def extract_statistics(
         rating_count = None
         overall_score = None
 
+        score_node = statistics_node.css_first(
+            "[data-original-title='Overall Score'], [title='Overall Score']"
+        )
+        if score_node is not None:
+            score_match = re.search(
+                r"\b([0-5](?:\.\d+)?)\s*(?:/\s*5|stars)",
+                score_node.attributes.get("data-content", "")
+                or score_node.attributes.get("aria-label", ""),
+                re.IGNORECASE,
+            )
+            if score_match and 0 <= float(score_match.group(1)) <= 5:
+                overall_score = float(score_match.group(1))
+
         rating_match = re.search(
             r"\bRatings?\s*:\s*([\d,]+)",
             text,
@@ -722,7 +816,7 @@ def extract_statistics(
             flags=re.IGNORECASE,
         )
 
-        if score_match:
+        if score_match and overall_score is None:
             try:
                 overall_score = float(score_match.group(1))
             except ValueError:
