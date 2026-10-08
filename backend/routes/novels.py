@@ -50,34 +50,55 @@ SOURCE_UNREACHABLE_MESSAGE = (
 )
 
 
+def _debug_reason(error: Exception, status: int | None) -> str:
+    """One short ASCII line describing the failure, for the X-Scrape-Debug
+    response header (visible in the browser's Network tab). Safe to delete."""
+    text = f"{type(error).__name__}: {error}" + (f" [HTTP {status}]" if status else "")
+    return " ".join(text.split()).encode("ascii", "ignore").decode("ascii")[:200]
+
+
 def _scrape_failure(source: str, url: str, error: Exception) -> HTTPException:
     """Turn a scraper exception into the right HTTP error, and log the cause.
 
-    "The link is wrong" and "the site refused our server" used to look the same
-    to everyone (and left nothing in the logs). A site refusing the request
-    (403/429/5xx, a timeout, a connection or TLS failure) is a 502 with its own
-    message; everything else -- a 404, a malformed link, a page that doesn't
-    parse -- stays the familiar 422.
+    "The link is wrong" and "the site didn't give us the page" used to look the
+    same to everyone (and left nothing in the logs). Now:
+
+      * 502 -- we couldn't get the page: the site refused us (401/403/429/5xx),
+        or the request itself failed (timeout, connection/TLS error, redirect
+        loop, undecodable response, ...).
+      * 422 -- we did get a response, but the link is wrong (e.g. 404, not a
+        book URL) or the page isn't one we can parse.
+
+    The exact exception is logged and sent back in the X-Scrape-Debug header.
     """
     status = getattr(getattr(error, "response", None), "status_code", None)
-    network_failure = isinstance(
-        error, (httpx.TransportError, requests.ConnectionError, requests.Timeout)
-    )
-    refused = status in (401, 403, 429) or (isinstance(status, int) and status >= 500)
+    bad_link = isinstance(error, (
+        requests.exceptions.InvalidURL,
+        requests.exceptions.MissingSchema,
+        requests.exceptions.InvalidSchema,
+        httpx.UnsupportedProtocol,
+    ))
+    if status is not None:
+        # We got an HTTP answer: only these mean "the site won't serve us".
+        refused = status in (401, 403, 429) or status >= 500
+    else:
+        refused = (
+            isinstance(error, (httpx.HTTPError, requests.RequestException)) and not bad_link
+        )
 
+    reason = _debug_reason(error, status)
     logger.warning(
-        "Upload scrape failed for %s (%s): %s: %s%s",
-        url, source, type(error).__name__, error,
-        f" [HTTP {status}]" if status else "",
-        exc_info=True,
+        "Upload scrape failed for %s (%s): %s", url, source, reason, exc_info=True
     )
+    headers = {"X-Scrape-Debug": reason}
 
-    if network_failure or refused:
+    if refused:
         return HTTPException(
             status_code=502,
             detail=SOURCE_UNREACHABLE_MESSAGE.format(source=source),
+            headers=headers,
         )
-    return HTTPException(status_code=422, detail=INVALID_SOURCE_MESSAGE)
+    return HTTPException(status_code=422, detail=INVALID_SOURCE_MESSAGE, headers=headers)
 
 
 class NovelSourceRequest(BaseModel):
