@@ -17,3 +17,8 @@ The backend lives in `backend/`.
 cd backend
 uvicorn main:app --port 8000
 ```
+
+## Listing all files
+```bash
+git ls-files -co --exclude-standard
+```
