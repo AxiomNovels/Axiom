@@ -556,7 +556,8 @@ function updateAccountNav() {
       link.textContent = "Admin hub";
       document.querySelector(".account-popover")?.insertBefore(link, logoutButton);
     }).catch(() => {});
-    refreshAccountAvatar();
+    // The profile form loads this same data and applies the header avatar.
+    if (!document.querySelector("[data-profile-form]")) refreshAccountAvatar();
     refreshInboxBadge();
     refreshFriendRequestBadges();
   } else {

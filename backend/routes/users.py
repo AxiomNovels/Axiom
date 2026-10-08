@@ -233,7 +233,6 @@ def list_public_users(
         is_public = profile.pop("online_status_visibility", "public") == "public"
         users.append({
             **profile,
-            "special": _is_special_account(client, profile["id"]),
             "online": is_public and str(profile["id"]) in online_ids,
             "_public_presence": is_public,
         })
@@ -251,6 +250,9 @@ def list_public_users(
         users = users[:safe_limit]
     for user in users:
         user.pop("_public_presence", None)
+        # Badges do not affect ordering. Only look up accounts that will
+        # actually be returned, after the activity sort and result limit.
+        user["special"] = _is_special_account(client, user["id"])
     return {
         "users": users,
         "query": query,

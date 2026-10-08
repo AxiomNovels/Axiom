@@ -56,8 +56,14 @@ def recommend_novels(source, candidates, limit=6):
             if values:
                 other = _scores(novel, table, keys)
                 score += weight * sum(1 - abs(value - other[key]) / 100 for key, value in values.items() if key in other) / len(values)
+        ranked.append((score / denominator if denominator else 0, novel))
+    ranked.sort(key=lambda item: (-item[0], (item[1].get("title") or "").casefold(), str(item[1]["id"])))
+    # Only the returned candidates need display cards and sorted shared tags.
+    # Keep ranking on the original rows to avoid building thousands of unused
+    # dictionaries when the caller wants the default six recommendations.
+    cards = []
+    for _, novel in ranked[:limit]:
         card = {key: novel.get(key) for key in CARD_FIELDS}
-        card["shared_tags"] = sorted({str(tag).strip() for tag in novel.get("tags") or [] if str(tag).strip().casefold() in shared}, key=str.casefold)[:3]
-        ranked.append((score / denominator if denominator else 0, card))
-    ranked.sort(key=lambda item: (-item[0], (item[1]["title"] or "").casefold(), str(item[1]["id"])))
-    return [card for _, card in ranked[:limit]]
+        card["shared_tags"] = sorted({str(tag).strip() for tag in novel.get("tags") or [] if str(tag).strip().casefold() in source_tags}, key=str.casefold)[:3]
+        cards.append(card)
+    return cards

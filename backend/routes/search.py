@@ -134,4 +134,8 @@ def search_novels(
         profile_ranges=ranges,
         min_rating=_rating_threshold(min_rating),
     )
-    return sort_novels(novels, sort=sort, query=query if sort == "relevance" else "")
+    # Filtering preserves the relevance order established above. Re-ranking
+    # here would tokenize and score every surviving novel a second time.
+    if query and sort == "relevance":
+        return novels
+    return sort_novels(novels, sort=sort)

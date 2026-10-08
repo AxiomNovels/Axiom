@@ -183,6 +183,7 @@ async function loadProfile() {
     if (!response.ok) throw new Error("Failed to load profile");
 
     const profile = await response.json();
+    applyAccountAvatar(profile.avatar_url || null);
 
     if (usernameEl) usernameEl.textContent = profile.username || "";
     if (joinDateEl) joinDateEl.textContent = formatJoinDate(profile.created_at);
@@ -469,7 +470,7 @@ async function applyAvatarEdit() {
       return;
     }
     applyAvatarPreview(result);
-    if (window.refreshAccountAvatar) window.refreshAccountAvatar();
+    applyAccountAvatar(result.avatar_url || null);
     hideAvatarModal();
     showProfileMessage("Avatar updated.");
   } catch (error) {
