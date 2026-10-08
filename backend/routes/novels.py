@@ -1,5 +1,8 @@
 import logging
 
+import httpx
+import requests
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
@@ -34,11 +37,47 @@ NOVEL_DETAIL_COLUMNS = (
 # pair that already knows how to handle that source.
 SOURCE_HANDLERS = {
     "Royal Road": (scrape_royalroad, transform_royalroad),
-    "WebNovel": (scrape_webnovel, transform_webnovel),
+    # The upload form doesn't need WebNovel's review statistics, and the extra
+    # request they require is the part most likely to be refused from a server.
+    "WebNovel": (lambda url: scrape_webnovel(url, include_statistics=False), transform_webnovel),
     "Wattpad": (scrape_wattpad, transform_wattpad),
 }
 
 INVALID_SOURCE_MESSAGE = "URL is invalid or source is incorrect."
+SOURCE_UNREACHABLE_MESSAGE = (
+    "Axiom couldn't load that page from {source} right now. The site may be "
+    "blocking or rate-limiting our server, so please try again later."
+)
+
+
+def _scrape_failure(source: str, url: str, error: Exception) -> HTTPException:
+    """Turn a scraper exception into the right HTTP error, and log the cause.
+
+    "The link is wrong" and "the site refused our server" used to look the same
+    to everyone (and left nothing in the logs). A site refusing the request
+    (403/429/5xx, a timeout, a connection or TLS failure) is a 502 with its own
+    message; everything else -- a 404, a malformed link, a page that doesn't
+    parse -- stays the familiar 422.
+    """
+    status = getattr(getattr(error, "response", None), "status_code", None)
+    network_failure = isinstance(
+        error, (httpx.TransportError, requests.ConnectionError, requests.Timeout)
+    )
+    refused = status in (401, 403, 429) or (isinstance(status, int) and status >= 500)
+
+    logger.warning(
+        "Upload scrape failed for %s (%s): %s: %s%s",
+        url, source, type(error).__name__, error,
+        f" [HTTP {status}]" if status else "",
+        exc_info=True,
+    )
+
+    if network_failure or refused:
+        return HTTPException(
+            status_code=502,
+            detail=SOURCE_UNREACHABLE_MESSAGE.format(source=source),
+        )
+    return HTTPException(status_code=422, detail=INVALID_SOURCE_MESSAGE)
 
 
 class NovelSourceRequest(BaseModel):
@@ -80,8 +119,8 @@ def _scrape_and_transform(payload: NovelSourceRequest, user_id: str | None = Non
     try:
         raw_payload = scrape_fn(url)
         novel = transform_fn(raw_payload)
-    except Exception:
-        raise HTTPException(status_code=422, detail=INVALID_SOURCE_MESSAGE)
+    except Exception as error:
+        raise _scrape_failure(payload.source, url, error) from error
 
     # Deliberately outside the try block above: it would otherwise swallow
     # this error and report it as an invalid URL.

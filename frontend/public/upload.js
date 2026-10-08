@@ -368,6 +368,17 @@ function resetToForm(elements) {
   lastSearch = null;
 }
 
+// A JSON error from the API carries its own message. A response without one
+// (a crash, or a proxy/gateway timeout page) used to be reported as "URL is
+// invalid", which hid real server problems; only a client-side error says that.
+function uploadFailureMessage(response, result) {
+  if (typeof result.detail === "string") return result.detail;
+  if (response.status >= 500) {
+    return `The server had a problem handling this request (HTTP ${response.status}). Please try again in a minute.`;
+  }
+  return "URL is invalid or source is incorrect.";
+}
+
 async function handleSearch(event, elements) {
   event.preventDefault();
   if (elements.searchButton.disabled) return;
@@ -410,7 +421,7 @@ async function handleSearch(event, elements) {
     if (!response.ok) {
       showError(
         elements.errorEl,
-        typeof result.detail === "string" ? result.detail : "URL is invalid or source is incorrect."
+        uploadFailureMessage(response, result)
       );
       return;
     }
@@ -466,7 +477,7 @@ async function handleAdd(elements) {
     if (!response.ok) {
       showMessage(
         elements.successEl,
-        typeof result.detail === "string" ? result.detail : "URL is invalid or source is incorrect."
+        uploadFailureMessage(response, result)
       );
       return;
     }
