@@ -218,23 +218,30 @@ def fetch_review_statistics(
         "needSummary": 1,
     }
 
-    response = requests.get(
-        url,
-        params=params,
-        headers=HEADERS,
-        timeout=20,
-        allow_redirects=True,
-    )
-
-    response.raise_for_status()
-
-    data = response.json()
-
-    statistics = (
-        data
-        .get("data", {})
-        .get("bookStatisticsInfo", {})
-    )
+    # These statistics are optional extras (only the discover_*_popular.py
+    # scripts use them). WebNovel's API endpoint is protected much more
+    # aggressively than the book page itself -- it is often refused (403/429),
+    # answered with an HTML challenge page, or returns "data": null when called
+    # from a server/datacenter IP. Any of those must never make the whole scrape
+    # fail, so every failure here simply means "no statistics".
+    try:
+        response = requests.get(
+            url,
+            params=params,
+            headers=HEADERS,
+            timeout=20,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+        data = response.json()
+        statistics = (
+            (data.get("data") or {}).get("bookStatisticsInfo") or {}
+        )
+    except (requests.RequestException, ValueError, AttributeError):
+        return {
+            "total_score": None,
+            "total_review_num": None,
+        }
 
     total_score = statistics.get(
         "totalScore"
@@ -1471,9 +1478,13 @@ def extract_chapter_count(
 def parse_webnovel(
     html: str,
     source_url: str,
+    include_statistics: bool = True,
 ) -> dict:
     """
     Parse a WebNovel book page into normalized source data.
+
+    include_statistics=False skips the extra review-statistics request. The
+    Upload Novel feature does not use those numbers, so it passes False.
     """
 
     soup = BeautifulSoup(
@@ -1486,8 +1497,10 @@ def parse_webnovel(
         source_url
     )
 
-    review_statistics = fetch_review_statistics(
-        story_id
+    review_statistics = (
+        fetch_review_statistics(story_id)
+        if include_statistics
+        else {}
     )
 
     total_score = review_statistics.get(
@@ -1539,6 +1552,7 @@ def parse_webnovel(
 
 def scrape_webnovel(
     url_or_id: str,
+    include_statistics: bool = True,
 ) -> dict:
     """
     Fetch and parse one WebNovel book.
@@ -1558,6 +1572,7 @@ def scrape_webnovel(
     return parse_webnovel(
         html=html,
         source_url=source_url,
+        include_statistics=include_statistics,
     )
 
 
