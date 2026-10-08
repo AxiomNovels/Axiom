@@ -35,6 +35,45 @@ On first setup, replace the placeholder Supabase values in `backend/.env`.
 Verify the backend with `http://localhost:8000/api/health`, then verify finder
 metadata with `http://localhost:8000/api/search/options`.
 
+## WebNovel upload access
+
+WebNovel may serve Cloudflare's "Just a moment..." verification page instead of
+book HTML. This depends on the request's network fingerprint and outbound IP,
+so a URL can work on one machine and be refused on another. It is not evidence
+that the URL is invalid or that Supabase is misconfigured.
+
+Install the backend dependencies on each machine and in the backend deployment:
+
+```powershell
+backend\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
+```
+
+The scraper preserves successful plain requests and retries a 403 or detected
+challenge once using `curl_cffi` with consistent Chrome TLS/HTTP settings.
+Challenge HTML, including HTTP 200 challenges, is rejected as a source-access
+failure (502), rather than parsed or reported as an invalid link. HTTP 404 remains
+an invalid-link response (422). Neither transport solves interactive challenges
+or guarantees access from an IP that WebNovel blocks.
+
+If a deployment remains blocked, set `WEBNOVEL_PROXY_URL` in `backend/.env` or
+the backend hosting environment to an outbound proxy you control and are
+authorized to use (format `http://username:password@proxy-host:port`). When set,
+WebNovel book-page requests use Chrome transport through that proxy directly.
+This setting is optional and stays on the backend; never commit its credentials.
+Restart the backend after changing it. Browser/proxy requests retain TLS
+certificate verification.
+
+From `backend/`, check the actual scraper with:
+
+```powershell
+.\.venv\Scripts\python.exe -m scraper.diagnose_scrape "WebNovel" "https://www.webnovel.com/book/shadow-slave_22196546206090805"
+```
+
+The raw diagnostic is a plain-request baseline and can still show 403 when the
+real scrape succeeds through the fallback. It reports proxy configuration
+without printing credentials. Deploy the updated backend and its requirements
+together; the existing frontend already displays the API's source-access message.
+
 ## Generate novel profiles
 
 From `backend/`, generate all three profiles with one command:

@@ -1,13 +1,54 @@
 import json
+import logging
+import os
 import re
 
 import requests
 from bs4 import BeautifulSoup
+from curl_cffi import requests as browser_requests
 
 from .genres import IN_HOUSE_GENRES
 
 
 BASE_URL = "https://www.webnovel.com"
+logger = logging.getLogger(__name__)
+
+
+class WebNovelChallengeError(requests.RequestException):
+    """A source-access failure, including challenge pages returned as HTTP 200."""
+
+
+def is_challenge(response) -> bool:
+    """Check Cloudflare's documented header and older HTML challenge pages."""
+    if response.headers.get("cf-mitigated", "").casefold() == "challenge":
+        return True
+    html = response.text
+    return bool(
+        re.search(r"<title[^>]*>\s*Just a moment(?:\.\.\.|\u2026)?\s*</title>", html, re.I)
+        or "window._cf_chl_opt" in html
+    )
+
+
+def _browser_request(url: str, proxy: str | None = None):
+    # Let curl_cffi supply a consistent Chrome User-Agent, client hints, TLS
+    # handshake and HTTP/2 settings. Reusing HEADERS would mix browser versions.
+    try:
+        return browser_requests.get(
+            url,
+            impersonate="chrome",
+            headers={"Accept-Language": "en-US,en;q=0.9"},
+            timeout=20,
+            allow_redirects=True,
+            proxy=proxy,
+        )
+    except browser_requests.exceptions.RequestException as error:
+        # curl_cffi exceptions do not inherit from requests.RequestException.
+        # Normalize them for API error handling and optional review collection.
+        # Do not include proxy credentials from the original error in logs.
+        raise requests.RequestException(
+            f"WebNovel browser request failed ({type(error).__name__}).",
+            response=getattr(error, "response", None),
+        ) from None
 
 
 HEADERS = {
@@ -153,41 +194,42 @@ def clean_synopsis(
     ) or None
 
 
-def fetch(
-    url: str,
-) -> str:
+def fetch(url: str) -> str:
+    """Fetch book HTML, retrying a refused plain request once with Chrome TLS.
+
+    A configured backend-only proxy uses the browser transport immediately.
+    This supports deployments whose direct outbound IP is refused by WebNovel;
+    browser impersonation alone cannot fix an IP block or solve a CAPTCHA.
     """
-    Fetch a public WebNovel book page.
-
-    WebNovel can return unusual responses depending on the
-    requested URL, so this function keeps the request simple
-    and uses the same working approach as our diagnostic.
-    """
-
-    response = requests.get(
-        url,
-        headers=HEADERS,
-        timeout=20,
-        allow_redirects=True,
-    )
-
-    response.raise_for_status()
-
-    content_type = response.headers.get(
-        "Content-Type",
-        "",
-    )
-
-    if (
-        "text/html" not in
-        content_type.lower()
-    ):
-        raise ValueError(
-            "Expected HTML from WebNovel, got: "
-            f"{content_type}"
+    proxy = os.getenv("WEBNOVEL_PROXY_URL", "").strip() or None
+    if proxy:
+        response = _browser_request(url, proxy=proxy)
+    else:
+        # Preserve the existing successful path; do not retry 404s, rate limits,
+        # or server errors, and do not send an unbounded series of requests.
+        response = requests.get(
+            url, headers=HEADERS, timeout=20, allow_redirects=True,
         )
+        if response.status_code == 403 or is_challenge(response):
+            logger.info("WebNovel refused the plain request; retrying with Chrome transport")
+            response = _browser_request(url)
 
+    if is_challenge(response):
+        raise WebNovelChallengeError(
+            "WebNovel returned a browser verification challenge instead of the book page.",
+            response=response,
+        )
+    if response.status_code >= 400:
+        # Normalize both transports' HTTP errors, preserving the real status
+        # for the API (404 -> invalid link; 403/429/5xx -> source unavailable).
+        raise requests.HTTPError(
+            f"WebNovel returned HTTP {response.status_code}.", response=response,
+        )
+    content_type = response.headers.get("Content-Type", "")
+    if "text/html" not in content_type.lower():
+        raise ValueError(f"Expected HTML from WebNovel, got: {content_type}")
     return response.text
+
 
 def fetch_review_statistics(
     story_id: int,

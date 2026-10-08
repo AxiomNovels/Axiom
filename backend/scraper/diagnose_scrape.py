@@ -12,14 +12,17 @@ content type, first bytes) and then runs the real scraper and shows the
 full traceback if it fails. Paste the output when asking for help.
 """
 
+import os
 import platform
 import re
 import sys
 import traceback
 from importlib import metadata
+from pathlib import Path
 
 import httpx
 import requests
+from dotenv import load_dotenv
 
 from scraper import royalroad, wattpad, webnovel
 
@@ -47,12 +50,13 @@ def describe(status, final_url, history, headers, body: bytes) -> None:
 def main() -> None:
     if len(sys.argv) != 3:
         raise SystemExit(__doc__)
+    load_dotenv(Path(__file__).resolve().parents[1] / ".env")
     source, url = sys.argv[1], sys.argv[2].strip()
 
     print("ENVIRONMENT")
     print(f"  python {platform.python_version()} on {platform.platform()}")
     for name in ("httpx", "requests", "urllib3", "selectolax", "beautifulsoup4",
-                 "certifi", "truststore", "brotli", "brotlicffi", "zstandard"):
+                 "certifi", "truststore", "curl_cffi", "brotli", "brotlicffi", "zstandard"):
         print(f"  {name}: {version(name)}")
 
     handlers = {
@@ -62,7 +66,11 @@ def main() -> None:
     }
     module, scrape, normalize = handlers[source.casefold()]
 
-    print("\nRAW REQUEST (same headers the scraper uses)")
+    if source.casefold() == "webnovel":
+        print("  WebNovel Chrome fallback: enabled")
+        print(f"  WebNovel proxy configured: {bool(os.getenv('WEBNOVEL_PROXY_URL', '').strip())}")
+
+    print("\nRAW REQUEST (plain transport baseline; no WebNovel proxy/fallback)")
     try:
         target = normalize(url)
         if source.casefold() == "webnovel":

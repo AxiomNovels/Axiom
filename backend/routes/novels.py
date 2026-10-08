@@ -18,7 +18,7 @@ from scraper.content_policy import (
 from scraper.royalroad import scrape_royalroad
 from scraper.transform import transform_royalroad, transform_wattpad, transform_webnovel
 from scraper.wattpad import scrape_wattpad
-from scraper.webnovel import scrape_webnovel
+from scraper.webnovel import WebNovelChallengeError, scrape_webnovel
 
 
 logger = logging.getLogger(__name__)
@@ -78,7 +78,10 @@ def _scrape_failure(source: str, url: str, error: Exception) -> HTTPException:
         requests.exceptions.InvalidSchema,
         httpx.UnsupportedProtocol,
     ))
-    if status is not None:
+    if isinstance(error, WebNovelChallengeError):
+        # Cloudflare can return challenge HTML with HTTP 200.
+        refused = True
+    elif status is not None:
         # We got an HTTP answer: only these mean "the site won't serve us".
         refused = status in (401, 403, 429) or status >= 500
     else:
@@ -117,10 +120,8 @@ class NovelCreateRequest(NovelSourceRequest):
 def _scrape_and_transform(payload: NovelSourceRequest, user_id: str | None = None) -> dict:
     """Run the matching scraper + transformer for a user-submitted URL.
 
-    Any failure -- an unrecognized source, a URL from the wrong site, a
-    dead link, or a page the parser can't make sense of -- collapses to
-    the same user-facing message, since none of those are meaningfully
-    distinguishable to someone pasting a link into the form.
+    Invalid links and unsupported sources return 422. Source access failures,
+    including browser verification challenges, return 502 with a retry message.
 
     This is also the single place the content policy is enforced for
     uploads. Both the preview (POST /scrape) and the add step (POST "")
