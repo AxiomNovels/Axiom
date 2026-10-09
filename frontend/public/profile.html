@@ -94,12 +94,14 @@
         <form data-profile-form>
           <div class="profile-form-row">
             <label for="gender">Gender</label>
-            <select id="gender" name="gender" required>
-              <option value="♀️Female">♀️Female</option>
-              <option value="♂️Male">♂️Male</option>
-              <option value="⚧️Non-Binary">⚧️Non-Binary</option>
-              <option value="Prefer not to say" selected>Prefer not to say</option>
-            </select>
+            <div class="consistent-select">
+              <select id="gender" name="gender" required>
+                <option value="♀️Female">♀️Female</option>
+                <option value="♂️Male">♂️Male</option>
+                <option value="⚧️Non-Binary">⚧️Non-Binary</option>
+                <option value="Prefer not to say" selected>Prefer not to say</option>
+              </select>
+            </div>
           </div>
 
           <div class="profile-form-row">
@@ -204,10 +206,12 @@
                   placeholder="username"
                   maxlength="80"
                 >
-                <select id="discord-visibility" name="discord_visibility">
-                  <option value="friends_only">👥 Visible to friends only</option>
-                  <option value="everyone">🌍 Visible to everyone</option>
-                </select>
+                <div class="consistent-select">
+                  <select id="discord-visibility" name="discord_visibility">
+                    <option value="friends_only">👥 Visible to friends only</option>
+                    <option value="everyone">🌍 Visible to everyone</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -230,10 +234,12 @@
                   placeholder="username"
                   maxlength="80"
                 >
-                <select id="instagram-visibility" name="instagram_visibility">
-                  <option value="friends_only">👥 Visible to friends only</option>
-                  <option value="everyone">🌍 Visible to everyone</option>
-                </select>
+                <div class="consistent-select">
+                  <select id="instagram-visibility" name="instagram_visibility">
+                    <option value="friends_only">👥 Visible to friends only</option>
+                    <option value="everyone">🌍 Visible to everyone</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -256,10 +262,12 @@
                   placeholder="username"
                   maxlength="80"
                 >
-                <select id="reddit-visibility" name="reddit_visibility">
-                  <option value="friends_only">👥 Visible to friends only</option>
-                  <option value="everyone">🌍 Visible to everyone</option>
-                </select>
+                <div class="consistent-select">
+                  <select id="reddit-visibility" name="reddit_visibility">
+                    <option value="friends_only">👥 Visible to friends only</option>
+                    <option value="everyone">🌍 Visible to everyone</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -282,10 +290,12 @@
                   placeholder="username"
                   maxlength="80"
                 >
-                <select id="tiktok-visibility" name="tiktok_visibility">
-                  <option value="friends_only">👥 Visible to friends only</option>
-                  <option value="everyone">🌍 Visible to everyone</option>
-                </select>
+                <div class="consistent-select">
+                  <select id="tiktok-visibility" name="tiktok_visibility">
+                    <option value="friends_only">👥 Visible to friends only</option>
+                    <option value="everyone">🌍 Visible to everyone</option>
+                  </select>
+                </div>
               </div>
             </div>
 

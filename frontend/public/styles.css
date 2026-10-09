@@ -4100,8 +4100,8 @@ button {
 .genre-choice[data-state="include"] .genre-check { background: var(--gold); border-color: var(--gold); color: var(--bg, #100a17); }
 .genre-choice[data-state="exclude"] { color: #f2c7ce; }
 .genre-choice[data-state="exclude"] .genre-check { background: #702b39; border-color: #c87586; color: #fff; }
-.country-combobox { position: relative; }
-.country-combobox::after {
+.country-combobox, .consistent-select { position: relative; }
+.country-combobox::after, .consistent-select::after {
   content: "\25BE";
   position: absolute;
   top: 14px;
@@ -4120,7 +4120,7 @@ button {
   overflow-y: auto;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: var(--background-soft);
+  background: rgb(3, 1, 8);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 .country-options [role="option"], .country-options p { padding: 12px 13px; margin: 0; }

@@ -2479,7 +2479,7 @@ body.modal-open { overflow:hidden; }
 
 .profile-social-controls {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(190px, 220px);
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 240px);
   gap: 12px;
 }
 
@@ -3621,3 +3621,13 @@ body.modal-open { overflow:hidden; }
 .review-card.is-activity-target, .review-reply.is-activity-target { border-color: var(--dusk); background-color: rgba(110, 146, 196, .11); box-shadow: 0 0 0 4px rgba(110, 146, 196, .16), 0 20px 48px rgba(0, 0, 0, .30); }
 .review-reply.is-activity-target { border-left-color: var(--dusk); }
 @media (max-width: 620px) { .review-reply { margin-left: 8px; padding-left: 11px; } }
+.profile-manage-page .consistent-select select,
+.upload-novel-page .consistent-select select {
+  appearance: none;
+  padding-right: 36px;
+  background-color: rgba(3, 1, 8, 0.78);
+}
+.profile-manage-page select option,
+.upload-novel-page select option {
+  background-color: rgba(3, 1, 8, 0.78);
+}

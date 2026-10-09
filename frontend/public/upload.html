@@ -72,12 +72,14 @@
 
           <div class="upload-form-row">
             <label for="novel-source">Source</label>
-            <select id="novel-source" name="source" required>
-              <option value="" disabled selected>Choose a source</option>
-              <option value="Royal Road">Royal Road</option>
-              <option value="WebNovel">WebNovel</option>
-              <option value="Wattpad">Wattpad</option>
-            </select>
+            <div class="consistent-select">
+              <select id="novel-source" name="source" required>
+                <option value="" disabled selected>Choose a source</option>
+                <option value="Royal Road">Royal Road</option>
+                <option value="WebNovel">WebNovel</option>
+                <option value="Wattpad">Wattpad</option>
+              </select>
+            </div>
           </div>
 
           <p class="upload-form-error is-hidden" data-upload-error role="alert" aria-live="polite"></p>
