@@ -44,13 +44,17 @@ def create_job(requested_by: str, include_complete: bool) -> dict:
     active = client.table("protagonist_rebuild_jobs").select("id").in_("status", ["queued", "running"]).limit(1).execute().data or []
     if active:
         raise ValueError("A protagonist-profile rebuild is already running.")
+    all_novel_ids = [row["id"] for row in _rows(client, "novels", "id")]
     novel_ids = candidate_novel_ids(client, include_complete)
     job = client.table("protagonist_rebuild_jobs").insert({
         "requested_by": requested_by, "mode": "all" if include_complete else "outdated", "total": len(novel_ids),
     }).execute().data[0]
-    for start in range(0, len(novel_ids), PAGE_SIZE):
+    selected_ids = set(novel_ids)
+    for start in range(0, len(all_novel_ids), PAGE_SIZE):
         client.table("protagonist_rebuild_items").insert([
-            {"job_id": job["id"], "novel_id": novel_id} for novel_id in novel_ids[start:start + PAGE_SIZE]
+            {"job_id": job["id"], "novel_id": novel_id,
+             "status": "queued" if novel_id in selected_ids else "not_needed"}
+            for novel_id in all_novel_ids[start:start + PAGE_SIZE]
         ]).execute()
     return job
 
@@ -63,11 +67,33 @@ def job_status(job_id: str) -> dict | None:
 
 def job_items(job_id: str) -> list[dict]:
     client = create_service_client()
-    return (
-        client.table("protagonist_rebuild_items")
-        .select("novel_id,status,error,novels(title)")
-        .eq("job_id", job_id).order("id").limit(1000).execute().data or []
-    )
+    rows, offset = [], 0
+    while True:
+        page = (client.table("protagonist_rebuild_items")
+                .select("novel_id,status,error,novels(title)")
+                .eq("job_id", job_id).order("id")
+                .range(offset, offset + PAGE_SIZE - 1).execute().data or [])
+        rows.extend(page)
+        if len(page) < PAGE_SIZE:
+            return rows
+        offset += PAGE_SIZE
+
+
+def rebuild_history() -> list[dict]:
+    client = create_service_client()
+    return (client.table("protagonist_rebuild_jobs").select("*")
+            .order("created_at", desc=True).limit(50).execute().data or [])
+
+
+def delete_job(job_id: str) -> bool:
+    client = create_service_client()
+    job = job_status(job_id)
+    if not job:
+        return False
+    if job["status"] in {"queued", "running"}:
+        raise ValueError("A running rebuild cannot be removed.")
+    client.table("protagonist_rebuild_jobs").delete().eq("id", job_id).execute()
+    return True
 
 
 def run_job(job_id: str) -> None:

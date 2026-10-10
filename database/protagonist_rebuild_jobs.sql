@@ -12,10 +12,14 @@ create table if not exists public.protagonist_rebuild_items (
   id bigint generated always as identity primary key,
   job_id uuid not null references public.protagonist_rebuild_jobs(id) on delete cascade,
   novel_id bigint not null references public.novels(id) on delete cascade,
-  status text not null default 'queued' check (status in ('queued','running','completed','failed')),
+  status text not null default 'queued' check (status in ('queued','running','completed','failed','not_needed')),
   error text, created_at timestamptz not null default now(), started_at timestamptz, finished_at timestamptz,
   unique(job_id, novel_id)
 );
+-- Existing installations need the additional audit status too.
+alter table public.protagonist_rebuild_items drop constraint if exists protagonist_rebuild_items_status_check;
+alter table public.protagonist_rebuild_items add constraint protagonist_rebuild_items_status_check
+  check (status in ('queued','running','completed','failed','not_needed'));
 create index if not exists protagonist_rebuild_items_queue_idx on public.protagonist_rebuild_items(job_id,status,id);
 alter table public.protagonist_rebuild_jobs enable row level security;
 alter table public.protagonist_rebuild_items enable row level security;

@@ -40,32 +40,82 @@ function rebuildStatus(text, error = false) {
   target.textContent = text;
   target.classList.toggle("error", error);
 }
-function renderRebuildItems(items) {
-  const host = document.getElementById("profile-rebuild-results");
+function rebuildItemCopy(item) {
+  if (item.status === "completed") return "Profile rebuilt";
+  if (item.status === "failed") return item.error || "Profile generation failed";
+  if (item.status === "not_needed") return "Already complete; no rebuild needed";
+  if (item.status === "running") return "Rebuilding now";
+  return "Queued to rebuild";
+}
+function rebuildItemLabel(item) {
+  return ({ completed: "Built", failed: "Not built", not_needed: "Not needed", running: "Building", queued: "Queued" })[item.status] || item.status;
+}
+function renderRebuildItems(items, host) {
   host.replaceChildren();
-  const processed = items.filter(item => item.status === "completed" || item.status === "failed");
-  if (!processed.length) return;
-  const heading = element("h4", "Rebuild results");
-  host.append(heading);
   const list = element("div", undefined, "profile-rebuild-results-list");
-  processed.forEach((item) => {
+  const ordered = [...items].sort((left, right) => left.status.localeCompare(right.status) || (left.novels?.title || "").localeCompare(right.novels?.title || ""));
+  ordered.forEach((item) => {
     const row = element("div", undefined, `profile-rebuild-result is-${item.status}`);
     const novel = item.novels?.title || `Novel #${item.novel_id}`;
     const copy = element("div");
-    copy.append(element("strong", novel), element("small", item.status === "completed" ? "Profile saved" : item.error || "Profile generation failed"));
-    row.append(element("span", item.status === "completed" ? "Saved" : "Failed", "admin-badge"), copy);
+    copy.append(element("strong", novel), element("small", rebuildItemCopy(item)));
+    row.append(element("span", rebuildItemLabel(item), "admin-badge"), copy);
     list.append(row);
   });
   host.append(list);
+}
+function jobSummary(job) {
+  return `${job.processed}/${job.total} processed · ${job.succeeded} built · ${job.failed} not built`;
+}
+function displayBuildTime(value) {
+  return value ? new Date(value).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "Just now";
+}
+async function loadRebuildHistory(activeJobId) {
+  const host = document.getElementById("profile-rebuild-history");
+  const data = await request("/protagonist-rebuilds");
+  host.replaceChildren();
+  if (!data.jobs.length) { host.append(element("p", "No rebuilds have been run yet.")); return; }
+  data.jobs.forEach((job) => {
+    const details = document.createElement("details");
+    details.className = "profile-history-job";
+    details.open = job.id === activeJobId || job.status === "running" || job.status === "queued";
+    const summary = document.createElement("summary");
+    const copy = element("div");
+    copy.append(element("strong", `${job.mode === "all" ? "Every profile" : "Outdated profiles"} rebuild`), element("small", `${displayBuildTime(job.created_at)} · ${jobSummary(job)}`));
+    summary.append(element("span", job.status === "completed" ? "Complete" : job.status === "running" ? "Running" : "Queued", "admin-badge"), copy);
+    details.append(summary);
+    const body = element("div", undefined, "profile-history-job-body");
+    const items = element("div");
+    const loadItems = async () => {
+      if (items.childElementCount) return;
+      items.append(element("p", "Loading this run…"));
+      try {
+        const response = await request(`/protagonist-rebuilds/${job.id}/items`);
+        renderRebuildItems(response.items || [], items);
+      } catch (error) { items.replaceChildren(element("p", error.message, "error")); }
+    };
+    details.addEventListener("toggle", () => { if (details.open) loadItems(); });
+    if (details.open) loadItems();
+    body.append(items);
+    if (job.status === "completed") {
+      const remove = action("Delete this history entry", async () => {
+        if (!confirm("Delete this rebuild and its per-novel history? This cannot be undone.")) return;
+        await request(`/protagonist-rebuilds/${job.id}`, { method: "DELETE" });
+        await loadRebuildHistory();
+      });
+      remove.className = "admin-danger";
+      body.append(remove);
+    }
+    details.append(body); host.append(details);
+  });
 }
 async function watchRebuild(jobId) {
   clearInterval(rebuildPoll);
   const refresh = async () => {
     try {
       const job = await request(`/protagonist-rebuilds/${jobId}`);
-      const details = await request(`/protagonist-rebuilds/${jobId}/items`);
-      renderRebuildItems(details.items || []);
-      rebuildStatus(`${job.status === "completed" ? "Finished" : "Running"}: ${job.processed}/${job.total} processed · ${job.succeeded} saved · ${job.failed} failed.`);
+      rebuildStatus(`${job.status === "completed" ? "Finished" : "Running"}: ${jobSummary(job)}.`);
+      await loadRebuildHistory(jobId);
       if (job.status === "completed") clearInterval(rebuildPoll);
     } catch (error) { clearInterval(rebuildPoll); rebuildStatus(error.message, true); }
   };
@@ -80,6 +130,7 @@ async function startRebuild(includeComplete) {
     body: JSON.stringify({ include_complete: includeComplete }),
   });
   rebuildStatus(`Queued ${job.total} profiles…`);
+  await loadRebuildHistory(job.id);
   await watchRebuild(job.id);
 }
 async function loadList(kind) {
@@ -394,6 +445,7 @@ document.getElementById("home-feature-form").addEventListener("submit", async (e
 });
 document.getElementById("rebuild-outdated").addEventListener("click", () => startRebuild(false).catch(error => rebuildStatus(error.message, true)));
 document.getElementById("rebuild-all").addEventListener("click", () => startRebuild(true).catch(error => rebuildStatus(error.message, true)));
+document.getElementById("refresh-rebuild-history").addEventListener("click", () => loadRebuildHistory().catch(error => rebuildStatus(error.message, true)));
 
 for (const kind of ["users", "novels"]) {
   document.getElementById(`${kind}-tab`).addEventListener("click", () => {
@@ -401,6 +453,7 @@ for (const kind of ["users", "novels"]) {
       document.getElementById(`${section}-panel`).hidden = section !== kind;
       document.getElementById(`${section}-tab`).setAttribute("aria-pressed", String(section === kind));
     }
+    if (kind === "novels") loadRebuildHistory().catch(error => rebuildStatus(error.message, true));
     loadList(kind).catch(error => status(error.message, true));
   });
   document.getElementById(`${kind}-search`).addEventListener("submit", event => {

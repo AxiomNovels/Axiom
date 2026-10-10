@@ -4,6 +4,13 @@ Apply protagonist_votes.sql, then protagonist_vote_controls.sql, after the exist
 profiles and protagonist-measures migrations. Keep this order for new databases;
 existing installations only need the follow-up controls migration.
 
+## Admin rebuild history
+
+Apply `protagonist_rebuild_jobs.sql` after the profiles and protagonist-measures
+migrations, before using Admin hub > Novel profiles > Protagonist profile rebuilds.
+The migration is safe to reapply: it adds the `not_needed` item status used to
+record complete profiles that an outdated-only run deliberately skips.
+
 Any protagonist profile with all six scores filled in is eligible. Zero counts as
 filled in. Gemini, moderator edits, and other trusted profile imports all qualify.
 The controls migration enables existing complete profiles without regenerating

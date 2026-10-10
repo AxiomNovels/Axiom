@@ -56,8 +56,13 @@
 .admin-page .admin-primary { background: #8744b0; border-color: #ae70d0; color: white; }
 .admin-page .admin-secondary { background: transparent; }
 .admin-page .error { color: #f0a1ad; }
-.profile-rebuild { margin: 24px 0 30px; border: 1px solid rgba(110, 146, 196, .35); border-radius: 10px; background: var(--dusk-soft); padding: 18px; }
-.profile-rebuild h3 { margin: 0 0 6px; color: var(--ink); font-family: Georgia, serif; font-size: 1.2rem; }
+.admin-workspace { margin: 26px 0; padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: #ffffff03; }
+.admin-workspace-heading { margin-bottom: 20px; }
+.admin-workspace-heading h3 { margin: 5px 0 7px; font-size: 20px; letter-spacing: -.025em; }
+.admin-workspace-heading p:not(.eyebrow), .profile-history-heading p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.manual-profile-workspace { margin-bottom: 0; }
+.profile-rebuild { border: 1px solid rgba(110, 146, 196, .35); border-radius: 10px; background: var(--dusk-soft); padding: 18px; }
+.profile-rebuild h4, .profile-rebuild-history h4 { margin: 0 0 6px; color: var(--ink); font-family: Georgia, serif; font-size: 1.05rem; }
 .profile-rebuild > p { margin: 0 0 14px; color: var(--muted); font-size: .86rem; line-height: 1.55; }
 .profile-rebuild #profile-rebuild-status { min-height: 1.4em; margin: 14px 0 0; }
 .profile-rebuild-results-list { display: grid; gap: 8px; max-height: 360px; margin-top: 10px; overflow: auto; }
@@ -67,6 +72,18 @@
 .profile-rebuild-result small { margin-top: 3px; color: var(--muted); font-size: .76rem; line-height: 1.45; }
 .profile-rebuild-result.is-failed { border-color: rgba(209, 74, 85, .45); }
 .profile-rebuild-result.is-failed .admin-badge { color: #f0a1ad; }
+.profile-rebuild-result.is-not_needed .admin-badge { color: #aab9cf; }
+.profile-rebuild-history { margin-top: 20px; }
+.profile-history-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; margin-bottom: 12px; }
+.profile-history-job { border-top: 1px solid var(--line); }
+.profile-history-job summary { display: flex; align-items: center; gap: 12px; padding: 14px 2px; cursor: pointer; list-style: none; }
+.profile-history-job summary::-webkit-details-marker { display: none; }
+.profile-history-job summary::after { content: "▾"; margin-left: auto; color: var(--dim); }
+.profile-history-job:not([open]) summary::after { transform: rotate(-90deg); }
+.profile-history-job summary strong, .profile-history-job summary small { display: block; }
+.profile-history-job summary small { margin-top: 3px; color: var(--muted); font-size: 11px; }
+.profile-history-job-body { padding: 0 2px 16px; }
+.profile-history-job-body > .admin-danger { margin-top: 12px; background: transparent; }
 @media (max-width: 700px) {
  .admin-page { margin-top: 28px; padding: 0 16px 40px; }
  .admin-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
@@ -75,6 +92,8 @@
  .admin-search label { width: 100%; }
  .admin-search input { width: 60%; }
  .admin-profile { padding: 18px; }
+ .admin-workspace { padding: 16px; }
+ .profile-history-heading { flex-direction: column; }
  .admin-fields { grid-template-columns: 1fr; gap: 24px; }
  .editor-heading, .profile-footer { align-items: flex-start; flex-direction: column; }
  .admin-pages { justify-content: space-between; gap: 8px; }
