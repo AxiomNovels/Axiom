@@ -35,26 +35,47 @@ update public.protagonist_profiles set
   kinship_friendship = null, romantic_attachment = null, erotic_desire = null,
   arrogance_pride = null, scores_locked = false;
 
-create or replace function public.valid_protagonist_scores(scores jsonb)
+-- Preserve existing argument names (older installations use p_scores).
+-- Replacing in place keeps dependent constraints, grants, and named calls intact.
+do $migration$
+declare argument_name text;
+begin
+  select proargnames[1] into argument_name from pg_catalog.pg_proc
+    where oid = to_regprocedure('public.valid_protagonist_scores(jsonb)');
+  execute format($definition$
+create or replace function public.valid_protagonist_scores(%I jsonb)
 returns boolean language sql immutable set search_path = '' as $$
-  select jsonb_typeof(scores) = 'object' and (select count(*) = 7 and bool_and(
+  select jsonb_typeof($1) = 'object' and (select count(*) = 7 and bool_and(
     key = any(array['intelligence','charisma','moral_integrity','kinship_friendship',
       'romantic_attachment','erotic_desire','arrogance_pride'])
     and jsonb_typeof(value) = 'number' and value::text ~ '^(100|[0-9]{1,2})$'
-  ) from jsonb_each(scores));
+  ) from jsonb_each($1));
 $$;
+$definition$, coalesce(argument_name, 'p_scores'));
+end;
+$migration$;
 
 alter table public.protagonist_votes drop constraint if exists protagonist_votes_trait_check;
 alter table public.protagonist_votes add constraint protagonist_votes_trait_check check (trait in
   ('intelligence','charisma','moral_integrity','kinship_friendship','romantic_attachment','erotic_desire','arrogance_pride'));
 
-create or replace function public.protagonist_score_values(profile jsonb)
+-- Preserve historical input names without dropping dependencies or named calls.
+do $migration$
+declare argument_name text;
+begin
+  select proargnames[1] into argument_name from pg_catalog.pg_proc
+    where oid = to_regprocedure('public.protagonist_score_values(jsonb)');
+  execute format($definition$
+create or replace function public.protagonist_score_values(%I jsonb)
 returns jsonb language sql immutable set search_path = '' as $$
-  select jsonb_build_object('intelligence',profile->'intelligence','charisma',profile->'charisma',
-    'moral_integrity',profile->'moral_integrity','kinship_friendship',profile->'kinship_friendship',
-    'romantic_attachment',profile->'romantic_attachment','erotic_desire',profile->'erotic_desire',
-    'arrogance_pride',profile->'arrogance_pride');
+  select jsonb_build_object('intelligence',$1->'intelligence','charisma',$1->'charisma',
+    'moral_integrity',$1->'moral_integrity','kinship_friendship',$1->'kinship_friendship',
+    'romantic_attachment',$1->'romantic_attachment','erotic_desire',$1->'erotic_desire',
+    'arrogance_pride',$1->'arrogance_pride');
 $$;
+$definition$, coalesce(argument_name, 'p_rows'));
+end;
+$migration$;
 
 create or replace function public.save_gemini_protagonist(p_novel_id bigint,p_name text,p_scores jsonb)
 returns void language plpgsql security definer set search_path = '' as $$

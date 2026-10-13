@@ -1,16 +1,37 @@
 -- Apply after protagonist_profile_measures.sql and profiles.sql.
 -- Existing profiles are deliberately NOT assumed to have Gemini provenance.
 begin;
+select pg_advisory_xact_lock(718204619);
+-- Legacy migrations must not overwrite an Admin Hub-managed definition.
+do $$
+begin
+  if to_regclass('public.protagonist_definition') is not null then
+    raise exception 'Protagonist traits are managed by the Admin Hub; do not rerun legacy migrations'
+      using errcode = '55000';
+  end if;
+end;
+$$;
 
-create or replace function public.valid_protagonist_scores(scores jsonb)
+-- Preserve existing argument names (older installations use p_scores).
+-- Replacing in place keeps dependent constraints, grants, and named calls intact.
+do $migration$
+declare argument_name text;
+begin
+  select proargnames[1] into argument_name from pg_catalog.pg_proc
+    where oid = to_regprocedure('public.valid_protagonist_scores(jsonb)');
+  execute format($definition$
+create or replace function public.valid_protagonist_scores(%I jsonb)
 returns boolean language sql immutable set search_path = '' as $$
-  select case when jsonb_typeof(scores) <> 'object' then false else
+  select case when jsonb_typeof($1) <> 'object' then false else
     (select count(*) = 6 and bool_and(
       key = any(array['impulsivity','arrogance_pride','kinship_friendship',
                        'romantic_attachment','sexual_desire','selflessness'])
       and jsonb_typeof(value) = 'number'
-      and value::text ~ '^(100|[0-9]{1,2})$') from jsonb_each(scores)) end;
+      and value::text ~ '^(100|[0-9]{1,2})$') from jsonb_each($1)) end;
 $$;
+$definition$, coalesce(argument_name, 'p_scores'));
+end;
+$migration$;
 
 create table if not exists public.protagonist_baselines (
   novel_id bigint primary key references public.novels(id) on delete cascade,

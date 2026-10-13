@@ -1,16 +1,35 @@
 -- Apply after protagonist_votes.sql. Complete profiles from any source can vote.
 begin;
 select pg_advisory_xact_lock(718204619);
+-- Legacy migrations must not overwrite an Admin Hub-managed definition.
+do $$
+begin
+  if to_regclass('public.protagonist_definition') is not null then
+    raise exception 'Protagonist traits are managed by the Admin Hub; do not rerun legacy migrations'
+      using errcode = '55000';
+  end if;
+end;
+$$;
 alter table public.protagonist_profiles add column if not exists scores_locked boolean not null default false;
 revoke insert, update, delete on public.protagonist_profiles from anon, authenticated;
 
-create or replace function public.protagonist_score_values(profile jsonb)
+-- Preserve historical input names without dropping dependencies or named calls.
+do $migration$
+declare argument_name text;
+begin
+  select proargnames[1] into argument_name from pg_catalog.pg_proc
+    where oid = to_regprocedure('public.protagonist_score_values(jsonb)');
+  execute format($definition$
+create or replace function public.protagonist_score_values(%I jsonb)
 returns jsonb language sql immutable set search_path = '' as $$
-  select jsonb_build_object('impulsivity', profile->'impulsivity',
-    'arrogance_pride', profile->'arrogance_pride', 'kinship_friendship', profile->'kinship_friendship',
-    'romantic_attachment', profile->'romantic_attachment', 'sexual_desire', profile->'sexual_desire',
-    'selflessness', profile->'selflessness');
+  select jsonb_build_object('impulsivity', $1->'impulsivity',
+    'arrogance_pride', $1->'arrogance_pride', 'kinship_friendship', $1->'kinship_friendship',
+    'romantic_attachment', $1->'romantic_attachment', 'sexual_desire', $1->'sexual_desire',
+    'selflessness', $1->'selflessness');
 $$;
+$definition$, coalesce(argument_name, 'p_rows'));
+end;
+$migration$;
 
 -- Baselines now follow explicit profile edits. Derived scores must never feed
 -- back into the baseline, so recalculation marks its own writes locally.

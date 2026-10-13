@@ -40,6 +40,7 @@ The dynamic protagonist definition regression suite uses an isolated PGlite data
 ```powershell
 npm.cmd run test:definitions --prefix tests
 npm.cmd run test:trait-migrations --prefix tests
+npm.cmd run test:sql --prefix tests
 ```
 
 It covers migration from the uploaded mixed legacy/current column layout,
@@ -52,3 +53,9 @@ manual score editing, and dynamic Finder/guide rendering with intercepted APIs.
 The trait-migration suite covers legacy scores/votes/locks moving to the seven
 defaults, subsequent Admin Hub edits, and rejection of the legacy reset after
 dynamic setup without changing data or restoring unversioned RPCs.
+It also installs over historical helper parameter names (`p_scores`, `scores`,
+`p_rows`, `p_row`, `profile`, and unnamed parameters), preserving dependencies.
+The all-SQL suite executes every `database/*.sql` file in dependency order with
+isolated Supabase auth/role substitutes and the actual pgcrypto extension. It
+checks repeatable migrations, RPC argument names, review/reply constraints,
+reading-list triggers, Admin Hub privileges, RLS, and banned-account restrictions.

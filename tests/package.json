@@ -5,7 +5,8 @@
   "scripts": {
     "test:votes": "node integration/protagonist_votes_database.mjs",
     "test:definitions": "node integration/protagonist_definition_database.mjs",
-    "test:trait-migrations": "node integration/protagonist_trait_migration_database.mjs"
+    "test:trait-migrations": "node integration/protagonist_trait_migration_database.mjs",
+    "test:sql": "node integration/sql_migrations_database.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8"

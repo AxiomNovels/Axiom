@@ -67,27 +67,58 @@ $$;
 revoke all on function public.get_protagonist_definition() from public;
 grant execute on function public.get_protagonist_definition() to anon,authenticated,service_role;
 
-create or replace function public.protagonist_score_values(profile jsonb)
+-- Preserve historical input names without dropping dependencies or named calls.
+do $migration$
+declare argument_name text;
+begin
+  select proargnames[1] into argument_name from pg_catalog.pg_proc
+    where oid = to_regprocedure('public.protagonist_score_values(jsonb)');
+  execute format($definition$
+create or replace function public.protagonist_score_values(%I jsonb)
 returns jsonb language sql stable set search_path = '' as $$
-  select coalesce(jsonb_object_agg(t->>'key',profile->(t->>'key')),'{}'::jsonb)
+  select coalesce(jsonb_object_agg(t->>'key',$1->(t->>'key')),'{}'::jsonb)
   from public.protagonist_definition d, lateral jsonb_array_elements(d.traits) t where d.id;
 $$;
+$definition$, coalesce(argument_name, 'p_rows'));
+end;
+$migration$;
 
 -- Partial baselines preserve unchanged defaults while edited traits await rebuilding.
-create or replace function public.valid_protagonist_baseline(scores jsonb)
+-- Preserve historical input names without dropping dependencies or named calls.
+do $migration$
+declare argument_name text;
+begin
+  select proargnames[1] into argument_name from pg_catalog.pg_proc
+    where oid = to_regprocedure('public.valid_protagonist_baseline(jsonb)');
+  execute format($definition$
+create or replace function public.valid_protagonist_baseline(%I jsonb)
 returns boolean language sql stable set search_path = '' as $$
-  select case when jsonb_typeof(scores) is distinct from 'object' then false else
-    not exists(select 1 from jsonb_each(scores) e where
+  select case when jsonb_typeof($1) is distinct from 'object' then false else
+    not exists(select 1 from jsonb_each($1) e where
       jsonb_typeof(e.value) <> 'number' or e.value::text !~ '^(100|[0-9]{1,2})$'
       or not exists(select 1 from public.protagonist_definition d,
         lateral jsonb_array_elements(d.traits) t where t->>'key'=e.key)) end;
 $$;
-create or replace function public.valid_protagonist_scores(scores jsonb)
+$definition$, coalesce(argument_name, 'p_scores'));
+end;
+$migration$;
+-- Preserve existing argument names (older installations use p_scores).
+-- Replacing in place keeps dependent constraints, grants, and named calls intact.
+do $migration$
+declare argument_name text;
+begin
+  select proargnames[1] into argument_name from pg_catalog.pg_proc
+    where oid = to_regprocedure('public.valid_protagonist_scores(jsonb)');
+  execute format($definition$
+create or replace function public.valid_protagonist_scores(%I jsonb)
 returns boolean language sql stable set search_path = '' as $$
-  select public.valid_protagonist_baseline(scores) and
-    (select count(*) from jsonb_object_keys(case when jsonb_typeof(scores)='object' then scores else '{}'::jsonb end))
+  select public.valid_protagonist_baseline($1) and
+    (select count(*) from jsonb_object_keys(case when jsonb_typeof($1)='object' then $1 else '{}'::jsonb end))
       = (select jsonb_array_length(traits) from public.protagonist_definition where id);
 $$;
+$definition$, coalesce(argument_name, 'p_scores'));
+end;
+$migration$;
 
 -- The uploaded schema may carry constraints from either the six- or ten-trait era.
 do $$ declare c record; t jsonb;

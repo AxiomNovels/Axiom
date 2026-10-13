@@ -1,8 +1,18 @@
 -- Run this migration in the Supabase SQL editor.
--- It makes the protagonist profile schema match the six measures rendered by
--- frontend/public/novel.js, then creates only Fang Yuan's profile.
+-- Historical six-trait bootstrap, before the voting and v2 migrations.
+-- It also creates Fang Yuan's initial profile. Do not run after Admin Hub setup.
 
 begin;
+select pg_advisory_xact_lock(718204619);
+-- Legacy migrations must not overwrite an Admin Hub-managed definition.
+do $$
+begin
+  if to_regclass('public.protagonist_definition') is not null then
+    raise exception 'Protagonist traits are managed by the Admin Hub; do not rerun legacy migrations'
+      using errcode = '55000';
+  end if;
+end;
+$$;
 
 alter table public.protagonist_profiles
   add column if not exists impulsivity smallint check (impulsivity between 0 and 100),

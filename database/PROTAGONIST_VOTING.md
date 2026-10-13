@@ -21,6 +21,22 @@ the new defaults. The v2 migration refuses to run after this setup so it cannot
 erase custom traits or restore unversioned save/vote functions. Use the existing
 profile rebuild tools after changing definitions.
 
+## Existing function parameter names
+
+Some installations have `valid_protagonist_scores(p_scores jsonb)` while others
+use `scores`. The score-extraction helper similarly uses `p_rows`, `p_row`, or
+`profile`. All migrations that replace these helpers, including the partial
+baseline validator, now preserve existing argument names. This keeps dependent
+constraints, permissions, and calls using named arguments intact. If an older
+copy fails with `42P13: cannot change name of input parameter`, copy the updated
+entire file into the SQL editor and retry. Do not drop the function.
+
+If votes already installed successfully and controls failed, resume with
+`protagonist_vote_controls.sql`, then v2, rebuild jobs, Admin Hub, and manage, in
+that order. Once manage is installed, the legacy measures/votes/controls/v2
+migrations reject reapplication before making changes. See
+[the SQL verification report](SQL_VERIFICATION_REPORT.md) for coverage and limits.
+
 ## Admin rebuild history
 
 Apply `protagonist_rebuild_jobs.sql` after the profiles and protagonist-measures
@@ -77,6 +93,7 @@ npm ci
 npm run test:votes
 npm run test:definitions
 npm run test:trait-migrations
+npm run test:sql
 ```
 
 Use the project's Python environment; browser tests require Playwright Chromium.
