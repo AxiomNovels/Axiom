@@ -17,6 +17,7 @@ def test_only_protagonist_is_generated_and_editable():
     assert [spec.kind for spec in specs] == ["protagonist"]
     assert set(PROFILES) == {"protagonist"}
     assert specs[0].measures == MEASURES
+    assert len(specs[0].measures) == 7
     assert specs[0].revision == DEFAULT_DEFINITION["revision"]
 
 

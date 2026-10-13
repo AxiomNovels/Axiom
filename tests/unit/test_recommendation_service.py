@@ -16,17 +16,17 @@ def test_tag_overlap_ranking_excludes_source_and_limits_to_six():
 
 
 def test_closer_profiles_rank_higher_and_both_embed_shapes_work():
-    source = novel(1, protagonist_profiles={"impulsivity": 80, "selflessness": 20})
-    close = novel(2, protagonist_profiles=[{"impulsivity": 75, "selflessness": 25}])
-    distant = novel(3, protagonist_profiles={"impulsivity": 20, "selflessness": 80})
+    source = novel(1, protagonist_profiles={"intelligence": 80, "moral_integrity": 20})
+    close = novel(2, protagonist_profiles=[{"intelligence": 75, "moral_integrity": 25}])
+    distant = novel(3, protagonist_profiles={"intelligence": 20, "moral_integrity": 80})
     assert [row["id"] for row in recommend_novels(source, [distant, close])] == [2, 3]
 
 
 def test_missing_values_do_not_count_as_zero_or_outscore_complete_profiles():
-    source = novel(1, protagonist_profiles={"impulsivity": 0, "selflessness": 80})
-    complete = novel(2, protagonist_profiles={"impulsivity": 10, "selflessness": 70})
-    sparse = novel(3, protagonist_profiles={"impulsivity": 0})
-    absent = novel(4, protagonist_profiles={"impulsivity": None})
+    source = novel(1, protagonist_profiles={"intelligence": 0, "moral_integrity": 80})
+    complete = novel(2, protagonist_profiles={"intelligence": 10, "moral_integrity": 70})
+    sparse = novel(3, protagonist_profiles={"intelligence": 0})
+    absent = novel(4, protagonist_profiles={"intelligence": None})
     assert [row["id"] for row in recommend_novels(source, [sparse, absent, complete])] == [2, 3, 4]
 
 
@@ -44,11 +44,11 @@ def test_shared_tags_and_minimal_payload():
 
 
 def test_retired_profiles_do_not_outweigh_protagonist_match():
-    source = novel(1, ["Fantasy"], protagonist_profiles={"impulsivity": 100},
+    source = novel(1, ["Fantasy"], protagonist_profiles={"intelligence": 100},
                    philosophy_profiles={"freedom": 100}, storytelling_style_profiles={"action": 100})
-    character_match = novel(2, ["Fantasy"], protagonist_profiles={"impulsivity": 100},
+    character_match = novel(2, ["Fantasy"], protagonist_profiles={"intelligence": 100},
                             philosophy_profiles={"freedom": 0}, storytelling_style_profiles={"action": 0})
-    other_match = novel(3, ["Fantasy"], protagonist_profiles={"impulsivity": 0},
+    other_match = novel(3, ["Fantasy"], protagonist_profiles={"intelligence": 0},
                         philosophy_profiles={"freedom": 100}, storytelling_style_profiles={"action": 100})
     assert [row["id"] for row in recommend_novels(source, [other_match, character_match])] == [2, 3]
 
@@ -60,9 +60,9 @@ def test_shared_tags_are_capped_at_three():
 
 
 def test_tags_and_protagonist_have_equal_weight():
-    source = novel(1, ["Fantasy"], protagonist_profiles={"impulsivity": 100})
-    tags_only = novel(2, ["Fantasy"], protagonist_profiles={"impulsivity": 0})
-    protagonist_only = novel(3, ["Drama"], protagonist_profiles={"impulsivity": 100})
+    source = novel(1, ["Fantasy"], protagonist_profiles={"intelligence": 100})
+    tags_only = novel(2, ["Fantasy"], protagonist_profiles={"intelligence": 0})
+    protagonist_only = novel(3, ["Drama"], protagonist_profiles={"intelligence": 100})
     for first, second in [(tags_only, protagonist_only), (protagonist_only, tags_only)]:
         first["title"], second["title"] = "A", "Z"
         result = recommend_novels(source, [second, first])

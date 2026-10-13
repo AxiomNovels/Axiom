@@ -39,6 +39,7 @@ The dynamic protagonist definition regression suite uses an isolated PGlite data
 
 ```powershell
 npm.cmd run test:definitions --prefix tests
+npm.cmd run test:trait-migrations --prefix tests
 ```
 
 It covers migration from the uploaded mixed legacy/current column layout,
@@ -48,3 +49,6 @@ profiles, stale revisions, rollback on a dependent view, and RPC permissions.
 preview token invalidation, dynamic search and recommendations, and rebuild eligibility.
 `tests/e2e/test_protagonist_voting.py` also exercises the Admin Hub definition editor,
 manual score editing, and dynamic Finder/guide rendering with intercepted APIs.
+The trait-migration suite covers legacy scores/votes/locks moving to the seven
+defaults, subsequent Admin Hub edits, and rejection of the legacy reset after
+dynamic setup without changing data or restoring unversioned RPCs.

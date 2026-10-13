@@ -16,12 +16,11 @@ Options:
   --save                     Offer to save after preview
   --yes                      Save without confirmation; requires --save
 
-The profile measures ten traits: intellectual drive, arrogance/pride,
-kinship/friendship, romantic attachment, selflessness/selfishness,
-pragmatism/morality, individualist/collectivist, ambition,
-cautious/risk-taker, and leadership.
+The default profile measures seven traits: intelligence, charisma, moral integrity,
+kinship/friendship, romantic attachment, erotic desire, and arrogance/conceit.
+The active traits and prompts come from Manage Protagonist Profile in the Admin Hub.
 
-Re-profile every novel that is missing any of the ten scores
+Re-profile every novel that is missing any of the currently configured scores
 (e.g. after the trait set changed):
   python -m profiler.regenerate_profiles --dry-run --limit 3
   python -m profiler.regenerate_profiles --sleep 2

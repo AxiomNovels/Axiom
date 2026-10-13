@@ -8,21 +8,12 @@ flags:
 Generates the protagonist profile.
 """
 
-MEASURES = (
-    "intellectual_drive",
-    "arrogance_pride",
-    "kinship_friendship",
-    "romantic_attachment",
-    "selflessness_selfishness",
-    "pragmatism_morality",
-    "individualist_collectivist",
-    "ambition",
-    "cautious_risk_taker",
-    "leadership",
-)
+# Use the saved definition and carry its revision into generation, just like production.
+from profiler.prompt import MEASURES, RUBRIC, build_prompt, build_identification_prompt
 
 
-RUBRIC = """
+# Historical rubric retained only as a reference for ad-hoc experiments.
+_RETIRED_RUBRIC = """
 SCORING RULES
 - Use absolute 0-100 scales, not comparisons with other characters. The anchors below
   are authoritative; interpolate between them only when the evidence genuinely falls
@@ -345,78 +336,3 @@ being socially awkward.
 Similarly, commanding someone under duress or temporarily taking charge during an emergency
 does not establish high leadership unless the behavior is recurring or narratively meaningful.
 """.strip()
-
-
-def build_prompt(novel: dict, protagonist_name: str, comments: list[str]) -> str:
-    genres = ", ".join(novel.get("genres") or []) or "Not provided"
-    tags = ", ".join(novel.get("tags") or []) or "Not provided"
-    synopsis = (novel.get("synopsis") or "Not provided")[:12_000]
-    evidence = "\n".join(f"- {comment}" for comment in comments) or "No reader comments provided."
-
-    return f"""Create a cautious baseline protagonist profile for a novel catalog.
-
-Novel: {novel.get('title', 'Unknown')}
-Protagonist: {protagonist_name}
-Genres: {genres}
-Tags: {tags}
-Synopsis:
-{synopsis}
-
-Selected public reader comments:
-{evidence}
-
-{RUBRIC}
-
-Treat comments as fallible reader opinions. Do not invent plot facts. Apply every score
-against the anchors above. Reduce confidence when evidence is sparse, conflicting, or
-does not clearly identify the protagonist. Keep the evidence summary brief and avoid
-quotations.
-
-Important distinctions:
-- Intellectual drive measures desire to learn, investigate, understand, or discover;
-  it does not measure intelligence or competence.
-- Ambition measures desire for advancement, power, status, achievement, or improvement;
-  it does not measure how powerful the protagonist already is.
-- Cautious/risk-taker measures willingness to accept danger and uncertainty; it does not
-  measure impulsivity.
-- Individualist/collectivist measures the protagonist's relationship to group identity,
-  obligations, and collective goals; it is not simply a measure of kindness or friendship.
-- Pragmatism/morality measures willingness to compromise moral principles for practical
-  outcomes; it is not simply a measure of whether the protagonist is nice or effective.
-- Leadership measures responsibility for directing or organizing other people; it is not
-  simply charisma, competence, popularity, or power.
-
-For spectrum measures, give the score according to the stated direction. For intellectual
-drive and leadership, treat 0 as genuine absence and higher values as increasing narrative
-importance rather than merely uncertainty. Do not use 50 as a default when evidence is weak.
-
-In the evidence summary, briefly identify the strongest evidence for the scores and any
-important uncertainty.
-"""
-
-
-def build_identification_prompt(novel: dict, comments: list[str]) -> str:
-    genres = ", ".join(novel.get("genres") or []) or "Not provided"
-    tags = ", ".join(novel.get("tags") or []) or "Not provided"
-    synopsis = (novel.get("synopsis") or "Not provided")[:12_000]
-    evidence = "\n".join(f"- {comment[:500]}" for comment in comments[:12])
-    if not evidence:
-        evidence = "No public reader feedback was available."
-
-    return f"""Identify the primary protagonist of this novel.
-
-Novel: {novel.get('title', 'Unknown')}
-Genres: {genres}
-Tags: {tags}
-Synopsis:
-{synopsis}
-
-Public reader feedback sample:
-{evidence}
-
-Return the canonical character name, not labels such as MC, protagonist, narrator,
-or the author. If the story has an ensemble cast or the evidence is ambiguous, choose
-the most central viewpoint character but lower confidence. Do not invent a surname or
-expand a partial name unless the supplied evidence supports it. Keep the evidence
-summary brief and avoid quotations.
-"""

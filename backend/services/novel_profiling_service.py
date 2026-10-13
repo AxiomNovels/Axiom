@@ -94,8 +94,11 @@ UNAVAILABLE_NOTICE = (
 # Traits that aren't listed (including any added in the future) fall back to
 # label_for()'s automatic formatting, e.g. "dream_logic" -> "Dream Logic".
 _LABEL_OVERRIDES = {
-    "arrogance_pride": "Arrogance & Pride",
+    "moral_integrity": "Moral Integrity",
+    "erotic_desire": "Erotic Desire",
+    "arrogance_pride": "Arrogance & Conceit",
     "kinship_friendship": "Kinship and Friendship",
+    # Preserve fallback labels for older saved definitions/results without labels.
     "selflessness_selfishness": "Selfishness / Selflessness",
     "pragmatism_morality": "Pragmatism / Morality",
     "individualist_collectivist": "Individualist / Collectivist",

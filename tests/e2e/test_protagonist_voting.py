@@ -9,8 +9,8 @@ import pytest
 from playwright.sync_api import expect
 
 
-KEYS = ["impulsivity", "arrogance_pride", "kinship_friendship", "romantic_attachment", "sexual_desire", "selflessness"]
-# Deliberately custom definitions: browser rendering must follow the API, not the seed.
+KEYS = ['intelligence', 'charisma', 'moral_integrity', 'kinship_friendship', 'romantic_attachment', 'erotic_desire', 'arrogance_pride']
+# Exercise the seven defaults here; custom definitions are tested separately below.
 DEFINITION = {"revision": 1, "instructions": "Score using evidence.", "traits": [
     {"key": key, "name": key.replace("_", " ").title(), "prompt": f"Score {key} from 0 to 100."}
     for key in KEYS
@@ -117,18 +117,18 @@ def test_reader_votes_updates_and_withdraws(page, frontend, voting_api):
     login(page)
     page.goto(frontend + "/vote.html?id=1")
     host = page.locator("#protagonist-votes")
-    row = host.locator("form").filter(has=page.get_by_label("Selflessness", exact=True))
-    row.get_by_label("Selflessness", exact=True).fill("100")
+    row = host.locator("form").filter(has=page.get_by_label("Moral Integrity", exact=True))
+    row.get_by_label("Moral Integrity", exact=True).fill("100")
     row.get_by_role("button", name="Vote", exact=True).click()
     expect(host.get_by_role("status")).to_have_text("Vote saved. Profile recalculated.")
-    expect(page.locator(".vote-current").last).to_have_text("60")
-    row.get_by_label("Selflessness", exact=True).fill("0")
+    expect(row.locator(".vote-current")).to_have_text("60")
+    row.get_by_label("Moral Integrity", exact=True).fill("0")
     row.get_by_role("button", name="Update vote").click()
     expect(row.locator(".vote-trait-description small")).to_contain_text("Your vote: 0")
-    expect(page.locator(".vote-current").last).to_have_text("10")
+    expect(row.locator(".vote-current")).to_have_text("10")
     row.get_by_role("button", name="Remove").click()
     expect(host.get_by_role("status")).to_have_text("Vote removed. Profile recalculated.")
-    expect(page.locator(".vote-current").last).to_have_text("20")
+    expect(row.locator(".vote-current")).to_have_text("20")
     page.set_viewport_size({"width": 390, "height": 844})
     assert host.evaluate("el => el.scrollWidth <= el.clientWidth")
     page.screenshot(path="test-results/voting-mobile.png", full_page=True)
@@ -145,21 +145,21 @@ def test_guest_and_unestablished_profiles(page, frontend, voting_api):
 
 def test_admin_distribution_individual_and_user_wide_deletion(page, frontend, voting_api):
     login(page)
-    voting_api["votes"]["selflessness"] = 100
+    voting_api["votes"]["moral_integrity"] = 100
     page.on("dialog", lambda dialog: dialog.accept())
     page.goto(frontend + "/admin.html")
     page.get_by_role("button", name="Novel profiles", exact=True).click()
     page.get_by_role("button", name="Vote distribution").click()
     host = page.locator("#vote-workspace")
-    expect(host).to_contain_text("Reader · Selflessness: 100")
+    expect(host).to_contain_text("Reader · Moral Integrity: 100")
     expect(host.locator("meter")).to_have_attribute("value", "1")
     page.screenshot(path="test-results/voting-admin.png", full_page=True)
     host.get_by_role("button", name="Delete vote", exact=True).click()
     expect(host).to_contain_text("0 trait votes")
-    voting_api["votes"]["impulsivity"] = 0
+    voting_api["votes"]["intelligence"] = 0
     page.get_by_role("button", name="Accounts", exact=True).click()
     page.get_by_role("button", name="View votes").click()
-    expect(host).to_contain_text("Test novel · Impulsivity: 0")
+    expect(host).to_contain_text("Test novel · Intelligence: 0")
     host.get_by_role("button", name="Delete all votes by this user").click()
     expect(host).to_contain_text("No votes found.")
     assert ("DELETE", f"/admin/users/{USER}/protagonist-votes") in voting_api["requests"]
@@ -171,12 +171,12 @@ def test_locked_reader_votes_still_saved(page, frontend, voting_api):
     page.goto(frontend + "/vote.html?id=1")
     host = page.locator("#protagonist-votes")
     expect(host).to_contain_text("Scores locked by a moderator")
-    row = host.locator("form").filter(has=page.get_by_label("Selflessness", exact=True))
-    row.get_by_label("Selflessness", exact=True).fill("100")
+    row = host.locator("form").filter(has=page.get_by_label("Moral Integrity", exact=True))
+    row.get_by_label("Moral Integrity", exact=True).fill("100")
     row.get_by_role("button", name="Vote", exact=True).click()
     expect(host.get_by_role("status")).to_have_text("Vote saved. Locked scores unchanged.")
-    expect(page.locator(".vote-current").last).to_have_text("20")
-    assert voting_api["votes"] == {"selflessness": 100}
+    expect(row.locator(".vote-current")).to_have_text("20")
+    assert voting_api["votes"] == {"moral_integrity": 100}
 
 
 def test_admin_locks_and_unlocks_scores(page, frontend, voting_api):
@@ -203,7 +203,7 @@ def test_novel_only_shows_voting_link(page, frontend, voting_api):
     assert not any("protagonist-votes" in path for method, path in voting_api["requests"])
     link.click()
     expect(page.get_by_role("heading", name="Test novel", exact=True)).to_be_visible()
-    expect(page.locator(".trait-vote-form")).to_have_count(6)
+    expect(page.locator(".trait-vote-form")).to_have_count(7)
     page.screenshot(path="test-results/voting-desktop.png", full_page=True)
     page.get_by_role("link", name="Back to novel").click()
     expect(page.locator("#novel-title")).to_have_text("Test novel")
@@ -237,13 +237,13 @@ def test_manage_definition_stages_changes_and_confirms_impact(page, frontend, vo
     page.goto(frontend + "/admin.html")
     page.get_by_role("button", name="Manage Protagonist Profile", exact=True).click()
     panel = page.locator("#definition-panel")
-    expect(panel.locator(".definition-trait")).to_have_count(6)
+    expect(panel.locator(".definition-trait")).to_have_count(7)
     expect(panel.get_by_role("button", name="Save definition")).to_be_disabled()
     card = panel.locator(".definition-trait").first
-    card.get_by_label("Trait name: Impulsivity", exact=True).fill("Determination")
+    card.get_by_label("Trait name: Intelligence", exact=True).fill("Determination")
     card.get_by_label("Scoring prompt", exact=True).fill("0 gives up; 100 perseveres.")
     expect(panel.locator("#definition-impact")).to_contain_text("including locked profiles")
-    expect(panel.locator("#definition-impact")).to_contain_text("Impulsivity")
+    expect(panel.locator("#definition-impact")).to_contain_text("Intelligence")
     assert voting_api["definition_writes"] == []
     page.once("dialog", lambda dialog: dialog.dismiss())
     panel.get_by_role("button", name="Save definition").click()
@@ -253,7 +253,7 @@ def test_manage_definition_stages_changes_and_confirms_impact(page, frontend, vo
     expect(panel.locator("#definition-status")).to_contain_text("Saved revision 2")
     saved = voting_api["definition_writes"][0]
     assert saved["revision"] == 1
-    assert saved["traits"][0] == {"key":"impulsivity","name":"Determination","prompt":"0 gives up; 100 perseveres."}
+    assert saved["traits"][0] == {"key":"intelligence","name":"Determination","prompt":"0 gives up; 100 perseveres."}
     assert saved["traits"][1:] == DEFINITION["traits"][1:]
     page.set_viewport_size({"width":390,"height":844})
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
@@ -265,7 +265,7 @@ def test_manage_definition_add_delete_and_conflict_keep_draft(page, frontend, vo
     page.goto(frontend + "/admin.html")
     page.get_by_role("button", name="Manage Protagonist Profile", exact=True).click()
     panel = page.locator("#definition-panel")
-    expect(panel.locator(".definition-trait")).to_have_count(6)
+    expect(panel.locator(".definition-trait")).to_have_count(7)
     panel.get_by_role("button", name="Add trait", exact=True).click()
     card = panel.locator(".definition-trait").last
     card.get_by_label("Trait name: New trait", exact=True).fill("Resilience")
@@ -278,7 +278,7 @@ def test_manage_definition_add_delete_and_conflict_keep_draft(page, frontend, vo
     expect(panel.locator("#definition-status")).to_contain_text("Reload and review")
     expect(panel.locator(".definition-trait").last.get_by_label("Trait name: Resilience", exact=True)).to_have_value("Resilience")
     assert voting_api["definition_writes"][0]["traits"][-1]["key"] == "resilience"
-    assert "impulsivity" not in [t["key"] for t in voting_api["definition_writes"][0]["traits"]]
+    assert "intelligence" not in [t["key"] for t in voting_api["definition_writes"][0]["traits"]]
     # Other tabs remain visible independently of the novels panel.
     page.get_by_role("button", name="Accounts", exact=True).click()
     expect(page.locator("#users-panel")).to_be_visible()

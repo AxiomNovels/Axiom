@@ -1,5 +1,11 @@
 Manage Protagonist Profile — implementation report (October 10, 2026)
 
+**October 13 merge update:** This report records the original ten-trait seed.
+The default is now the incoming seven-trait rubric. Follow the migration order
+and verification notes in [the merge report](MERGE_RESOLUTION_REPORT.md) and
+[the current voting documentation](PROTAGONIST_VOTING.md). Existing saved Admin
+Hub definitions are preserved; change them through the editor when desired.
+
 The Admin Hub now has a **Manage Protagonist Profile** tab. SPECIAL accounts can
 view and edit every trait's name and full scoring prompt, add or delete traits,
 and edit shared scoring instructions. The editor stages changes, identifies the

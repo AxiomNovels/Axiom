@@ -29,7 +29,7 @@ def build_prompt(novel: dict, protagonist_name: str, comments: list[str], defini
     from services.protagonist_definition_service import load_definition
 
     definition = definition or load_definition()
-    rubric = definition["instructions"] + "\n\n" + "\n\n".join(
+    rubric = f"Score exactly {len(definition['traits'])} protagonist traits from 0 to 100.\n\n" + definition["instructions"] + "\n\n" + "\n\n".join(
         f"{trait['key']} - {trait['name']}\n{trait['prompt']}" for trait in definition["traits"]
     )
     genres = ", ".join(novel.get("genres") or []) or "Not provided"

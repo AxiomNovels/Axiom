@@ -36,47 +36,47 @@ assert.deepEqual(d, seed);
 const existing = async () => (await db.query("select public.protagonist_vote_summary(2,$1) s",[user])).rows[0].s;
 assert.equal((await existing()).profile.arrogance_pride,70);
 assert.equal((await existing()).baseline.arrogance_pride,40);
-assert.equal((await existing()).baseline.ambition,40);
+assert.equal((await existing()).baseline.intelligence,40);
 assert.equal((await existing()).my_votes.arrogance_pride,100);
 assert.equal((await existing()).baseline.impulsivity,undefined);
 await save(d);
-await vote(d,"ambition"); await vote(d,"leadership");
-assert.equal((await summary()).profile.ambition,60);
+await vote(d,"intelligence"); await vote(d,"charisma");
+assert.equal((await summary()).profile.intelligence,60);
 await db.exec("select public.set_protagonist_score_lock(1,true)");
 const stale = structuredClone(d);
-d.traits.find(t=>t.key==="ambition").prompt += "\nNew criterion.";
+d.traits.find(t=>t.key==="intelligence").prompt += "\nNew criterion.";
 d = await update(d);
 let s = await summary();
-assert.equal(s.profile.ambition,null);
-assert.equal(s.profile.leadership,60);
-assert.equal(s.baseline.leadership,20);
-assert.equal(s.baseline.ambition,undefined);
-assert.equal(s.my_votes.ambition,undefined);
-assert.equal(s.my_votes.leadership,100);
+assert.equal(s.profile.intelligence,null);
+assert.equal(s.profile.charisma,60);
+assert.equal(s.baseline.charisma,20);
+assert.equal(s.baseline.intelligence,undefined);
+assert.equal(s.my_votes.intelligence,undefined);
+assert.equal(s.my_votes.charisma,100);
 assert.equal(s.scores_locked,true);
 assert.equal(s.eligible,false);
-assert.equal((await existing()).profile.ambition,null);
+assert.equal((await existing()).profile.intelligence,null);
 assert.equal((await existing()).profile.arrogance_pride,70);
 assert.equal((await existing()).baseline.arrogance_pride,40);
 await assert.rejects(update(stale),/changed/);
 await assert.rejects(save(stale),/changed/);
-await assert.rejects(vote(stale,"leadership"),/changed/);
+await assert.rejects(vote(stale,"charisma"),/changed/);
 await assert.rejects(save(d),/locked/);
 await save(d,30,false); // Moderator may repair a locked profile.
 await db.exec("select public.set_protagonist_score_lock(1,false)");
-assert.equal((await summary()).profile.leadership,65);
+assert.equal((await summary()).profile.charisma,65);
 
 // Add a trait: real nullable SQL column, unchanged defaults/votes and incomplete eligibility.
 d.traits.push({key:"resilience",name:"Resilience",prompt:"0 gives up; 100 perseveres."});
 d = await update(d);
 s = await summary();
 assert.equal(s.profile.resilience,null);
-assert.equal(s.baseline.leadership,30);
-assert.equal(s.profile.leadership,65);
-await assert.rejects(vote(d,"leadership"),/all current/);
+assert.equal(s.baseline.charisma,30);
+assert.equal(s.profile.charisma,65);
+await assert.rejects(vote(d,"charisma"),/all current/);
 await save(d,10); await vote(d,"resilience");
 assert.equal((await summary()).profile.resilience,55);
-assert.equal((await summary()).profile.leadership,55);
+assert.equal((await summary()).profile.charisma,55);
 
 // Rename clears data even though its stable storage key stays the same.
 d.traits.find(t=>t.key==="resilience").name = "Determination";
@@ -103,25 +103,25 @@ const before = await getDefinition();
 for (const trait of [
   {key:"id",name:"Reserved",prompt:"Invalid"},
   {key:"evil;drop table novels",name:"Injection",prompt:"Invalid"},
-  {key:"ambition",name:"Duplicate",prompt:"Invalid"},
+  {key:"intelligence",name:"Duplicate",prompt:"Invalid"},
   {key:"impulsivity",name:"Existing retired column",prompt:"Invalid"},
 ]) await assert.rejects(update({...d,traits:[...d.traits,trait]}));
 assert.deepEqual(await getDefinition(),before);
-assert.equal((await summary()).profile.leadership,0);
+assert.equal((await summary()).profile.charisma,0);
 assert.deepEqual(await update(d),d); // No-op does not clear scores or increment revision.
 
 // Force a failure after cleanup has begun: a dependent view prevents dropping the column.
-await db.exec("create view public.keep_ambition as select ambition from public.protagonist_profiles");
-await assert.rejects(update({...d,traits:d.traits.filter(t=>t.key!=="ambition")}),/depend/);
+await db.exec("create view public.keep_intelligence as select intelligence from public.protagonist_profiles");
+await assert.rejects(update({...d,traits:d.traits.filter(t=>t.key!=="intelligence")}),/depend/);
 await db.exec("rollback");
 assert.deepEqual(await getDefinition(),d);
-assert.equal((await summary()).profile.ambition,0);
-await db.exec("drop view public.keep_ambition");
+assert.equal((await summary()).profile.intelligence,0);
+await db.exec("drop view public.keep_intelligence");
 
 // Reapplying the new migration never restores seed prompts or resets current data.
 await db.exec(readFileSync(new URL("../../database/manage_protagonist_profile.sql",import.meta.url),"utf8"));
 assert.deepEqual(await getDefinition(),d);
-assert.equal((await summary()).profile.ambition,0);
+assert.equal((await summary()).profile.intelligence,0);
 for (const role of ["anon","authenticated"]) {
   await db.exec(`set role ${role}`);
   assert.deepEqual(await getDefinition(),d);

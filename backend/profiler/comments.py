@@ -3,10 +3,13 @@ from pathlib import Path
 
 
 TRAIT_TERMS = {
-    # intellectual drive
-    "curious", "curiosity", "inquisitive", "investigate", "investigates", "research",
-    "experiment", "experiments", "study", "studies", "scholar", "learning", "knowledge",
-    "discovery", "analyze", "analytical",
+    # intelligence and strategy
+    "intelligent", "intelligence", "clever", "brilliant", "genius", "strategy", "strategic",
+    "smart", "knowledge", "analyze", "analytical", "solve", "planning",
+    # charisma
+    "charisma", "charismatic", "charming", "persuasive", "inspiring", "popular", "magnetic",
+    # moral integrity
+    "moral", "morality", "amoral", "ruthless", "principled", "ethical", "ethics", "honorable",
     # arrogance / pride
     "arrogant", "arrogance", "pride", "prideful", "proud", "humble", "humility", "ego",
     # kinship / friendship
@@ -16,21 +19,19 @@ TRAIT_TERMS = {
     "romance", "romantic", "love", "lover", "relationship", "partner",
     "marriage", "married", "marries", "wedding", "spouse", "wife", "husband",
     "girlfriend", "boyfriend", "attracted", "attraction", "harem", "pregnant", "pregnancy",
-    # selflessness / selfishness
+    # erotic desire
+    "desire", "sexual", "sensual", "lust", "seduce", "seduction", "attraction",
+    # Broader characterization evidence remains useful for saved/custom definitions.
+    "curious", "curiosity", "inquisitive", "investigate", "investigates", "research",
+    "experiment", "experiments", "study", "studies", "scholar", "learning", "discovery",
     "selfless", "selfish", "sacrifice", "sacrifices", "compassion", "altruistic",
-    # pragmatism / morality
-    "moral", "morality", "amoral", "ruthless", "principled", "ethical", "ethics",
-    "pragmatic", "honorable", "manipulative", "unscrupulous",
-    # individualist / collectivist
+    "pragmatic", "manipulative", "unscrupulous",
     "loner", "independent", "individualist", "collectivist", "clan", "sect",
     "community", "faction", "nation", "duty", "obligation",
-    # ambition
     "ambition", "ambitious", "power", "powerhungry", "conquer", "conquest",
     "throne", "dominate", "advancement", "status",
-    # cautious / risk-taker
     "cautious", "careful", "caution", "risk", "risky", "gamble", "gambles",
     "reckless", "calculated", "paranoid", "patient",
-    # leadership
     "leader", "leadership", "lead", "leads", "command", "commander", "ruler",
     "king", "general", "organizes", "governs",
 }

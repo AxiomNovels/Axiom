@@ -139,7 +139,11 @@ continue to use the shared backend authentication dependency.
 Manage Protagonist Profile is available in the Admin Hub after applying
 [`database/manage_protagonist_profile.sql`](database/manage_protagonist_profile.sql).
 Apply it after `admin_hub.sql`, `protagonist_votes.sql`, and
-`protagonist_vote_controls.sql`; do not reapply older trait migrations afterwards.
+`protagonist_vote_controls.sql`. For legacy installations adopting the seven-trait
+defaults, apply `protagonist_profile_traits_v2.sql` before the manage migration;
+it clears old scores and votes. Once the definition is managed, make all trait
+changes through the Admin Hub; do not reapply older trait migrations afterwards.
+An existing saved definition is preserved when the bootstrap is reapplied.
 Deploy the matching backend and frontend together. SPECIAL accounts can edit
 trait names, prompts, and shared scoring instructions, or add/delete traits.
 The database handles schema changes and clears affected scores, defaults, and

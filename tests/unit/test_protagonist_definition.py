@@ -10,6 +10,7 @@ from main import app
 from models.protagonist_definition import DefinitionUpdate
 from profiler import gemini
 from profiler.prompt import build_prompt
+from profiler.prompt_playground import build_prompt as build_playground_prompt
 from routes import admin, search, novels
 from services import protagonist_definition_service as definitions
 from services import novel_profiling_service as profiling
@@ -90,8 +91,10 @@ def test_definition_reads_are_live_and_fail_closed():
     assert error.value.status_code == 503
 
 
-def test_prompt_and_gemini_schema_use_one_snapshot(monkeypatch):
-    prompt = build_prompt({"title": "Novel"}, "Hero", [], definition=DEFINITION)
+@pytest.mark.parametrize("builder", [build_prompt, build_playground_prompt])
+def test_prompt_and_gemini_schema_use_one_snapshot(monkeypatch, builder):
+    prompt = builder({"title": "Novel"}, "Hero", [], definition=DEFINITION)
+    assert "Score exactly 2 protagonist traits" in prompt
     assert "0 gives up; 100 perseveres." in prompt
     assert "INTELLECTUAL_DRIVE" not in prompt
     request = MagicMock(return_value={"scores": {"resilience":0,"empathy":100}, "confidence":80,"evidence_summary":"Evidence"})

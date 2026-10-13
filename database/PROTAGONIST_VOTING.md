@@ -2,9 +2,24 @@
 
 Apply protagonist_votes.sql, then protagonist_vote_controls.sql, after the existing
 profiles and protagonist-measures migrations. Keep this order for new databases;
-then apply `admin_hub.sql` and `manage_protagonist_profile.sql`. Existing databases
-with voting controls and Admin Hub already installed only need
+then apply `protagonist_profile_traits_v2.sql`, `admin_hub.sql`, and
 `manage_protagonist_profile.sql`. Do not reapply the older trait migrations after it.
+
+## Seven-trait defaults and editable definitions
+
+The default traits are intelligence, charisma, moral integrity, kinship and
+friendship, romantic attachment, erotic desire, and arrogance and conceit.
+`protagonist_profile_traits_v2.sql` converts a legacy installation to these seven
+traits: it clears old votes, baselines, and scores, and unlocks profiles for
+rebuilding. Apply it only before `manage_protagonist_profile.sql`.
+
+Once `protagonist_definition` exists, the Admin Hub owns the traits and prompts.
+The bootstrap migration preserves an existing definition, including a customized
+or previous ten-trait definition. Change that definition through Manage
+Protagonist Profile to adopt the new rubric; the seed JSON is a reference for
+the new defaults. The v2 migration refuses to run after this setup so it cannot
+erase custom traits or restore unversioned save/vote functions. Use the existing
+profile rebuild tools after changing definitions.
 
 ## Admin rebuild history
 
@@ -61,6 +76,7 @@ cd tests
 npm ci
 npm run test:votes
 npm run test:definitions
+npm run test:trait-migrations
 ```
 
 Use the project's Python environment; browser tests require Playwright Chromium.
