@@ -73,16 +73,13 @@ def print_preview(
     confidence_text = str(name_confidence) if name_confidence is not None else "n/a"
     print(f"Protagonist source:        {name_source} (confidence: {confidence_text})")
     labels = {
-        "intellectual_drive": "Intellectual Drive",
-        "arrogance_pride": "Arrogance & Pride",
+        "intelligence": "Intelligence",
+        "charisma": "Charisma",
+        "moral_integrity": "Moral Integrity",
+        "arrogance_pride": "Arrogance & Conceit",
         "kinship_friendship": "Kinship and Friendship",
         "romantic_attachment": "Romantic Attachment",
-        "selflessness_selfishness": "Selfishness / Selflessness",
-        "pragmatism_morality": "Pragmatism / Morality",
-        "individualist_collectivist": "Individualist / Collectivist",
-        "ambition": "Ambition",
-        "cautious_risk_taker": "Cautious / Risk-taker",
-        "leadership": "Leadership",
+        "erotic_desire": "Erotic Desire",
     }
     for measure in MEASURES:
         print(f"{labels.get(measure, measure):30} {result['scores'][measure]:3}")
@@ -182,4 +179,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-    

@@ -1,15 +1,12 @@
 // Dedicated voting page. Identity and eligibility are checked by the API.
 const VOTING_TRAITS = [
-  ["intellectual_drive", "Intellectual Drive", "Absent → defining"],
+  ["intelligence", "Intelligence", "Low → exceptional"],
+  ["charisma", "Charisma", "Low → exceptional"],
+  ["moral_integrity", "Moral Integrity", "Unprincipled → principled"],
   ["arrogance_pride", "Arrogance & Pride", "Humble → egotistical"],
   ["kinship_friendship", "Kinship and Friendship", "Detached → devoted"],
   ["romantic_attachment", "Romantic Attachment", "Unattached → romance-driven"],
-  ["selflessness_selfishness", "Selfishness / Selflessness", "Self-interested → self-sacrificing"],
-  ["pragmatism_morality", "Pragmatism / Morality", "Pragmatic → principled"],
-  ["individualist_collectivist", "Individualist / Collectivist", "Individualist → collectivist"],
-  ["ambition", "Ambition", "Unambitious → power-hungry"],
-  ["cautious_risk_taker", "Cautious / Risk-taker", "Cautious → risk-taking"],
-  ["leadership", "Leadership", "Non-leader → defining leader"],
+  ["erotic_desire", "Erotic Desire", "Absent → defining"],
 ];
 const voteDrafts = {};
 async function loadProtagonistVotes(novelId, message = "") {
@@ -33,7 +30,7 @@ async function loadProtagonistVotes(novelId, message = "") {
     const data = await call();
     host.replaceChildren();
     if (!data.eligible) {
-      host.append(node("p", "Voting opens when all ten protagonist scores are filled in."));
+      host.append(node("p", "Voting opens when all seven protagonist scores are filled in."));
       return;
     }
     const summary = node("div"); summary.className = "voting-summary";

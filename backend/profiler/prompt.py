@@ -9,20 +9,17 @@ Generates the protagonist profile.
 """
 
 MEASURES = (
-    "intellectual_drive",
-    "arrogance_pride",
+    "intelligence",
+    "charisma",
+    "moral_integrity",
     "kinship_friendship",
     "romantic_attachment",
-    "selflessness_selfishness",
-    "pragmatism_morality",
-    "individualist_collectivist",
-    "ambition",
-    "cautious_risk_taker",
-    "leadership",
+    "erotic_desire",
+    "arrogance_pride",
 )
 
 
-RUBRIC = """
+_RETIRED_RUBRIC = """
 SCORING RULES
 - Use absolute 0-100 scales, not comparisons with other characters. The anchors below
   are authoritative; interpolate between them only when the evidence genuinely falls
@@ -347,6 +344,40 @@ does not establish high leadership unless the behavior is recurring or narrative
 """.strip()
 
 
+RUBRIC = """
+Score exactly these seven protagonist traits from 0 to 100. Scores reflect recurring,
+narratively meaningful characterization, not genre assumptions or isolated moments.
+
+INTELLIGENCE: reasoning, learning, insight, strategy, and problem-solving ability.
+0 means profoundly poor judgment or understanding; 50 means capable and ordinary for the
+story's context; 100 means exceptional intellect consistently drives the protagonist's choices.
+
+CHARISMA: ability to attract, persuade, inspire, charm, or socially influence others.
+0 means notably unable to connect or influence; 50 means mixed or situational social appeal;
+100 means exceptional influence, magnetism, or inspiration central to the story.
+
+MORAL_INTEGRITY: consistency in acting according to ethical principles, even at personal cost.
+0 means routinely cruel, exploitative, or unconstrained by moral concern; 50 means conflicted
+or selective principles; 100 means unusually principled conduct repeatedly upheld under pressure.
+
+KINSHIP_FRIENDSHIP: emotional investment, loyalty, and care toward family, friends, and found family.
+0 means detached or consistently dismissive; 50 means meaningful but balanced bonds; 100 means
+these bonds are defining motivations that repeatedly shape major decisions.
+
+ROMANTIC_ATTACHMENT: importance of romantic love, partnership, and attachment in the protagonist's life.
+0 means explicitly absent or irrelevant; 50 means a substantial relationship without dominating the story;
+100 means romance is a defining motivation and central driver of major choices.
+
+EROTIC_DESIRE: how strongly sexual attraction, desire, or pursuit is expressed as a meaningful motivation.
+0 means explicitly absent or irrelevant; 50 means recurring but balanced; 100 means sexual desire is a
+defining and repeated driver. Do not infer this merely from romance, appearance, or genre.
+
+ARROGANCE_PRIDE: ego, superiority, status-consciousness, and resistance to admitting weakness.
+0 means defining humility; 50 means balanced confidence and humility; 100 means extreme conceit or
+superiority consistently shapes the protagonist's choices and relationships.
+""".strip()
+
+
 def build_prompt(novel: dict, protagonist_name: str, comments: list[str]) -> str:
     genres = ", ".join(novel.get("genres") or []) or "Not provided"
     tags = ", ".join(novel.get("tags") or []) or "Not provided"
@@ -372,23 +403,9 @@ against the anchors above. Reduce confidence when evidence is sparse, conflictin
 does not clearly identify the protagonist. Keep the evidence summary brief and avoid
 quotations.
 
-Important distinctions:
-- Intellectual drive measures desire to learn, investigate, understand, or discover;
-  it does not measure intelligence or competence.
-- Ambition measures desire for advancement, power, status, achievement, or improvement;
-  it does not measure how powerful the protagonist already is.
-- Cautious/risk-taker measures willingness to accept danger and uncertainty; it does not
-  measure impulsivity.
-- Individualist/collectivist measures the protagonist's relationship to group identity,
-  obligations, and collective goals; it is not simply a measure of kindness or friendship.
-- Pragmatism/morality measures willingness to compromise moral principles for practical
-  outcomes; it is not simply a measure of whether the protagonist is nice or effective.
-- Leadership measures responsibility for directing or organizing other people; it is not
-  simply charisma, competence, popularity, or power.
-
-For spectrum measures, give the score according to the stated direction. For intellectual
-drive and leadership, treat 0 as genuine absence and higher values as increasing narrative
-importance rather than merely uncertainty. Do not use 50 as a default when evidence is weak.
+Do not use 50 as a default when evidence is weak. Intelligence is ability, not curiosity;
+charisma is social influence, not leadership; moral integrity is principled conduct, not
+kindness; romantic attachment and erotic desire are independent traits.
 
 In the evidence summary, briefly identify the strongest evidence for the scores and any
 important uncertainty.

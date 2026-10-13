@@ -8,7 +8,7 @@ def test_only_protagonist_is_generated_and_editable():
     specs = profiling._load_specs()
     assert [spec.kind for spec in specs] == ["protagonist"]
     assert set(PROFILES) == {"protagonist"}
-    assert len(specs[0].measures) == 6
+    assert len(specs[0].measures) == 7
 
 
 def test_catalogue_queries_do_not_require_retired_tables():

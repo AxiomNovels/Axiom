@@ -212,7 +212,7 @@ async function openEditor(id) {
   heading.append(title, novelLink);
   editor.replaceChildren(heading);
   const descriptions = {
-    protagonist: "All ten scores must be filled in to enable voting, including zeros. Saved edits become the new defaults. Use Vote distribution → Lock scores to keep all protagonist scores fixed while votes continue to be collected.",
+    protagonist: "All seven scores must be filled in to enable voting, including zeros. Saved edits become the new defaults. Use Vote distribution → Lock scores to keep all protagonist scores fixed while votes continue to be collected.",
   };
   for (const [kind, profile] of Object.entries(data.profiles)) {
     const form = element("form", undefined, "admin-profile");

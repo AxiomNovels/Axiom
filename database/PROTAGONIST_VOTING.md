@@ -11,7 +11,15 @@ migrations, before using Admin hub > Novel profiles > Protagonist profile rebuil
 The migration is safe to reapply: it adds the `not_needed` item status used to
 record complete profiles that an outdated-only run deliberately skips.
 
-Any protagonist profile with all six scores filled in is eligible. Zero counts as
+## Seven-trait profile model
+
+Apply `protagonist_profile_traits_v2.sql` after the voting migrations to move to
+the current seven traits: intelligence, charisma, moral integrity, kinship and
+friendship, romantic attachment, erotic desire, and arrogance and conceit. It
+clears existing trait votes and baselines and leaves profiles incomplete so they
+can be rebuilt against the new Gemini rubric.
+
+Any protagonist profile with all seven scores filled in is eligible. Zero counts as
 filled in. Gemini, moderator edits, and other trusted profile imports all qualify.
 The controls migration enables existing complete profiles without regenerating
 profiles or changing displayed scores. SUPABASE_SECRET_KEY stays on the backend.
@@ -28,7 +36,7 @@ back into defaults.
 
 Moderator edits become the new defaults and are displayed immediately. Subsequent
 votes recalculate unlocked profiles against those defaults.
-In Admin hub > Novel profiles > Vote distribution, Lock scores freezes all six
+In Admin hub > Novel profiles > Vote distribution, Lock scores freezes all seven
 current protagonist scores. Votes can still be created, updated, and removed,
 and remain visible to admins, but cannot change locked scores. Moderators can
 edit scores while locked; Gemini cannot overwrite a locked profile. Unlock scores

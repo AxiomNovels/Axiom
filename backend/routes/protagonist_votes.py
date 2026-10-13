@@ -12,10 +12,8 @@ from routes.admin import find_novel, require_special
 
 
 router = APIRouter(prefix="/api", tags=["protagonist votes"])
-Trait = Literal["intellectual_drive", "arrogance_pride", "kinship_friendship",
-                "romantic_attachment", "selflessness_selfishness",
-                "pragmatism_morality", "individualist_collectivist", "ambition",
-                "cautious_risk_taker", "leadership"]
+Trait = Literal["intelligence", "charisma", "moral_integrity", "kinship_friendship",
+                "romantic_attachment", "erotic_desire", "arrogance_pride"]
 # Fail fast if this list and the profiler's measures ever drift apart.
 assert set(get_args(Trait)) == set(MEASURES), "Trait must match profiler.prompt.MEASURES"
 
@@ -69,7 +67,7 @@ def vote(novel_id: int, trait: Trait, payload: Vote, auth=Depends(get_current_us
         }).execute()
     except APIError as error:
         if error.code == "P0001":
-            raise HTTPException(409, "Voting opens when all ten protagonist scores are filled in.") from error
+            raise HTTPException(409, "Voting opens when all seven protagonist scores are filled in.") from error
         raise
     return summary(client, novel_id, auth[0])
 

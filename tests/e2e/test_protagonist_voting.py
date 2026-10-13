@@ -9,7 +9,7 @@ import pytest
 from playwright.sync_api import expect
 
 
-KEYS = ["impulsivity", "arrogance_pride", "kinship_friendship", "romantic_attachment", "sexual_desire", "selflessness"]
+KEYS = ["intelligence", "charisma", "moral_integrity", "kinship_friendship", "romantic_attachment", "erotic_desire", "arrogance_pride"]
 USER = "00000000-0000-0000-0000-000000000001"
 
 
@@ -90,18 +90,18 @@ def test_reader_votes_updates_and_withdraws(page, frontend, voting_api):
     login(page)
     page.goto(frontend + "/vote.html?id=1")
     host = page.locator("#protagonist-votes")
-    row = host.locator("form").filter(has=page.get_by_label("Selflessness", exact=True))
-    row.get_by_label("Selflessness", exact=True).fill("100")
+    row = host.locator("form").filter(has=page.get_by_label("Moral Integrity", exact=True))
+    row.get_by_label("Moral Integrity", exact=True).fill("100")
     row.get_by_role("button", name="Vote", exact=True).click()
     expect(host.get_by_role("status")).to_have_text("Vote saved. Profile recalculated.")
-    expect(page.locator(".vote-current").last).to_have_text("60")
-    row.get_by_label("Selflessness", exact=True).fill("0")
+    expect(row.locator(".vote-current")).to_have_text("60")
+    row.get_by_label("Moral Integrity", exact=True).fill("0")
     row.get_by_role("button", name="Update vote").click()
     expect(row.locator(".vote-trait-description small")).to_contain_text("Your vote: 0")
-    expect(page.locator(".vote-current").last).to_have_text("10")
+    expect(row.locator(".vote-current")).to_have_text("10")
     row.get_by_role("button", name="Remove").click()
     expect(host.get_by_role("status")).to_have_text("Vote removed. Profile recalculated.")
-    expect(page.locator(".vote-current").last).to_have_text("20")
+    expect(row.locator(".vote-current")).to_have_text("20")
     page.set_viewport_size({"width": 390, "height": 844})
     assert host.evaluate("el => el.scrollWidth <= el.clientWidth")
     page.screenshot(path="test-results/voting-mobile.png", full_page=True)
@@ -112,27 +112,27 @@ def test_guest_and_unestablished_profiles(page, frontend, voting_api):
     expect(page.get_by_role("link", name="Log in to vote")).to_be_visible()
     voting_api["eligible"] = False
     page.reload()
-    expect(page.locator("#protagonist-votes")).to_contain_text("Voting opens when all six")
+    expect(page.locator("#protagonist-votes")).to_contain_text("Voting opens when all seven")
     expect(page.locator("#protagonist-votes input")).to_have_count(0)
 
 
 def test_admin_distribution_individual_and_user_wide_deletion(page, frontend, voting_api):
     login(page)
-    voting_api["votes"]["selflessness"] = 100
+    voting_api["votes"]["moral_integrity"] = 100
     page.on("dialog", lambda dialog: dialog.accept())
     page.goto(frontend + "/admin.html")
     page.get_by_role("button", name="Novel profiles", exact=True).click()
     page.get_by_role("button", name="Vote distribution").click()
     host = page.locator("#vote-workspace")
-    expect(host).to_contain_text("Reader · Selflessness: 100")
+    expect(host).to_contain_text("Reader · Moral Integrity: 100")
     expect(host.locator("meter")).to_have_attribute("value", "1")
     page.screenshot(path="test-results/voting-admin.png", full_page=True)
     host.get_by_role("button", name="Delete vote", exact=True).click()
     expect(host).to_contain_text("0 trait votes")
-    voting_api["votes"]["impulsivity"] = 0
+    voting_api["votes"]["intelligence"] = 0
     page.get_by_role("button", name="Accounts", exact=True).click()
     page.get_by_role("button", name="View votes").click()
-    expect(host).to_contain_text("Test novel · Impulsivity: 0")
+    expect(host).to_contain_text("Test novel · Intelligence: 0")
     host.get_by_role("button", name="Delete all votes by this user").click()
     expect(host).to_contain_text("No votes found.")
     assert ("DELETE", f"/admin/users/{USER}/protagonist-votes") in voting_api["requests"]
@@ -144,12 +144,12 @@ def test_locked_reader_votes_still_saved(page, frontend, voting_api):
     page.goto(frontend + "/vote.html?id=1")
     host = page.locator("#protagonist-votes")
     expect(host).to_contain_text("Scores locked by a moderator")
-    row = host.locator("form").filter(has=page.get_by_label("Selflessness", exact=True))
-    row.get_by_label("Selflessness", exact=True).fill("100")
+    row = host.locator("form").filter(has=page.get_by_label("Moral Integrity", exact=True))
+    row.get_by_label("Moral Integrity", exact=True).fill("100")
     row.get_by_role("button", name="Vote", exact=True).click()
     expect(host.get_by_role("status")).to_have_text("Vote saved. Locked scores unchanged.")
-    expect(page.locator(".vote-current").last).to_have_text("20")
-    assert voting_api["votes"] == {"selflessness": 100}
+    expect(row.locator(".vote-current")).to_have_text("20")
+    assert voting_api["votes"] == {"moral_integrity": 100}
 
 
 def test_admin_locks_and_unlocks_scores(page, frontend, voting_api):
@@ -176,7 +176,7 @@ def test_novel_only_shows_voting_link(page, frontend, voting_api):
     assert not any("protagonist-votes" in path for method, path in voting_api["requests"])
     link.click()
     expect(page.get_by_role("heading", name="Test novel", exact=True)).to_be_visible()
-    expect(page.locator(".trait-vote-form")).to_have_count(6)
+    expect(page.locator(".trait-vote-form")).to_have_count(7)
     page.screenshot(path="test-results/voting-desktop.png", full_page=True)
     page.get_by_role("link", name="Back to novel").click()
     expect(page.locator("#novel-title")).to_have_text("Test novel")

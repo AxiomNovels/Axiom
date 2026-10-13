@@ -9,20 +9,17 @@ Generates the protagonist profile.
 """
 
 MEASURES = (
-    "intellectual_drive",
-    "arrogance_pride",
+    "intelligence",
+    "charisma",
+    "moral_integrity",
     "kinship_friendship",
     "romantic_attachment",
-    "selflessness_selfishness",
-    "pragmatism_morality",
-    "individualist_collectivist",
-    "ambition",
-    "cautious_risk_taker",
-    "leadership",
+    "erotic_desire",
+    "arrogance_pride",
 )
 
 
-RUBRIC = """
+_RETIRED_RUBRIC = """
 SCORING RULES
 - Use absolute 0-100 scales, not comparisons with other characters. The anchors below
   are authoritative; interpolate between them only when the evidence genuinely falls
@@ -345,6 +342,10 @@ being socially awkward.
 Similarly, commanding someone under duress or temporarily taking charge during an emergency
 does not establish high leadership unless the behavior is recurring or narratively meaningful.
 """.strip()
+
+# Keep ad-hoc prompt experiments on the production rubric.
+from profiler.prompt import RUBRIC as _PRODUCTION_RUBRIC
+RUBRIC = _PRODUCTION_RUBRIC
 
 
 def build_prompt(novel: dict, protagonist_name: str, comments: list[str]) -> str:

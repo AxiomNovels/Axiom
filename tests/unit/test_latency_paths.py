@@ -106,14 +106,14 @@ def test_badge_failures_and_banned_accounts_remain_non_special():
 
 def test_recommendation_cards_preserve_current_traits_tags_ties_and_inputs():
     source = {"id": 1, "tags": [" magic ", "Academy"],
-              "protagonist_profiles": {"intellectual_drive": 100}}
+              "protagonist_profiles": {"intelligence": 100}}
     rows = [
         {"id": 2, "title": "B", "tags": ["MAGIC", " Academy ", "magic"],
-         "protagonist_profiles": [{"intellectual_drive": 100}]},
+         "protagonist_profiles": [{"intelligence": 100}]},
         {"id": 3, "title": "A", "tags": ["magic", "Academy"],
-         "protagonist_profiles": {"intellectual_drive": 100}},
+         "protagonist_profiles": {"intelligence": 100}},
         {"id": 4, "title": "Z", "tags": ["magic"],
-         "protagonist_profiles": {"intellectual_drive": 0}},
+         "protagonist_profiles": {"intelligence": 0}},
         {"id": 5, "title": None, "tags": [], "protagonist_profiles": {}},
     ]
     original = deepcopy(rows)

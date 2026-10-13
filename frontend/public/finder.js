@@ -1,14 +1,11 @@
 const PROFILE_MEASURES = [
-  ["intellectual_drive", "Intellectual drive", "Absent", "Defining"],
+  ["intelligence", "Intelligence", "Low", "Exceptional"],
+  ["charisma", "Charisma", "Low", "Exceptional"],
+  ["moral_integrity", "Moral integrity", "Unprincipled", "Principled"],
   ["arrogance_pride", "Arrogance & pride", "Humble", "Egotistical"],
   ["kinship_friendship", "Kinship & friendship", "Detached", "Devoted"],
   ["romantic_attachment", "Romantic attachment", "Unattached", "Romantic"],
-  ["selflessness_selfishness", "Selfishness / selflessness", "Self-interested", "Self-sacrificing"],
-  ["pragmatism_morality", "Pragmatism / morality", "Pragmatic", "Principled"],
-  ["individualist_collectivist", "Individualist / collectivist", "Individualist", "Collectivist"],
-  ["ambition", "Ambition", "Unambitious", "Power-hungry"],
-  ["cautious_risk_taker", "Cautious / risk-taker", "Cautious", "Risk-taking"],
-  ["leadership", "Leadership", "Non-leader", "Leader"]
+  ["erotic_desire", "Erotic desire", "Absent", "Defining"]
 ];
 
 

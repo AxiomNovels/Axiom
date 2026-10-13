@@ -39,8 +39,7 @@ def test_relationship_evidence_is_prioritized_and_has_score_floors():
         "Example Hero",
         selected,
     )
-    assert "Confirmed slow/minor romance: generally >=25" in prompt
-    assert "Recurring partner, spouse, or significant romantic attachment: generally >=40" in prompt
+    assert "ROMANTIC_ATTACHMENT" in prompt
 
 
 def test_profile_prompt_matches_public_scoring_guide():
@@ -49,29 +48,18 @@ def test_profile_prompt_matches_public_scoring_guide():
         "Example Hero",
         [],
     )
-    assert "0 means explicit, narratively meaningful absence" in prompt
-    assert "20 is the cautious limited-evidence region" in prompt
-    assert "Score and confidence are different" in prompt
+    assert "Score exactly these seven protagonist traits" in prompt
     # Every measure has its own rubric section and the key distinctions are present.
     for measure in MEASURES:
-        assert f"{measure.upper()} (" in prompt, measure
-    assert "Cautious/risk-taker measures willingness to accept danger and uncertainty" in prompt
-    for score in range(0, 101, 10):
-        assert f"{score} " in prompt
+        assert measure.upper() in prompt, measure
+    assert "charisma is social influence" in prompt
 
 
-def test_trait_set_is_the_ten_agreed_measures():
+def test_trait_set_is_the_seven_agreed_measures():
     assert MEASURES == (
-        "intellectual_drive",
+        "intelligence", "charisma", "moral_integrity",
+        "kinship_friendship", "romantic_attachment", "erotic_desire",
         "arrogance_pride",
-        "kinship_friendship",
-        "romantic_attachment",
-        "selflessness_selfishness",
-        "pragmatism_morality",
-        "individualist_collectivist",
-        "ambition",
-        "cautious_risk_taker",
-        "leadership",
     )
 
 
@@ -81,14 +69,14 @@ def test_search_service_measures_match_profiler():
     assert tuple(PROFILE_MEASURES) == tuple(MEASURES)
 
 
-def test_validate_profile_accepts_exact_ten_scores():
+def test_validate_profile_accepts_exact_seven_scores():
     profile = validate_profile({
         "scores": {measure: 10 for measure in MEASURES},
         "confidence": 75,
         "evidence_summary": "The available evidence is consistent.",
     })
     assert set(profile["scores"]) == set(MEASURES)
-    assert profile["scores"]["leadership"] == 10
+    assert profile["scores"]["intelligence"] == 10
 
 
 def test_validate_profile_rejects_the_retired_six_trait_payload():
@@ -104,7 +92,7 @@ def test_validate_profile_rejects_the_retired_six_trait_payload():
 
 def test_validate_profile_rejects_out_of_range_score():
     scores = {measure: 10 for measure in MEASURES}
-    scores["impulsivity"] = 101
+    scores["intelligence"] = 101
     with pytest.raises(ValueError):
         validate_profile({
             "scores": scores,

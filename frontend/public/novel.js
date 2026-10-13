@@ -3,16 +3,13 @@
 // without depending on that endpoint existing yet.
 const TRAIT_LABELS = {
   // Protagonist Profile. Slash labels read low -> high (0 -> 100).
-  intellectual_drive: "Intellectual Drive",
+  intelligence: "Intelligence",
+  charisma: "Charisma",
+  moral_integrity: "Moral Integrity",
+  erotic_desire: "Erotic Desire",
   arrogance_pride: "Arrogance & Pride",
   kinship_friendship: "Kinship and Friendship",
   romantic_attachment: "Romantic Attachment",
-  selflessness_selfishness: "Selfishness / Selflessness",
-  pragmatism_morality: "Pragmatism / Morality",
-  individualist_collectivist: "Individualist / Collectivist",
-  ambition: "Ambition",
-  cautious_risk_taker: "Cautious / Risk-taker",
-  leadership: "Leadership",
 };
 
 // Display order follows TRAIT_LABELS.

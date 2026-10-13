@@ -94,12 +94,10 @@ UNAVAILABLE_NOTICE = (
 # Traits that aren't listed (including any added in the future) fall back to
 # label_for()'s automatic formatting, e.g. "dream_logic" -> "Dream Logic".
 _LABEL_OVERRIDES = {
-    "arrogance_pride": "Arrogance & Pride",
+    "moral_integrity": "Moral Integrity",
+    "erotic_desire": "Erotic Desire",
+    "arrogance_pride": "Arrogance & Conceit",
     "kinship_friendship": "Kinship and Friendship",
-    "selflessness_selfishness": "Selfishness / Selflessness",
-    "pragmatism_morality": "Pragmatism / Morality",
-    "individualist_collectivist": "Individualist / Collectivist",
-    "cautious_risk_taker": "Cautious / Risk-taker",
 }
 _SMALL_WORDS = {"a", "an", "and", "as", "at", "in", "of", "on", "or", "the", "to"}
 

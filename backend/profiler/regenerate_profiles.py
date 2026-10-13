@@ -97,7 +97,7 @@ def regenerate(novel_id: int, minimum_confidence: int, fetch_comments: bool, sav
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Regenerate protagonist profiles for existing novels")
     parser.add_argument("--novel-ids", type=int, nargs="+", help="Only these novel ids")
-    parser.add_argument("--all", action="store_true", help="Include novels that already have all ten scores")
+    parser.add_argument("--all", action="store_true", help="Include novels that already have all seven scores")
     parser.add_argument("--limit", type=int, help="Stop after this many novels")
     parser.add_argument("--sleep", type=float, default=1.0, help="Seconds to wait between novels (default 1)")
     parser.add_argument("--no-fetch-comments", action="store_true", help="Use synopsis and tags only (faster)")
