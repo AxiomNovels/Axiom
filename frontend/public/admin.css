@@ -176,3 +176,14 @@
   .admin-search input { flex-basis: 0; }
   .vote-record > div { flex-basis: 100%; }
 }
+
+/* Protagonist definition editor */
+#definition-fields { border: 0; padding: 0; min-width: 0; }
+#definition-fields label { display: grid; gap: .5rem; font-weight: 600; }
+#definition-fields input, #definition-fields textarea { box-sizing: border-box; width: 100%; padding: .8rem; border: 1px solid var(--line); border-radius: 6px; font: inherit; background: #160d20; color: var(--text); }
+#definition-fields textarea { font-weight: 400; line-height: 1.5; resize: vertical; }
+#definition-fields small { font-weight: 400; }
+.definition-trait { display: grid; gap: 1rem; margin: 1.5rem 0; padding: 1.25rem; border: 1px solid var(--line); border-radius: 8px; }
+.definition-trait button { justify-self: start; }
+#definition-impact { padding: 1rem; background: #a675201c; color: #e7c48d; }
+.admin-tabs { flex-wrap: wrap; }

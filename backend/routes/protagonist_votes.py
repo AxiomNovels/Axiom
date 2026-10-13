@@ -1,4 +1,3 @@
-from typing import Literal, get_args
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -7,22 +6,18 @@ from postgrest.exceptions import APIError
 
 from core.auth import get_current_user, get_optional_current_user
 from core.database import create_service_client
-from profiler.prompt import MEASURES
+from services.protagonist_definition_service import load_definition, measures_for, definition_error
 from routes.admin import find_novel, require_special
 
 
 router = APIRouter(prefix="/api", tags=["protagonist votes"])
-Trait = Literal["intellectual_drive", "arrogance_pride", "kinship_friendship",
-                "romantic_attachment", "selflessness_selfishness",
-                "pragmatism_morality", "individualist_collectivist", "ambition",
-                "cautious_risk_taker", "leadership"]
-# Fail fast if this list and the profiler's measures ever drift apart.
-assert set(get_args(Trait)) == set(MEASURES), "Trait must match profiler.prompt.MEASURES"
+
 
 
 class Vote(BaseModel):
     model_config = ConfigDict(extra="forbid")
     score: StrictInt = Field(ge=0, le=100)
+    revision: StrictInt = Field(ge=1)
 
 
 class ScoreLock(BaseModel):
@@ -59,23 +54,25 @@ def get_votes(novel_id: int, auth=Depends(get_optional_current_user)):
 
 
 @router.put("/novels/{novel_id}/protagonist-votes/{trait}")
-def vote(novel_id: int, trait: Trait, payload: Vote, auth=Depends(get_current_user)):
+def vote(novel_id: int, trait: str, payload: Vote, auth=Depends(get_current_user)):
     client = create_service_client()
     find_novel(client, novel_id)
+    if trait not in measures_for(load_definition(client)):
+        raise HTTPException(422, "Unknown protagonist trait.")
     try:
         client.rpc("cast_protagonist_vote", {
             "p_novel_id": novel_id, "p_user_id": str(auth[0]),
-            "p_trait": trait, "p_score": payload.score,
+            "p_trait": trait, "p_score": payload.score, "p_revision": payload.revision,
         }).execute()
     except APIError as error:
         if error.code == "P0001":
-            raise HTTPException(409, "Voting opens when all ten protagonist scores are filled in.") from error
-        raise
+            raise HTTPException(409, "Voting opens when all current protagonist scores are filled in.") from error
+        raise definition_error(error) from error
     return summary(client, novel_id, auth[0])
 
 
 @router.delete("/novels/{novel_id}/protagonist-votes/{trait}")
-def withdraw_vote(novel_id: int, trait: Trait, auth=Depends(get_current_user)):
+def withdraw_vote(novel_id: int, trait: str, auth=Depends(get_current_user)):
     client = create_service_client()
     find_novel(client, novel_id)
     client.table("protagonist_votes").delete().eq("novel_id", novel_id).eq(

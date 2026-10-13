@@ -8,12 +8,14 @@ from fastapi.testclient import TestClient
 from main import app
 from core import auth
 from routes import admin
+from profiler.prompt import DEFAULT_DEFINITION, MEASURES
 
 
 @pytest.fixture
 def service(monkeypatch):
     client = MagicMock()
     monkeypatch.setattr(admin, "create_service_client", lambda: client)
+    monkeypatch.setattr(admin, "load_definition", lambda client=None: DEFAULT_DEFINITION)
     return client
 
 
@@ -90,18 +92,18 @@ def test_ban_preserves_metadata_and_controls_auth(service, banned):
 
 @pytest.mark.parametrize("kind", list(admin.PROFILES))
 def test_score_save_whitelists_fields(service, kind):
-    table, measures = admin.PROFILES[kind]
+    measures = MEASURES
     service.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value.data = [{"id": 1}]
     scores = dict.fromkeys(measures, 50)
-    payload = admin.ProfileScores(scores=scores, protagonist_name="Hero" if kind == "protagonist" else None)
+    payload = admin.ProfileScores(scores=scores, protagonist_name="Hero", revision=1)
     assert admin.save_scores(1, kind, payload, ("owner", service)) == {"saved": True}
-    service.table.assert_any_call(table)
-    saved = service.table.return_value.upsert.call_args.args[0]
-    assert saved["novel_id"] == 1
-    assert all(saved[key] == 50 for key in measures)
+    service.rpc.assert_called_once_with("save_protagonist_profile", {
+        "p_novel_id": 1, "p_name": "Hero", "p_scores": scores, "p_revision": 1, "p_generated": False,
+    })
+    service.table.return_value.upsert.assert_not_called()
     for invalid in [{}, {**scores, "unknown": 1}, {**scores, measures[0]: 101}, {**scores, measures[0]: -1}]:
         with pytest.raises(HTTPException) as error:
-            admin.save_scores(1, kind, admin.ProfileScores(scores=invalid), ("owner", service))
+            admin.save_scores(1, kind, admin.ProfileScores(scores=invalid, revision=1), ("owner", service))
         assert error.value.status_code == 422
 
 
@@ -109,7 +111,7 @@ def test_score_save_whitelists_fields(service, kind):
 def test_scores_reject_non_integers(value):
     from pydantic import ValidationError
     with pytest.raises(ValidationError):
-        admin.ProfileScores(scores={"action": value})
+        admin.ProfileScores(scores={"action": value}, revision=1)
 
 
 def test_generation_requires_login_and_special_access(service):
@@ -128,7 +130,7 @@ def test_generation_requires_login_and_special_access(service):
 def test_generation_returns_draft_without_saving(service, monkeypatch):
     novel = {"id": 1, "title": "Example", "synopsis": "A story"}
     service.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value.data = [novel]
-    draft = {"status": "ready", "protagonist_name": "Hero", "scores": dict.fromkeys(admin.MEASURES, 40)}
+    draft = {"status": "ready", "protagonist_name": "Hero", "scores": dict.fromkeys(MEASURES, 40), "revision": 1}
     generate = MagicMock(return_value=draft)
     monkeypatch.setattr(admin, "generate_protagonist_preview", generate)
     assert admin.generate_scores(1, ("owner", service)) == draft

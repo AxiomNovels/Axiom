@@ -6,7 +6,7 @@ import time
 from datetime import datetime, timezone
 
 from core.database import create_service_client
-from profiler.prompt import MEASURES
+from services.protagonist_definition_service import load_definition, measures_for
 from profiler.regenerate_profiles import regenerate
 
 
@@ -32,9 +32,10 @@ def candidate_novel_ids(client, include_complete: bool) -> list[int]:
     novel_ids = [row["id"] for row in _rows(client, "novels", "id")]
     if include_complete:
         return novel_ids
+    measures = measures_for(load_definition(client))
     complete = {
-        row["novel_id"] for row in _rows(client, "protagonist_profiles", "novel_id," + ",".join(MEASURES))
-        if all(row.get(measure) is not None for measure in MEASURES)
+        row["novel_id"] for row in _rows(client, "protagonist_profiles", "*")
+        if all(row.get(measure) is not None for measure in measures)
     }
     return [novel_id for novel_id in novel_ids if novel_id not in complete]
 
@@ -119,4 +120,3 @@ def run_job(job_id: str) -> None:
         client.table("protagonist_rebuild_jobs").update({"processed": completed + failed, "succeeded": completed, "failed": failed}).eq("id", job_id).execute()
         time.sleep(DEFAULT_DELAY_SECONDS)
     client.table("protagonist_rebuild_jobs").update({"status": "completed", "finished_at": _now()}).eq("id", job_id).execute()
-

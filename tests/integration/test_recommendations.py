@@ -1,3 +1,4 @@
+import pytest
 from types import SimpleNamespace
 from fastapi.testclient import TestClient
 from main import app
@@ -42,3 +43,9 @@ def test_similar_endpoint_searches_beyond_first_page(monkeypatch):
 def test_similar_endpoint_missing_source(monkeypatch):
     monkeypatch.setattr(routes, "get_novel", lambda identity: None)
     assert TestClient(app).get("/api/novels/999/similar").status_code == 404
+
+
+@pytest.fixture(autouse=True)
+def protagonist_definition(monkeypatch):
+    from profiler.prompt import DEFAULT_DEFINITION
+    monkeypatch.setattr(routes, "load_definition", lambda: DEFAULT_DEFINITION)

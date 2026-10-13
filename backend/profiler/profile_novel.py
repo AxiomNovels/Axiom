@@ -14,7 +14,7 @@ from supabase import create_client
 
 from profiler.comments import load_comments, select_comments
 from profiler.gemini import generate_profile, identify_protagonist
-from profiler.prompt import MEASURES, build_identification_prompt, build_prompt
+from profiler.prompt import build_identification_prompt, build_prompt
 from profiler.resolver import resolve_protagonist_name
 from profiler.sources import collect_public_comments
 
@@ -55,6 +55,7 @@ def save_profile(novel_id: int, protagonist_name: str, result: dict) -> None:
         "p_novel_id": novel_id,
         "p_name": protagonist_name,
         "p_scores": result["scores"],
+        "p_revision": result["revision"],
     }).execute()
 
 
@@ -72,19 +73,8 @@ def print_preview(
     print("-" * 60)
     confidence_text = str(name_confidence) if name_confidence is not None else "n/a"
     print(f"Protagonist source:        {name_source} (confidence: {confidence_text})")
-    labels = {
-        "intellectual_drive": "Intellectual Drive",
-        "arrogance_pride": "Arrogance & Pride",
-        "kinship_friendship": "Kinship and Friendship",
-        "romantic_attachment": "Romantic Attachment",
-        "selflessness_selfishness": "Selfishness / Selflessness",
-        "pragmatism_morality": "Pragmatism / Morality",
-        "individualist_collectivist": "Individualist / Collectivist",
-        "ambition": "Ambition",
-        "cautious_risk_taker": "Cautious / Risk-taker",
-        "leadership": "Leadership",
-    }
-    for measure in MEASURES:
+    labels = result.get("labels", {})
+    for measure in result["scores"]:
         print(f"{labels.get(measure, measure):30} {result['scores'][measure]:3}")
     print(f"{'Confidence':30} {result['confidence']:3}")
     print(f"Comments analyzed:             {comment_count}")
@@ -182,4 +172,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-    

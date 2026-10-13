@@ -4,7 +4,7 @@ import profiler.sources as profile_sources
 
 from profiler.comments import select_comments
 from profiler.gemini import validate_identification, validate_profile
-from profiler.prompt import MEASURES, build_prompt
+from profiler.prompt import MEASURES, DEFAULT_DEFINITION, build_prompt
 from profiler.resolver import resolve_protagonist_name
 from profiler.sources.webnovel import parse_webnovel_reviews, validate_webnovel_url
 from profiler.sources.royalroad import parse_royalroad_reviews, validate_royalroad_url
@@ -37,7 +37,7 @@ def test_relationship_evidence_is_prioritized_and_has_score_floors():
     prompt = build_prompt(
         {"title": "Example", "synopsis": "A journey.", "genres": ["Romance"]},
         "Example Hero",
-        selected,
+        selected, definition=DEFAULT_DEFINITION,
     )
     assert "Confirmed slow/minor romance: generally >=25" in prompt
     assert "Recurring partner, spouse, or significant romantic attachment: generally >=40" in prompt
@@ -47,7 +47,7 @@ def test_profile_prompt_matches_public_scoring_guide():
     prompt = build_prompt(
         {"title": "Example", "synopsis": "Little evidence is available.", "genres": []},
         "Example Hero",
-        [],
+        [], definition=DEFAULT_DEFINITION,
     )
     assert "0 means explicit, narratively meaningful absence" in prompt
     assert "20 is the cautious limited-evidence region" in prompt

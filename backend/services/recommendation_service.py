@@ -31,7 +31,7 @@ def _scores(novel, table, keys):
     return result
 
 
-def recommend_novels(source, candidates, limit=6):
+def recommend_novels(source, candidates, limit=6, measures=None):
     """Weight protagonist traits and tags equally at 50% each.
 
     Missing candidate dimensions contribute zero, rather than rewarding sparse
@@ -40,7 +40,8 @@ def recommend_novels(source, candidates, limit=6):
     Zero-evidence candidates fill remaining slots after matches. Ties resolve by title then ID.
     """
     source_tags = _tags(source)
-    profiles = [(table, keys, weight, _scores(source, table, keys)) for table, keys, weight in PROFILE_GROUPS]
+    groups = (("protagonist_profiles", measures, 0.50),) if measures is not None else PROFILE_GROUPS
+    profiles = [(table, keys, weight, _scores(source, table, keys)) for table, keys, weight in groups]
     denominator = (0.50 if source_tags else 0) + sum(weight for _, _, weight, values in profiles if values)
     ranked = []
     seen = {str(source["id"])}

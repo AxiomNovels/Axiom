@@ -1,17 +1,6 @@
 // Dedicated voting page. Identity and eligibility are checked by the API.
-const VOTING_TRAITS = [
-  ["intellectual_drive", "Intellectual Drive", "Absent → defining"],
-  ["arrogance_pride", "Arrogance & Pride", "Humble → egotistical"],
-  ["kinship_friendship", "Kinship and Friendship", "Detached → devoted"],
-  ["romantic_attachment", "Romantic Attachment", "Unattached → romance-driven"],
-  ["selflessness_selfishness", "Selfishness / Selflessness", "Self-interested → self-sacrificing"],
-  ["pragmatism_morality", "Pragmatism / Morality", "Pragmatic → principled"],
-  ["individualist_collectivist", "Individualist / Collectivist", "Individualist → collectivist"],
-  ["ambition", "Ambition", "Unambitious → power-hungry"],
-  ["cautious_risk_taker", "Cautious / Risk-taker", "Cautious → risk-taking"],
-  ["leadership", "Leadership", "Non-leader → defining leader"],
-];
-const voteDrafts = {};
+
+const voteDrafts = Object.create(null);
 async function loadProtagonistVotes(novelId, message = "") {
   const host = document.getElementById("protagonist-votes");
   if (!host) return;
@@ -20,10 +9,10 @@ async function loadProtagonistVotes(novelId, message = "") {
     if (text !== undefined) el.textContent = text;
     return el;
   };
-  async function call(trait = "", method = "GET", score) {
+  async function call(trait = "", method = "GET", score, revision) {
     const response = await authFetch(`${API_BASE}/api/novels/${novelId}/protagonist-votes${trait ? `/${trait}` : ""}`, {
       method,
-      ...(score !== undefined ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ score }) } : {}),
+      ...(score !== undefined ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ score, revision }) } : {}),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.detail || "Voting is temporarily unavailable.");
@@ -33,7 +22,7 @@ async function loadProtagonistVotes(novelId, message = "") {
     const data = await call();
     host.replaceChildren();
     if (!data.eligible) {
-      host.append(node("p", "Voting opens when all ten protagonist scores are filled in."));
+      host.append(node("p", "Voting opens when all current protagonist scores are filled in."));
       return;
     }
     const summary = node("div"); summary.className = "voting-summary";
@@ -51,10 +40,15 @@ async function loadProtagonistVotes(novelId, message = "") {
     const fields = node("fieldset");
     fields.append(node("legend", "Rate individual traits from 0 to 100"));
     host.append(fields);
-    for (const [key, title, poles] of VOTING_TRAITS) {
+    for (const [key, title, poles] of data.traits.map(t => [t.key, t.name, "0-100"])) {
       const form = node("form"); form.className = "trait-vote-form";
       const description = node("div"); description.className = "vote-trait-description";
       description.append(node("h4", title), node("p", poles));
+      const guide = node("details");
+      const prompt = node("p", data.traits.find(trait => trait.key === key).prompt);
+      prompt.style.whiteSpace = "pre-wrap";
+      guide.append(node("summary", "Scoring guide"), prompt);
+      description.append(guide);
       const current = node("span", String(data.profile[key])); current.className = "vote-current";
       const currentLabel = node("div"); currentLabel.className = "vote-current-label";
       currentLabel.append(node("small", "Current"), current);
@@ -77,7 +71,7 @@ async function loadProtagonistVotes(novelId, message = "") {
         fields.disabled = true;
         feedback.textContent = "Saving…";
         try {
-          const result = await call(key, method, method === "PUT" ? Number(input.value) : undefined);
+          const result = await call(key, method, method === "PUT" ? Number(input.value) : undefined, data.revision);
           delete voteDrafts[key];
           const outcome = result.scores_locked ? "Locked scores unchanged." : "Profile recalculated.";
           await loadProtagonistVotes(novelId, `${method === "PUT" ? "Vote saved." : "Vote removed."} ${outcome}`);

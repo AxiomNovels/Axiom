@@ -224,6 +224,8 @@ async function openEditor(id) {
     const fields = element("div", undefined, "admin-fields");
     const inputs = {};
     const saved = { ...profile.scores };
+    const definitionRevision = data.definition.revision;
+    const traitLabels = Object.fromEntries(data.definition.traits.map(t => [t.key, t.name]));
     let savedName = profile.protagonist_name || "";
     let saving = false;
     const feedback = element("p", "No unsaved changes.");
@@ -245,8 +247,8 @@ async function openEditor(id) {
       feedback.textContent = changed ? "Unsaved changes" : "No unsaved changes.";
     }
     function labelFor(key) {
-      // VOTE_LABELS (admin-votes.js, loaded first) is the single trait-label table for this page.
-      return VOTE_LABELS[key] || key.replaceAll("_", " ").replace(/^./, ch => ch.toUpperCase());
+      // Use the same definition snapshot as the editable scores.
+      return traitLabels[key] || key.replaceAll("_", " ").replace(/^./, ch => ch.toUpperCase());
     }
     if (kind === "protagonist") {
       const label = element("label", "Protagonist name", "admin-name-field");
@@ -306,6 +308,7 @@ async function openEditor(id) {
       try {
         const draft = await request(`/novels/${id}/profiles/protagonist/generate`, { method: "POST" });
         if (version !== editorVersion) return;
+        if (draft.revision !== definitionRevision) throw new Error("Trait definitions changed. Reopen this novel profile before generating.");
         if (!draft.protagonist_name || Object.keys(saved).some(key => !Number.isInteger(draft.scores?.[key]) || draft.scores[key] < 0 || draft.scores[key] > 100)) {
           throw new Error("Gemini returned an incomplete profile. Existing scores were kept.");
         }
@@ -343,7 +346,7 @@ async function openEditor(id) {
       saving = true; save.disabled = true; reset.disabled = true; generate.disabled = true;
       Object.values(inputs).forEach(input => { input.disabled = true; });
       feedback.textContent = "Saving changes...";
-      const payload = { scores: Object.fromEntries(Object.keys(saved).map(key => [key, Number(inputs[key].value)])) };
+      const payload = { revision: definitionRevision, scores: Object.fromEntries(Object.keys(saved).map(key => [key, Number(inputs[key].value)])) };
       if (kind === "protagonist") payload.protagonist_name = inputs.protagonist_name.value.trim();
       try {
         await request(`/novels/${id}/profiles/${kind}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
@@ -411,7 +414,7 @@ async function searchHomeFeatureNovels() {
 }
 
 document.getElementById("home-tab").addEventListener("click", () => {
-  ["users", "novels", "home"].forEach((section) => {
+  ["users", "novels", "home", "definition"].forEach((section) => {
     document.getElementById(`${section}-panel`).hidden = section !== "home";
     document.getElementById(`${section}-tab`).setAttribute("aria-pressed", String(section === "home"));
   });
@@ -449,7 +452,7 @@ document.getElementById("refresh-rebuild-history").addEventListener("click", () 
 
 for (const kind of ["users", "novels"]) {
   document.getElementById(`${kind}-tab`).addEventListener("click", () => {
-    for (const section of ["users", "novels", "home"]) {
+    for (const section of ["users", "novels", "home", "definition"]) {
       document.getElementById(`${section}-panel`).hidden = section !== kind;
       document.getElementById(`${section}-tab`).setAttribute("aria-pressed", String(section === kind));
     }

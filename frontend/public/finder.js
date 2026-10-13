@@ -1,18 +1,3 @@
-const PROFILE_MEASURES = [
-  ["intellectual_drive", "Intellectual drive", "Absent", "Defining"],
-  ["arrogance_pride", "Arrogance & pride", "Humble", "Egotistical"],
-  ["kinship_friendship", "Kinship & friendship", "Detached", "Devoted"],
-  ["romantic_attachment", "Romantic attachment", "Unattached", "Romantic"],
-  ["selflessness_selfishness", "Selfishness / selflessness", "Self-interested", "Self-sacrificing"],
-  ["pragmatism_morality", "Pragmatism / morality", "Pragmatic", "Principled"],
-  ["individualist_collectivist", "Individualist / collectivist", "Individualist", "Collectivist"],
-  ["ambition", "Ambition", "Unambitious", "Power-hungry"],
-  ["cautious_risk_taker", "Cautious / risk-taker", "Cautious", "Risk-taking"],
-  ["leadership", "Leadership", "Non-leader", "Leader"]
-];
-
-
-
 const selectedTags = { include: new Set(), exclude: new Set() };
 let allTags = [];
 
@@ -139,7 +124,10 @@ function createProfileFilters(grid, measures) {
   header.innerHTML = "<span>Trait</span><span>Selected range</span>";
   grid.appendChild(header);
 
-  measures.forEach(([key, label, low, high]) => {
+  measures.forEach(([key, rawLabel, low, high]) => {
+    // Names are admin-controlled text, including quotes and markup characters.
+    const safeLabel = document.createElement("span"); safeLabel.textContent = rawLabel;
+    const label = safeLabel.innerHTML.replaceAll('"', "&quot;").replaceAll("'", "&#39;");
     const field = document.createElement("div");
     field.className = "profile-filter";
 
@@ -351,6 +339,12 @@ async function loadOptions() {
     const response = await fetch(`${API_BASE}/api/search/options`);
     if (!response.ok) throw new Error("Options request failed");
     const options = await response.json();
+    const profileFilters = document.querySelector('[data-profile-filters="protagonist"]');
+    if (options.protagonist_definition?.traits?.length) {
+      createProfileFilters(profileFilters, options.protagonist_definition.traits.map(t => [t.key, t.name, "0", "100"]));
+    } else {
+      profileFilters.textContent = "Trait definitions are unavailable. Refresh to retry.";
+    }
     allTags = options.tags || [];
     renderGenres(options.genres || []);
     tagInputs.forEach((input, index) => {
@@ -464,6 +458,5 @@ finderForm.addEventListener("reset", () => {
   }, 0);
 });
 
-createProfileFilters(document.querySelector('[data-profile-filters="protagonist"]'), PROFILE_MEASURES);
 setupRatingFilter();
 loadOptions();

@@ -7,9 +7,9 @@ profiles, and so the uploader can review those profiles before confirming.
 Design rules
 ------------
 * No trait is hard-coded here. Each profile is described by a ProfileSpec whose
-  measures are read from profiler/prompt.py on every request, and the API
+  measures and prompts are read from the database on every request, and the API
   returns ready-to-display labels. Add, remove or rename traits (or rewrite the
-  prompts) in the profiler and the upload flow follows without edits here or in
+  prompts) in the Admin Hub and the upload flow follows without edits here or in
   the frontend. A brand-new *kind* of profile is one more ProfileSpec in
   _load_specs().
 * Profiling can never block an upload. Every profile is generated and saved
@@ -135,6 +135,8 @@ class ProfileResult:
     protagonist_name: str | None = None
     confidence: int | None = None
     evidence_summary: str | None = None
+    revision: int | None = None
+    labels: dict[str, str] | None = None
 
     def to_public(self) -> dict[str, Any]:
         return {
@@ -146,14 +148,16 @@ class ProfileResult:
             "protagonist_name": self.protagonist_name,
             "confidence": self.confidence,
             "evidence_summary": self.evidence_summary,
+            "revision": self.revision,
             "scores": [
-                {"key": key, "label": label_for(key), "score": score}
+                {"key": key, "label": (self.labels or {}).get(key, label_for(key)), "score": score}
                 for key, score in (self.scores or {}).items()
             ],
         }
 
     def to_token(self) -> dict[str, Any]:
         return {
+            "revision": self.revision,
             "status": self.status,
             "message": self.message,
             "scores": self.scores,
@@ -176,6 +180,8 @@ class ProfileSpec:
     generate: Callable[[dict, list[str], tuple[str, ...]], dict]
     # (service_client, novel_id, result) -> None; raises on failure
     save: Callable[[Any, int, ProfileResult], None]
+    revision: int | None = None
+    labels: dict[str, str] | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -191,7 +197,7 @@ def _minimum_name_confidence() -> int:
     return max(0, min(100, value))
 
 
-def _generate_protagonist(novel: dict, raw_comments: list[str], measures: tuple[str, ...]) -> dict:
+def _generate_protagonist(novel: dict, raw_comments: list[str], measures: tuple[str, ...], definition=None) -> dict:
     from profiler.comments import select_comments
     from profiler.gemini import generate_profile, identify_protagonist
     from profiler.prompt import build_identification_prompt, build_prompt
@@ -210,7 +216,7 @@ def _generate_protagonist(novel: dict, raw_comments: list[str], measures: tuple[
             )
 
     comments = select_comments(raw_comments, name)
-    result = dict(generate_profile(build_prompt(novel, name, comments)))
+    result = dict(generate_profile(build_prompt(novel, name, comments, definition=definition)))
     result["protagonist_name"] = name
     return result
 
@@ -226,7 +232,8 @@ def _save_protagonist(client, novel_id: int, result: ProfileResult) -> None:
         raise ValueError("A protagonist profile needs a protagonist name.")
     client.rpc(
         "save_gemini_protagonist",
-        {"p_novel_id": novel_id, "p_name": result.protagonist_name, "p_scores": result.scores},
+        {"p_novel_id": novel_id, "p_name": result.protagonist_name, "p_scores": result.scores,
+         "p_revision": result.revision},
     ).execute()
 
 
@@ -238,21 +245,25 @@ def _load_specs() -> tuple[ProfileSpec, ...]:
     """Build the profile registry from the profiler's current definitions.
 
     Called per request rather than at import time so the measures always
-    mirror profiler/prompt.py, and so a broken profiler surfaces as a
+    mirror the saved database definition, and so a broken profiler surfaces as a
     profiling failure instead of preventing the API from booting.
 
-    Mirrors routes/admin.py's PROFILES table, which maps kinds to tables.
+    Keeps a single revision across prompt, schema, preview token, and save.
     """
-    from profiler.prompt import MEASURES
+    from services.protagonist_definition_service import load_definition, measures_for
+
+    definition = load_definition()
 
     return (
         ProfileSpec(
             kind="protagonist",
             title="Protagonist profile",
             description="The protagonist's psychology, scored 0-100.",
-            measures=tuple(MEASURES),
-            generate=_generate_protagonist,
+            measures=measures_for(definition),
+            generate=lambda novel, comments, measures: _generate_protagonist(novel, comments, measures, definition),
             save=_save_protagonist,
+            revision=definition["revision"],
+            labels={trait["key"]: trait["name"] for trait in definition["traits"]},
         ),
     )
 
@@ -305,7 +316,8 @@ def _collect_comments(novel: dict) -> list[str]:
 
 def _run_spec(spec: ProfileSpec, novel: dict, raw_comments: list[str]) -> ProfileResult:
     """Generate one profile. Never raises."""
-    result = ProfileResult(kind=spec.kind, title=spec.title, description=spec.description)
+    result = ProfileResult(kind=spec.kind, title=spec.title, description=spec.description,
+                           revision=spec.revision, labels=spec.labels)
     try:
         payload = spec.generate(novel, raw_comments, spec.measures)
         scores = _validated_scores(spec, payload.get("scores"))
@@ -401,12 +413,16 @@ def _results_from_token(
         results: list[ProfileResult] = []
         for spec in specs:
             entry = entries[spec.kind]
+            if entry.get("revision") != spec.revision:
+                return None
             result = ProfileResult(
                 kind=spec.kind,
                 title=spec.title,
                 description=spec.description,
                 status=entry["status"],
                 message=_text(entry.get("message"), 300),
+                revision=spec.revision,
+                labels=spec.labels,
             )
             if result.status == STATUS_READY:
                 result.scores = _validated_scores(spec, entry.get("scores"))

@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from services import novel_profiling_service as novel_profiling
 from services.recommendation_service import recommend_novels
+from services.protagonist_definition_service import load_definition, measures_for
 from core.auth import get_current_user
 from core.database import create_service_client, supabase
 from scraper.content_policy import (
@@ -309,7 +310,7 @@ def get_similar_novels(novel_id: int):
             offset += 500
     except Exception as error:
         raise HTTPException(status_code=500, detail="Recommendations are temporarily unavailable") from error
-    return recommend_novels(source, candidates)
+    return recommend_novels(source, candidates, measures=measures_for(load_definition()))
 
 
 @router.post("/scrape")

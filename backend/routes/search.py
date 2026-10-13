@@ -4,7 +4,8 @@ from fastapi import APIRouter, HTTPException, Query, Request
 
 from routes.novels import NOVEL_LIST_COLUMNS
 from core.database import supabase
-from services.search_service import PROFILE_MEASURES, filter_novels, sort_novels
+from services.search_service import filter_novels, sort_novels
+from services.protagonist_definition_service import load_definition, measures_for
 
 
 router = APIRouter(prefix="/api/search", tags=["search"])
@@ -60,11 +61,13 @@ def search_options():
         )
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
+    definition = load_definition()
     return {
+        "protagonist_definition": definition,
         "tags": sorted({tag for novel in novels for tag in (novel.get("tags") or [])}, key=str.lower),
         "genres": sorted({genre for novel in novels for genre in (novel.get("genres") or [])}, key=str.lower),
         "statuses": sorted({novel.get("status") for novel in novels if novel.get("status")}, key=str.lower),
-        "profile_measures": list(PROFILE_MEASURES),
+        "profile_measures": list(measures_for(definition)),
     }
 
 
@@ -81,37 +84,18 @@ def search_novels(
     status: str = "",
     sort: str = "relevance",
     min_rating: str | None = Query(None),
-    intellectual_drive_min: str | None = Query(None),
-    intellectual_drive_max: str | None = Query(None),
-    arrogance_pride_min: str | None = Query(None),
-    arrogance_pride_max: str | None = Query(None),
-    kinship_friendship_min: str | None = Query(None),
-    kinship_friendship_max: str | None = Query(None),
-    romantic_attachment_min: str | None = Query(None),
-    romantic_attachment_max: str | None = Query(None),
-    selflessness_selfishness_min: str | None = Query(None),
-    selflessness_selfishness_max: str | None = Query(None),
-    pragmatism_morality_min: str | None = Query(None),
-    pragmatism_morality_max: str | None = Query(None),
-    individualist_collectivist_min: str | None = Query(None),
-    individualist_collectivist_max: str | None = Query(None),
-    ambition_min: str | None = Query(None),
-    ambition_max: str | None = Query(None),
-    cautious_risk_taker_min: str | None = Query(None),
-    cautious_risk_taker_max: str | None = Query(None),
-    leadership_min: str | None = Query(None),
-    leadership_max: str | None = Query(None),
 ):
     query = q.strip()
-    raw_ranges = locals()
+    measures = measures_for(load_definition())
+    raw_ranges = request.query_params
     thresholds = {
-        f"{measure}_{bound}": _threshold(raw_ranges[f"{measure}_{bound}"], f"{measure}_{bound}")
-        for measure in PROFILE_MEASURES
+        f"{measure}_{bound}": _threshold(raw_ranges.get(f"{measure}_{bound}"), f"{measure}_{bound}")
+        for measure in measures
         for bound in ("min", "max")
     }
     ranges = {
         measure: (thresholds[f"{measure}_min"], thresholds[f"{measure}_max"])
-        for measure in PROFILE_MEASURES
+        for measure in measures
         if thresholds[f"{measure}_min"] is not None or thresholds[f"{measure}_max"] is not None
     }
     try:
@@ -139,3 +123,8 @@ def search_novels(
     if query and sort == "relevance":
         return novels
     return sort_novels(novels, sort=sort)
+
+
+@router.get("/protagonist-definition")
+def public_protagonist_definition():
+    return load_definition()

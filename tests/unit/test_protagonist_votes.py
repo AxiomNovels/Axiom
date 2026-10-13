@@ -9,7 +9,7 @@ from main import app
 from core.auth import get_current_user, get_optional_current_user
 from routes.admin import require_special
 from routes import protagonist_votes as votes
-from profiler.prompt import MEASURES
+from profiler.prompt import MEASURES, DEFAULT_DEFINITION
 
 
 USER = "00000000-0000-0000-0000-000000000001"
@@ -18,9 +18,10 @@ USER = "00000000-0000-0000-0000-000000000001"
 @pytest.fixture
 def api(monkeypatch):
     service = MagicMock()
+    monkeypatch.setattr(votes, "load_definition", lambda client=None: DEFAULT_DEFINITION)
     monkeypatch.setattr(votes, "create_service_client", lambda: service)
     service.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value.data = [{"id": 1}]
-    service.rpc.return_value.execute.return_value.data = {"eligible": True, "my_votes": {"selflessness": 0}}
+    service.rpc.return_value.execute.return_value.data = {"eligible": True, "my_votes": {"selflessness_selfishness": 0}}
     app.dependency_overrides[get_current_user] = lambda: (USER, MagicMock())
     app.dependency_overrides[get_optional_current_user] = lambda: (USER, MagicMock())
     try:
@@ -32,11 +33,11 @@ def api(monkeypatch):
 @pytest.mark.parametrize("score", [0, 50, 100])
 def test_vote_uses_verified_identity_and_returns_recalibrated_summary(api, score):
     client, service = api
-    result = client.put("/api/novels/1/protagonist-votes/selflessness", json={"score": score})
+    result = client.put("/api/novels/1/protagonist-votes/selflessness_selfishness", json={"score": score, "revision": 1})
     assert result.status_code == 200
     assert result.json()["eligible"] is True
     service.rpc.assert_any_call("cast_protagonist_vote", {
-        "p_novel_id": 1, "p_user_id": USER, "p_trait": "selflessness", "p_score": score,
+        "p_novel_id": 1, "p_user_id": USER, "p_trait": "selflessness_selfishness", "p_score": score, "p_revision": 1,
     })
 
 
@@ -44,20 +45,20 @@ def test_vote_uses_verified_identity_and_returns_recalibrated_summary(api, score
     {"score": "50"}, {"score": 2.5}, {}, {"score": 50, "user_id": "someone-else"}])
 def test_vote_rejects_invalid_scores_and_identity_spoofing(api, payload):
     client, service = api
-    assert client.put("/api/novels/1/protagonist-votes/selflessness", json=payload).status_code == 422
+    assert client.put("/api/novels/1/protagonist-votes/selflessness_selfishness", json={"revision": 1, **payload}).status_code == 422
     service.rpc.assert_not_called()
 
 
 def test_unknown_trait_rejected(api):
     client, service = api
-    assert client.put("/api/novels/1/protagonist-votes/fake", json={"score": 10}).status_code == 422
+    assert client.put("/api/novels/1/protagonist-votes/fake", json={"score": 10, "revision": 1}).status_code == 422
     service.rpc.assert_not_called()
 
 
 def test_missing_gemini_baseline_rejected(api):
     client, service = api
     service.rpc.return_value.execute.side_effect = APIError({"code": "P0001", "message": "No baseline"})
-    assert client.put("/api/novels/1/protagonist-votes/selflessness", json={"score": 10}).status_code == 409
+    assert client.put("/api/novels/1/protagonist-votes/selflessness_selfishness", json={"score": 10, "revision": 1}).status_code == 409
 
 
 def test_missing_novel_rejected(api):
@@ -69,11 +70,11 @@ def test_missing_novel_rejected(api):
 
 def test_withdraw_scoped_to_authenticated_user(api):
     client, service = api
-    assert client.delete("/api/novels/1/protagonist-votes/selflessness").status_code == 200
+    assert client.delete("/api/novels/1/protagonist-votes/selflessness_selfishness").status_code == 200
     query = service.table.return_value.delete.return_value
     query.eq.assert_called_once_with("novel_id", 1)
     query.eq.return_value.eq.assert_called_once_with("user_id", USER)
-    query.eq.return_value.eq.return_value.eq.assert_called_once_with("trait", "selflessness")
+    query.eq.return_value.eq.return_value.eq.assert_called_once_with("trait", "selflessness_selfishness")
 
 
 def test_anonymous_summary_never_requests_another_users_votes(api):
@@ -84,8 +85,8 @@ def test_anonymous_summary_never_requests_another_users_votes(api):
 
 
 @pytest.mark.parametrize("method,path", [
-    ("PUT", "/novels/1/protagonist-votes/selflessness"),
-    ("DELETE", "/novels/1/protagonist-votes/selflessness"),
+    ("PUT", "/novels/1/protagonist-votes/selflessness_selfishness"),
+    ("DELETE", "/novels/1/protagonist-votes/selflessness_selfishness"),
     ("GET", "/admin/novels/1/protagonist-votes"),
     ("GET", f"/admin/users/{USER}/protagonist-votes"),
     ("DELETE", "/admin/protagonist-votes/1"),
@@ -129,9 +130,9 @@ def test_gemini_save_registers_complete_baseline_atomically(monkeypatch):
     service = MagicMock()
     monkeypatch.setattr(profile_novel, "database_client", lambda **kwargs: service)
     scores = dict.fromkeys(MEASURES, 0)
-    profile_novel.save_profile(1, "Hero", {"scores": scores})
+    profile_novel.save_profile(1, "Hero", {"scores": scores, "revision": 1})
     service.rpc.assert_called_once_with("save_gemini_protagonist", {
-        "p_novel_id": 1, "p_name": "Hero", "p_scores": scores,
+        "p_novel_id": 1, "p_name": "Hero", "p_scores": scores, "p_revision": 1,
     })
     service.table.assert_not_called()
 

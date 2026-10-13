@@ -1,22 +1,5 @@
-// Snake_case key -> display label, matching the trait definitions discussed
-// for the info page. Kept here too so this page can render nice labels
-// without depending on that endpoint existing yet.
-const TRAIT_LABELS = {
-  // Protagonist Profile. Slash labels read low -> high (0 -> 100).
-  intellectual_drive: "Intellectual Drive",
-  arrogance_pride: "Arrogance & Pride",
-  kinship_friendship: "Kinship and Friendship",
-  romantic_attachment: "Romantic Attachment",
-  selflessness_selfishness: "Selfishness / Selflessness",
-  pragmatism_morality: "Pragmatism / Morality",
-  individualist_collectivist: "Individualist / Collectivist",
-  ambition: "Ambition",
-  cautious_risk_taker: "Cautious / Risk-taker",
-  leadership: "Leadership",
-};
-
-// Display order follows TRAIT_LABELS.
-const PROTAGONIST_MEASURES = Object.keys(TRAIT_LABELS).map((key) => ({ key }));
+let TRAIT_LABELS = {};
+let PROTAGONIST_MEASURES = [];
 
 function getNovelIdFromUrl() {
   return new URLSearchParams(window.location.search).get("id");
@@ -1120,7 +1103,15 @@ async function loadNovel() {
     }
     const novel = await response.json();
     console.log("[novel.js] novel payload received:", novel);
+    try {
+      const definitionResponse = await fetch(`${API_BASE}/api/search/protagonist-definition`);
+      if (!definitionResponse.ok) throw new Error("Trait definitions unavailable");
+      const definition = await definitionResponse.json();
+      TRAIT_LABELS = Object.fromEntries(definition.traits.map(t => [t.key, t.name]));
+      PROTAGONIST_MEASURES = definition.traits;
+    } catch { PROTAGONIST_MEASURES = []; }
     renderNovel(novel);
+    if (!PROTAGONIST_MEASURES.length) document.getElementById("protagonist-profile").textContent = "Trait definitions are temporarily unavailable. Refresh to retry.";
     const voteLink = document.getElementById("protagonist-vote-link");
     voteLink.href = `/vote.html?id=${encodeURIComponent(novelId)}`;
     voteLink.hidden = false;

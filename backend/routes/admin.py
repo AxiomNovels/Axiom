@@ -6,14 +6,13 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, field_
 
 from core.auth import get_current_user
 from core.database import create_service_client
-from profiler.prompt import MEASURES
+from models.protagonist_definition import DefinitionUpdate
+from services.protagonist_definition_service import load_definition, measures_for, definition_error
 from services.novel_profiling_service import generate_protagonist_preview
 from services.protagonist_rebuild_service import create_job, delete_job, job_items, job_status, rebuild_history, run_job
 
 
-PROFILES = {
-    "protagonist": ("protagonist_profiles", MEASURES),
-}
+PROFILES = {"protagonist": "protagonist_profiles"}
 
 
 def require_special(auth=Depends(get_current_user)):
@@ -48,6 +47,7 @@ class ProfileScores(BaseModel):
     model_config = ConfigDict(extra="forbid")
     scores: dict[str, StrictInt]
     protagonist_name: str | None = None
+    revision: StrictInt = Field(ge=1)
 
 
 class HomeFeatureUpdate(BaseModel):
@@ -82,6 +82,22 @@ class RebuildRequest(BaseModel):
 @router.get("/me")
 def admin_me(admin=Depends(require_special)):
     return {"id": admin[0], "special": True}
+
+
+@router.get("/protagonist-definition")
+def protagonist_definition(admin=Depends(require_special)):
+    return load_definition(admin[1])
+
+
+@router.put("/protagonist-definition")
+def update_protagonist_definition(payload: DefinitionUpdate, admin=Depends(require_special)):
+    try:
+        return admin[1].rpc("update_protagonist_definition", {
+            "p_revision": payload.revision, "p_instructions": payload.instructions,
+            "p_traits": [trait.model_dump() for trait in payload.traits],
+        }).execute().data
+    except Exception as error:
+        raise definition_error(error) from error
 
 
 @router.get("/protagonist-rebuilds/{job_id}")
@@ -218,13 +234,15 @@ def novel_profiles(novel_id: int, admin=Depends(require_special)):
     client = admin[1]
     novel = find_novel(client, novel_id)
     profiles = {}
-    for kind, (table, measures) in PROFILES.items():
+    definition = load_definition(client)
+    measures = measures_for(definition)
+    for kind, table in PROFILES.items():
         result = client.table(table).select("*").eq("novel_id", novel_id).limit(1).execute()
         row = result.data[0] if result.data else {}
         profiles[kind] = {"scores": {key: row.get(key) for key in measures}}
         if kind == "protagonist":
             profiles[kind]["protagonist_name"] = row.get("protagonist_name", "")
-    return {"novel": novel, "profiles": profiles}
+    return {"novel": novel, "profiles": profiles, "definition": definition}
 
 
 @router.post("/novels/{novel_id}/profiles/protagonist/generate")
@@ -246,17 +264,18 @@ def generate_scores(novel_id: int, admin=Depends(require_special)):
 @router.put("/novels/{novel_id}/profiles/{kind}")
 def save_scores(novel_id: int, kind: Literal["protagonist"],
                 payload: ProfileScores, admin=Depends(require_special)):
-    table, measures = PROFILES[kind]
+    measures = measures_for(load_definition(admin[1]))
     if set(payload.scores) != set(measures) or any(not 0 <= value <= 100 for value in payload.scores.values()):
         raise HTTPException(422, "Supply every score in this profile as a whole number from 0 to 100.")
-    row = {"novel_id": novel_id, **payload.scores}
-    if kind == "protagonist":
-        name = (payload.protagonist_name or "").strip()
-        if not name or len(name) > 200:
-            raise HTTPException(422, "Enter a protagonist name of 1–200 characters.")
-        row["protagonist_name"] = name
-    elif payload.protagonist_name is not None:
-        raise HTTPException(422, "Only the protagonist profile accepts a protagonist name.")
+    name = (payload.protagonist_name or "").strip()
+    if not name or len(name) > 200:
+        raise HTTPException(422, "Enter a protagonist name of 1–200 characters.")
     find_novel(admin[1], novel_id)
-    admin[1].table(table).upsert(row, on_conflict="novel_id").execute()
+    try:
+        admin[1].rpc("save_protagonist_profile", {
+            "p_novel_id": novel_id, "p_name": name, "p_scores": payload.scores,
+            "p_revision": payload.revision, "p_generated": False,
+        }).execute()
+    except Exception as error:
+        raise definition_error(error) from error
     return {"saved": True}

@@ -1,14 +1,23 @@
+import pytest
+from profiler.prompt import DEFAULT_DEFINITION, MEASURES
+from services import protagonist_definition_service
 from services import novel_profiling_service as profiling
 from routes.admin import PROFILES
 from routes.novels import NOVEL_DETAIL_COLUMNS
 from routes.search import SEARCH_COLUMNS
 
 
+@pytest.fixture(autouse=True)
+def definition(monkeypatch):
+    monkeypatch.setattr(protagonist_definition_service, "load_definition", lambda client=None: DEFAULT_DEFINITION)
+
+
 def test_only_protagonist_is_generated_and_editable():
     specs = profiling._load_specs()
     assert [spec.kind for spec in specs] == ["protagonist"]
     assert set(PROFILES) == {"protagonist"}
-    assert len(specs[0].measures) == 6
+    assert specs[0].measures == MEASURES
+    assert specs[0].revision == DEFAULT_DEFINITION["revision"]
 
 
 def test_catalogue_queries_do_not_require_retired_tables():
@@ -20,7 +29,7 @@ def test_catalogue_queries_do_not_require_retired_tables():
 
 def test_upload_preview_generates_only_protagonist(monkeypatch):
     monkeypatch.setattr(profiling, "_collect_comments", lambda novel: [])
-    monkeypatch.setattr(profiling, "_generate_protagonist", lambda novel, comments, measures: {
+    monkeypatch.setattr(profiling, "_generate_protagonist", lambda novel, comments, measures, definition=None: {
         "scores": {measure: 40 for measure in measures},
         "protagonist_name": "Example Hero", "confidence": 80,
     })
@@ -32,7 +41,7 @@ def test_upload_preview_generates_only_protagonist(monkeypatch):
 
 def test_admin_preview_returns_score_mapping(monkeypatch):
     monkeypatch.setattr(profiling, "_collect_comments", lambda novel: [])
-    monkeypatch.setattr(profiling, "_generate_protagonist", lambda novel, comments, measures: {
+    monkeypatch.setattr(profiling, "_generate_protagonist", lambda novel, comments, measures, definition=None: {
         "scores": {measure: 30 for measure in measures}, "protagonist_name": "Hero"
     })
     draft = profiling.generate_protagonist_preview({"title": "Example"})

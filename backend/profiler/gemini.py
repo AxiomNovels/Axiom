@@ -7,23 +7,6 @@ from urllib.request import Request, urlopen
 from profiler.prompt import MEASURES
 
 
-RESPONSE_SCHEMA = {
-    "type": "OBJECT",
-    "properties": {
-        "scores": {
-            "type": "OBJECT",
-            "properties": {
-                measure: {"type": "INTEGER", "minimum": 0, "maximum": 100}
-                for measure in MEASURES
-            },
-            "required": list(MEASURES),
-        },
-        "confidence": {"type": "INTEGER", "minimum": 0, "maximum": 100},
-        "evidence_summary": {"type": "STRING"},
-    },
-    "required": ["scores", "confidence", "evidence_summary"],
-}
-
 IDENTIFICATION_SCHEMA = {
     "type": "OBJECT",
     "properties": {
@@ -193,9 +176,17 @@ def request_structured(
 
 
 def generate_profile(prompt: str, timeout: int = 90) -> dict:
-    return validate_profile(
-        request_structured(prompt, RESPONSE_SCHEMA, max_output_tokens=1000, timeout=timeout)
+    from services.protagonist_definition_service import load_definition, measures_for
+
+    definition = getattr(prompt, "definition", None) or load_definition()
+    measures = measures_for(definition)
+    result = validate_profile(
+        request_structured(prompt, response_schema(measures), max_output_tokens=max(1000, len(measures) * 80), timeout=timeout),
+        measures=measures,
     )
+    result["revision"] = definition["revision"]
+    result["labels"] = {trait["key"]: trait["name"] for trait in definition["traits"]}
+    return result
 
 
 def identify_protagonist(prompt: str, timeout: int = 90) -> dict:

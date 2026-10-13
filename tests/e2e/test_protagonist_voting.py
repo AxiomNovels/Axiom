@@ -10,6 +10,11 @@ from playwright.sync_api import expect
 
 
 KEYS = ["impulsivity", "arrogance_pride", "kinship_friendship", "romantic_attachment", "sexual_desire", "selflessness"]
+# Deliberately custom definitions: browser rendering must follow the API, not the seed.
+DEFINITION = {"revision": 1, "instructions": "Score using evidence.", "traits": [
+    {"key": key, "name": key.replace("_", " ").title(), "prompt": f"Score {key} from 0 to 100."}
+    for key in KEYS
+]}
 USER = "00000000-0000-0000-0000-000000000001"
 
 
@@ -27,10 +32,12 @@ def frontend():
 
 @pytest.fixture
 def voting_api(page):
-    state = {"eligible": True, "locked": False, "votes": {}, "requests": []}
+    state = {"eligible": True, "locked": False, "votes": {}, "requests": [],
+             "definition": json.loads(json.dumps(DEFINITION)), "definition_writes": []}
 
     def summary():
-        return {"eligible": state["eligible"], "scores_locked": state["locked"], "baseline": dict.fromkeys(KEYS, 20),
+        return {"revision": state["definition"]["revision"], "traits": state["definition"]["traits"],
+                "eligible": state["eligible"], "scores_locked": state["locked"], "baseline": dict.fromkeys(KEYS, 20),
                 "profile": {key: round((20 + state["votes"][key]) / 2) if key in state["votes"] and not state["locked"] else 20 for key in KEYS},
                 "my_votes": state["votes"], "vote_count": len(state["votes"]), "voter_count": int(bool(state["votes"])),
                 "distribution": {key: [{"score": value, "count": 1}] for key, value in state["votes"].items()}}
@@ -42,6 +49,19 @@ def voting_api(page):
         payload = []
         if path == "/admin/me":
             payload = {"id": USER, "special": True}
+        elif path in ("/admin/protagonist-definition", "/search/protagonist-definition"):
+            if method == "PUT":
+                draft = route.request.post_data_json
+                state["definition_writes"].append(draft)
+                if state.get("conflict"):
+                    route.fulfill(status=409, content_type="application/json", body=json.dumps({"detail":"Protagonist definitions changed. Reload and review your changes before saving."}))
+                    return
+                state["definition"] = {**draft,"revision":draft["revision"]+1}
+            payload = state["definition"]
+        elif path == "/search/options":
+            payload = {"tags":[],"genres":[],"statuses":[],"protagonist_definition":state["definition"]}
+        elif path == "/admin/protagonist-rebuilds":
+            payload = {"jobs":[]}
         elif path == "/profile":
             payload = {"id": USER, "username": "Reader"}
         elif path == "/admin/users":
@@ -49,6 +69,13 @@ def voting_api(page):
             payload = {"users": users, "total": len(users)}
         elif path == "/admin/novels":
             payload = {"novels": [{"id": 1, "title": "Test novel"}], "total": 1}
+        elif path == "/admin/novels/1/profiles":
+            payload = {"novel":{"id":1,"title":"Test novel"},"definition":state["definition"],
+                       "profiles":{"protagonist":{"protagonist_name":"Hero","scores":{
+                           t["key"]:20 for t in state["definition"]["traits"]}}}}
+        elif path == "/admin/novels/1/profiles/protagonist":
+            state["saved_scores"] = route.request.post_data_json
+            payload = {"saved":True}
         elif path == "/admin/novels/1/protagonist-score-lock":
             state["locked"] = route.request.post_data_json["locked"]
             payload = summary()
@@ -112,7 +139,7 @@ def test_guest_and_unestablished_profiles(page, frontend, voting_api):
     expect(page.get_by_role("link", name="Log in to vote")).to_be_visible()
     voting_api["eligible"] = False
     page.reload()
-    expect(page.locator("#protagonist-votes")).to_contain_text("Voting opens when all six")
+    expect(page.locator("#protagonist-votes")).to_contain_text("Voting opens when all current")
     expect(page.locator("#protagonist-votes input")).to_have_count(0)
 
 
@@ -203,3 +230,87 @@ def test_admin_account_actions_menu_and_layout(page, frontend, voting_api):
     expect(page.locator(".admin-action-menu[open]").get_by_role("button", name="Ban account")).to_have_count(0)
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     page.screenshot(path="test-results/admin-accounts-mobile.png", full_page=True)
+
+
+def test_manage_definition_stages_changes_and_confirms_impact(page, frontend, voting_api):
+    login(page)
+    page.goto(frontend + "/admin.html")
+    page.get_by_role("button", name="Manage Protagonist Profile", exact=True).click()
+    panel = page.locator("#definition-panel")
+    expect(panel.locator(".definition-trait")).to_have_count(6)
+    expect(panel.get_by_role("button", name="Save definition")).to_be_disabled()
+    card = panel.locator(".definition-trait").first
+    card.get_by_label("Trait name: Impulsivity", exact=True).fill("Determination")
+    card.get_by_label("Scoring prompt", exact=True).fill("0 gives up; 100 perseveres.")
+    expect(panel.locator("#definition-impact")).to_contain_text("including locked profiles")
+    expect(panel.locator("#definition-impact")).to_contain_text("Impulsivity")
+    assert voting_api["definition_writes"] == []
+    page.once("dialog", lambda dialog: dialog.dismiss())
+    panel.get_by_role("button", name="Save definition").click()
+    assert voting_api["definition_writes"] == []
+    page.once("dialog", lambda dialog: dialog.accept())
+    panel.get_by_role("button", name="Save definition").click()
+    expect(panel.locator("#definition-status")).to_contain_text("Saved revision 2")
+    saved = voting_api["definition_writes"][0]
+    assert saved["revision"] == 1
+    assert saved["traits"][0] == {"key":"impulsivity","name":"Determination","prompt":"0 gives up; 100 perseveres."}
+    assert saved["traits"][1:] == DEFINITION["traits"][1:]
+    page.set_viewport_size({"width":390,"height":844})
+    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+    page.screenshot(path="test-results/manage-protagonist-mobile.png", full_page=True)
+
+
+def test_manage_definition_add_delete_and_conflict_keep_draft(page, frontend, voting_api):
+    login(page)
+    page.goto(frontend + "/admin.html")
+    page.get_by_role("button", name="Manage Protagonist Profile", exact=True).click()
+    panel = page.locator("#definition-panel")
+    expect(panel.locator(".definition-trait")).to_have_count(6)
+    panel.get_by_role("button", name="Add trait", exact=True).click()
+    card = panel.locator(".definition-trait").last
+    card.get_by_label("Trait name: New trait", exact=True).fill("Resilience")
+    card.get_by_label("Trait key", exact=False).fill("resilience")
+    card.get_by_label("Scoring prompt", exact=True).fill("Perseverance, from 0 to 100.")
+    panel.locator(".definition-trait").first.get_by_role("button", name="Delete trait").click()
+    page.once("dialog", lambda dialog: dialog.accept())
+    voting_api["conflict"] = True
+    panel.get_by_role("button", name="Save definition").click()
+    expect(panel.locator("#definition-status")).to_contain_text("Reload and review")
+    expect(panel.locator(".definition-trait").last.get_by_label("Trait name: Resilience", exact=True)).to_have_value("Resilience")
+    assert voting_api["definition_writes"][0]["traits"][-1]["key"] == "resilience"
+    assert "impulsivity" not in [t["key"] for t in voting_api["definition_writes"][0]["traits"]]
+    # Other tabs remain visible independently of the novels panel.
+    page.get_by_role("button", name="Accounts", exact=True).click()
+    expect(page.locator("#users-panel")).to_be_visible()
+    expect(panel).not_to_be_visible()
+    page.get_by_role("button", name="Manage Protagonist Profile", exact=True).click()
+    expect(panel.locator(".definition-trait").last.get_by_label("Trait name: Resilience", exact=True)).to_have_value("Resilience")
+
+
+def test_finder_and_guide_use_custom_names_as_text(page, frontend, voting_api):
+    voting_api["definition"]["traits"] = [{"key":"resilience","name":'<img src=x onerror="window.injected=true">',"prompt":"A new rubric"}]
+    page.goto(frontend + "/finder.html")
+    filters = page.locator('[data-profile-filters="protagonist"]')
+    expect(filters.locator(".profile-filter")).to_have_count(1)
+    expect(filters.locator("strong")).to_have_text('<img src=x onerror="window.injected=true">')
+    expect(filters.locator("img")).to_have_count(0)
+    expect(filters.locator('[name="resilience_min"]')).to_have_count(1)
+    page.goto(frontend + "/protagonist-profile-info.html")
+    expect(page.locator(".trait-guide")).to_have_count(1)
+    expect(page.locator(".trait-guide-body")).to_have_text("A new rubric")
+    assert page.evaluate("window.injected === undefined")
+
+
+def test_manual_profile_editor_uses_custom_traits_and_revision(page, frontend, voting_api):
+    voting_api["definition"] = {"revision":9,"instructions":"Use evidence.","traits":[
+        {"key":"resilience","name":"Resilience","prompt":"0 gives up; 100 perseveres."}]}
+    login(page)
+    page.goto(frontend + "/admin.html")
+    page.get_by_role("button", name="Novel profiles", exact=True).click()
+    page.get_by_role("button", name="Edit profiles", exact=True).click()
+    editor = page.locator("#profile-editor")
+    expect(editor.locator('input[type="range"]')).to_have_count(1)
+    editor.get_by_label("Resilience", exact=True).evaluate("el => { el.value = '70'; el.dispatchEvent(new Event('input', {bubbles:true})); }")
+    editor.get_by_role("button", name="Save changes", exact=True).click()
+    expect(editor.locator('p[role="status"]')).to_have_text("Changes saved.")
+    assert voting_api["saved_scores"] == {"scores":{"resilience":70},"protagonist_name":"Hero","revision":9}

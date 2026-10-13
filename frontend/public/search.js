@@ -1,9 +1,4 @@
-const PROFILE_LABELS = {
-  intellectual_drive:"Intellectual drive", arrogance_pride:"Arrogance & pride", kinship_friendship:"Kinship & friendship",
-  romantic_attachment:"Romantic attachment", selflessness_selfishness:"Selfishness / selflessness",
-  pragmatism_morality:"Pragmatism / morality", individualist_collectivist:"Individualist / collectivist",
-  ambition:"Ambition", cautious_risk_taker:"Cautious / risk-taker", leadership:"Leadership",
-};
+let PROFILE_LABELS = {};
 
 function showActiveFilters(params) {
   const container = document.querySelector("[data-filter-chips]");
@@ -57,10 +52,16 @@ function resultCard(novel, index) {
 async function loadSearchResults() {
   const params = new URLSearchParams(window.location.search); const query = params.get("q")?.trim() || "";
   const input = document.getElementById("novel-search"); const summary = document.querySelector("[data-results-summary]"); const results = document.querySelector("[data-search-results]");
-  if (input) input.value = query; showActiveFilters(params);
+  if (input) input.value = query;
   const hasFilters = [...params.values()].some((value) => value.trim());
   if (query) document.title = `${query} | Search | Axiom`;
   try {
+    const definitions = await fetch(`${API_BASE}/api/search/protagonist-definition`);
+    if (definitions.ok) {
+      const data = await definitions.json();
+      PROFILE_LABELS = Object.fromEntries(data.traits.map(t => [t.key, t.name]));
+    }
+    showActiveFilters(params);
     const response = await fetch(`${API_BASE}/api/search?${params.toString()}`); if (!response.ok) throw new Error("Search request failed");
     const novels = await response.json(); summary.textContent = hasFilters ? `${novels.length} matching series, ordered by relevance.` : `${novels.length} series in the Axiom catalogue.`; results.innerHTML = "";
     if (!novels.length) { results.innerHTML = '<p class="search-empty">No series match every filter. Try removing one of your criteria.</p>'; return; }

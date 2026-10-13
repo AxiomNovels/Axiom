@@ -1,5 +1,9 @@
 import re
 
+# Offline compatibility for callers/tests that use the original seed. HTTP paths
+# read the active definition instead of this constant.
+from profiler.prompt import MEASURES as PROFILE_MEASURES
+
 
 def searchable_text(value):
     """Return lowercase words suitable for small-catalogue relevance scoring."""
@@ -75,21 +79,6 @@ def rank_novels(novels, query):
 
     ranked.sort(key=lambda item: (-item[0], item[1].get("title", "").lower()))
     return [novel for _, novel in ranked]
-
-
-PROFILE_MEASURES = (
-    "intellectual_drive",
-    "arrogance_pride",
-    "kinship_friendship",
-    "romantic_attachment",
-    "selflessness_selfishness",
-    "pragmatism_morality",
-    "individualist_collectivist",
-    "ambition",
-    "cautious_risk_taker",
-    "leadership",
-)
-
 
 
 def _profile_for(novel):

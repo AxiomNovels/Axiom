@@ -34,3 +34,17 @@ backend\.venv\Scripts\python.exe tests\run_all.py
 ```
 
 The full run starts isolated Axiom servers on ports 3100 and 8100, then stops them. Test-user deletion is attempted in cleanup even if the browser test fails.
+
+The dynamic protagonist definition regression suite uses an isolated PGlite database:
+
+```powershell
+npm.cmd run test:definitions --prefix tests
+```
+
+It covers migration from the uploaded mixed legacy/current column layout,
+transactional column changes and cleanup, unchanged defaults/votes, locked
+profiles, stale revisions, rollback on a dependent view, and RPC permissions.
+`tests/unit/test_protagonist_definition.py` covers the API, prompt/schema snapshots,
+preview token invalidation, dynamic search and recommendations, and rebuild eligibility.
+`tests/e2e/test_protagonist_voting.py` also exercises the Admin Hub definition editor,
+manual score editing, and dynamic Finder/guide rendering with intercepted APIs.

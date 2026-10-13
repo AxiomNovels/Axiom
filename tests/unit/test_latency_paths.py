@@ -126,3 +126,9 @@ def test_recommendation_cards_preserve_current_traits_tags_ties_and_inputs():
     assert recommend_novels(source, rows, limit=0) == []
     assert len(recommend_novels(source, rows, limit=-1)) == 3
     assert len(recommend_novels(source, rows, limit=20)) == 4
+
+
+@pytest.fixture(autouse=True)
+def protagonist_definition(monkeypatch):
+    from profiler.prompt import DEFAULT_DEFINITION
+    monkeypatch.setattr(search, "load_definition", lambda: DEFAULT_DEFINITION)

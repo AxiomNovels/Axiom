@@ -1,8 +1,7 @@
 """Re-profile existing novels after the protagonist trait set changed.
 
-Every novel saved under the old six-trait profile is missing four of the new
-traits (and the three retired ones are ignored), so its profile is incomplete
-until it is generated again. This walks the catalogue and regenerates them.
+Profiles missing any current trait are incomplete until they are generated again.
+This walks the catalogue using the saved Admin Hub definition.
 
 Run from backend:
 
@@ -11,7 +10,7 @@ Run from backend:
     python -m profiler.regenerate_profiles --all                 # redo every novel
     python -m profiler.regenerate_profiles --novel-ids 12 15 40  # specific novels
 
-By default only novels whose profile is missing, or missing any of the ten
+By default only novels whose profile is missing, or missing any of the current
 scores, are processed, so the script is safe to stop and re-run: finished novels
 are skipped the next time.
 
@@ -20,13 +19,15 @@ automatic detection, and those below --minimum-name-confidence are skipped and
 listed at the end for manual handling (profile_novel --protagonist "Name").
 """
 
+from services.protagonist_definition_service import load_definition, measures_for
+
 import argparse
 import time
 
 from profiler.comments import select_comments
 from profiler.gemini import generate_profile, identify_protagonist
 from profiler.profile_novel import database_client, fetch_novel, save_profile
-from profiler.prompt import MEASURES, build_identification_prompt, build_prompt
+from profiler.prompt import build_identification_prompt, build_prompt
 from profiler.resolver import resolve_protagonist_name
 from profiler.sources import collect_public_comments
 
@@ -60,9 +61,10 @@ def novels_to_profile(include_complete: bool) -> list[int]:
         return novel_ids
 
     complete = set()
-    columns = "novel_id," + ",".join(MEASURES)
+    measures = measures_for(load_definition(client))
+    columns = "*"
     for row in fetch_all(client, "protagonist_profiles", columns, "novel_id"):
-        if all(row.get(measure) is not None for measure in MEASURES):
+        if all(row.get(measure) is not None for measure in measures):
             complete.add(row["novel_id"])
     return [novel_id for novel_id in novel_ids if novel_id not in complete]
 
@@ -97,7 +99,7 @@ def regenerate(novel_id: int, minimum_confidence: int, fetch_comments: bool, sav
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Regenerate protagonist profiles for existing novels")
     parser.add_argument("--novel-ids", type=int, nargs="+", help="Only these novel ids")
-    parser.add_argument("--all", action="store_true", help="Include novels that already have all ten scores")
+    parser.add_argument("--all", action="store_true", help="Include novels that already have all current scores")
     parser.add_argument("--limit", type=int, help="Stop after this many novels")
     parser.add_argument("--sleep", type=float, default=1.0, help="Seconds to wait between novels (default 1)")
     parser.add_argument("--no-fetch-comments", action="store_true", help="Use synopsis and tags only (faster)")
@@ -128,7 +130,7 @@ def main() -> None:
                 fetch_comments=not args.no_fetch_comments,
                 save=not args.dry_run,
             )
-            scores = ", ".join(f"{measure}={result['scores'][measure]}" for measure in MEASURES)
+            scores = ", ".join(f"{measure}={result['scores'][measure]}" for measure in result["scores"])
             print(f"  {novel['title']} / {name} (confidence {result['confidence']})")
             print(f"  {scores}")
             saved += 1

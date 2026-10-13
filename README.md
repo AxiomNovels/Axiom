@@ -123,8 +123,8 @@ Ensure `SUPABASE_SECRET_KEY` is configured in `backend/.env` (never in the front
 Restart the backend and open `/admin.html`, or choose **Admin hub** in the account menu.
 
 The hub lists/searches accounts with pagination, bans/unbans ordinary accounts,
-and searches novels to edit all three profiles. Scores must be integers from
-0–100; each profile is saved separately. SPECIAL accounts cannot be banned.
+and searches novels to edit protagonist profiles. Scores must be integers from
+0â€“100; each profile is saved separately. SPECIAL accounts cannot be banned.
 Bans block new Supabase logins and authenticated backend actions, including
 existing sessions. Public content remains available while signed out.
 
@@ -135,3 +135,14 @@ commented SQL at the bottom of the migration. Set the flag to false to revoke.
 For new RLS-protected tables, also add the restrictive `axiom_banned_accounts`
 policy shown in the migration. Service-role operations bypass RLS and must
 continue to use the shared backend authentication dependency.
+
+Manage Protagonist Profile is available in the Admin Hub after applying
+[`database/manage_protagonist_profile.sql`](database/manage_protagonist_profile.sql).
+Apply it after `admin_hub.sql`, `protagonist_votes.sql`, and
+`protagonist_vote_controls.sql`; do not reapply older trait migrations afterwards.
+Deploy the matching backend and frontend together. SPECIAL accounts can edit
+trait names, prompts, and shared scoring instructions, or add/delete traits.
+The database handles schema changes and clears affected scores, defaults, and
+votes atomically. The existing profile rebuild tools use the saved definition.
+See [the implementation and verification report](database/MANAGE_PROTAGONIST_PROFILE_REPORT.md)
+for deployment details and design decisions.

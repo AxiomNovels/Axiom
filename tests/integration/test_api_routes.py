@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 
 import routes.novels as novels_routes
@@ -194,3 +195,9 @@ def test_search_genre_modes_and_exclusions(monkeypatch):
         assert response.status_code == 200
         assert [novel["id"] for novel in response.json()] == expected
     assert client.get("/api/search", params={"genre_mode": "invalid"}).status_code == 422
+
+
+@pytest.fixture(autouse=True)
+def protagonist_definition(monkeypatch):
+    from profiler.prompt import DEFAULT_DEFINITION
+    monkeypatch.setattr(search_routes, "load_definition", lambda: DEFAULT_DEFINITION)
