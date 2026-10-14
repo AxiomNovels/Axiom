@@ -78,7 +78,7 @@ end;
 $migration$;
 
 create or replace function public.save_gemini_protagonist(p_novel_id bigint,p_name text,p_scores jsonb)
-returns void language plpgsql security definer set search_path = '' as $$
+returns void language plpgsql security definer set search_path = '' as $save_profile$
 begin
   perform pg_advisory_xact_lock(718204619);
   if p_scores is null or not public.valid_protagonist_scores(p_scores) or p_name is null or length(trim(p_name)) not between 1 and 200 then
@@ -94,10 +94,10 @@ begin
   on conflict(novel_id) do update set scores=excluded.scores,generated_at=now();
   perform public.recalculate_protagonist(p_novel_id);
 end;
-$$;
+$save_profile$;
 
 create or replace function public.cast_protagonist_vote(p_novel_id bigint,p_user_id uuid,p_trait text,p_score integer)
-returns void language plpgsql security definer set search_path = '' as $$
+returns void language plpgsql security definer set search_path = '' as $cast_vote$
 begin
   perform pg_advisory_xact_lock(718204619);
   if not exists(select 1 from public.protagonist_profiles p where p.novel_id=p_novel_id and public.valid_protagonist_scores(public.protagonist_score_values(to_jsonb(p)))) then
@@ -106,7 +106,7 @@ begin
   insert into public.protagonist_votes(novel_id,user_id,trait,score) values(p_novel_id,p_user_id,p_trait,p_score)
   on conflict(novel_id,user_id,trait) do update set score=excluded.score,updated_at=now();
 end;
-$$;
+$cast_vote$;
 
 alter table public.protagonist_profiles
   drop column if exists impulsivity,
