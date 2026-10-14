@@ -60,8 +60,8 @@ def create_job(requested_by: str, include_complete: bool) -> dict:
     return job
 
 
-def job_status(job_id: str) -> dict | None:
-    client = create_service_client()
+def job_status(job_id: str, client=None) -> dict | None:
+    client = client or create_service_client()
     rows = client.table("protagonist_rebuild_jobs").select("*").eq("id", job_id).limit(1).execute().data or []
     return rows[0] if rows else None
 
@@ -88,7 +88,7 @@ def rebuild_history() -> list[dict]:
 
 def delete_job(job_id: str) -> bool:
     client = create_service_client()
-    job = job_status(job_id)
+    job = job_status(job_id, client)
     if not job:
         return False
     if job["status"] in {"queued", "running"}:
@@ -97,11 +97,42 @@ def delete_job(job_id: str) -> bool:
     return True
 
 
+def cancel_job(job_id: str) -> bool:
+    """Stop a queued/running job without erasing its audit history.
+
+    A profile already being generated may finish, but no further queued profile is
+    started. Queued items are marked cancelled so the history explains why they
+    were not attempted.
+    """
+    client = create_service_client()
+    job = job_status(job_id, client)
+    if not job:
+        return False
+    if job["status"] not in {"queued", "running"}:
+        raise ValueError("Only a queued or running rebuild can be cancelled.")
+    finished_at = _now()
+    client.table("protagonist_rebuild_jobs").update({
+        "status": "cancelled", "finished_at": finished_at,
+    }).eq("id", job_id).execute()
+    client.table("protagonist_rebuild_items").update({
+        "status": "cancelled", "error": "Cancelled by an administrator", "finished_at": finished_at,
+    }).eq("job_id", job_id).eq("status", "queued").execute()
+    return True
+
+
 def run_job(job_id: str) -> None:
     """Run outside the request. Safe to retry: completed items are never selected."""
     client = create_service_client()
+    job = (client.table("protagonist_rebuild_jobs").select("status")
+           .eq("id", job_id).limit(1).execute().data or [])
+    if not job or job[0]["status"] != "queued":
+        return
     client.table("protagonist_rebuild_jobs").update({"status": "running", "started_at": _now()}).eq("id", job_id).execute()
     while True:
+        job = (client.table("protagonist_rebuild_jobs").select("status")
+               .eq("id", job_id).limit(1).execute().data or [])
+        if not job or job[0]["status"] != "running":
+            return
         items = (client.table("protagonist_rebuild_items").select("id,novel_id")
                  .eq("job_id", job_id).eq("status", "queued").order("id").limit(1).execute().data or [])
         if not items:
@@ -119,4 +150,4 @@ def run_job(job_id: str) -> None:
         failed = sum(row["status"] == "failed" for row in counts)
         client.table("protagonist_rebuild_jobs").update({"processed": completed + failed, "succeeded": completed, "failed": failed}).eq("id", job_id).execute()
         time.sleep(DEFAULT_DELAY_SECONDS)
-    client.table("protagonist_rebuild_jobs").update({"status": "completed", "finished_at": _now()}).eq("id", job_id).execute()
+    client.table("protagonist_rebuild_jobs").update({"status": "completed", "finished_at": _now()}).eq("id", job_id).eq("status", "running").execute()

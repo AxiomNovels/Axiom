@@ -9,7 +9,7 @@ from core.database import create_service_client
 from models.protagonist_definition import DefinitionUpdate
 from services.protagonist_definition_service import load_definition, measures_for, definition_error
 from services.novel_profiling_service import generate_protagonist_preview
-from services.protagonist_rebuild_service import create_job, delete_job, job_items, job_status, rebuild_history, run_job
+from services.protagonist_rebuild_service import cancel_job, create_job, delete_job, job_items, job_status, rebuild_history, run_job
 
 
 PROFILES = {"protagonist": "protagonist_profiles"}
@@ -138,6 +138,20 @@ def delete_protagonist_rebuild(job_id: str, admin=Depends(require_special)):
     except Exception as error:
         raise HTTPException(503, "Profile rebuilds are not set up yet. Run database/protagonist_rebuild_jobs.sql in Supabase.") from error
     return {"deleted": True}
+
+
+@router.post("/protagonist-rebuilds/{job_id}/cancel")
+def cancel_protagonist_rebuild(job_id: str, admin=Depends(require_special)):
+    try:
+        if not cancel_job(job_id):
+            raise HTTPException(404, "Profile rebuild job not found.")
+    except HTTPException:
+        raise
+    except ValueError as error:
+        raise HTTPException(409, str(error)) from error
+    except Exception as error:
+        raise HTTPException(503, "Profile rebuilds are not set up yet. Run database/protagonist_rebuild_jobs.sql in Supabase.") from error
+    return {"cancelled": True}
 
 
 @router.post("/protagonist-rebuilds")

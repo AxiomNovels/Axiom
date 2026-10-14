@@ -73,6 +73,8 @@
 .profile-rebuild-result.is-failed { border-color: rgba(209, 74, 85, .45); }
 .profile-rebuild-result.is-failed .admin-badge { color: #f0a1ad; }
 .profile-rebuild-result.is-not_needed .admin-badge { color: #aab9cf; }
+.profile-rebuild-result.is-cancelled { border-color: rgba(170, 185, 207, .35); }
+.profile-rebuild-result.is-cancelled .admin-badge { color: #aab9cf; }
 .profile-rebuild-history { margin-top: 20px; }
 .profile-history-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; margin-bottom: 12px; }
 .profile-history-job { border-top: 1px solid var(--line); }

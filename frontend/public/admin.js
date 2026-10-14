@@ -43,12 +43,13 @@ function rebuildStatus(text, error = false) {
 function rebuildItemCopy(item) {
   if (item.status === "completed") return "Profile rebuilt";
   if (item.status === "failed") return item.error || "Profile generation failed";
+  if (item.status === "cancelled") return item.error || "Rebuild cancelled";
   if (item.status === "not_needed") return "Already complete; no rebuild needed";
   if (item.status === "running") return "Rebuilding now";
   return "Queued to rebuild";
 }
 function rebuildItemLabel(item) {
-  return ({ completed: "Built", failed: "Not built", not_needed: "Not needed", running: "Building", queued: "Queued" })[item.status] || item.status;
+  return ({ completed: "Built", failed: "Not built", cancelled: "Cancelled", not_needed: "Not needed", running: "Building", queued: "Queued" })[item.status] || item.status;
 }
 function renderRebuildItems(items, host) {
   host.replaceChildren();
@@ -82,7 +83,7 @@ async function loadRebuildHistory(activeJobId) {
     const summary = document.createElement("summary");
     const copy = element("div");
     copy.append(element("strong", `${job.mode === "all" ? "Every profile" : "Outdated profiles"} rebuild`), element("small", `${displayBuildTime(job.created_at)} · ${jobSummary(job)}`));
-    summary.append(element("span", job.status === "completed" ? "Complete" : job.status === "running" ? "Running" : "Queued", "admin-badge"), copy);
+    summary.append(element("span", job.status === "completed" ? "Complete" : job.status === "cancelled" ? "Cancelled" : job.status === "running" ? "Running" : "Queued", "admin-badge"), copy);
     details.append(summary);
     const body = element("div", undefined, "profile-history-job-body");
     const items = element("div");
@@ -97,7 +98,18 @@ async function loadRebuildHistory(activeJobId) {
     details.addEventListener("toggle", () => { if (details.open) loadItems(); });
     if (details.open) loadItems();
     body.append(items);
-    if (job.status === "completed") {
+    if (job.status === "queued" || job.status === "running") {
+      const cancel = action("Stop rebuild", async () => {
+        if (!confirm("Stop this rebuild? A profile already being generated may finish, but no more queued profiles will start.")) return;
+        await request(`/protagonist-rebuilds/${job.id}/cancel`, { method: "POST" });
+        clearInterval(rebuildPoll);
+        rebuildStatus("Rebuild cancelled. Completed results were kept.");
+        await loadRebuildHistory();
+      });
+      cancel.className = "admin-danger";
+      body.append(cancel);
+    }
+    if (job.status === "completed" || job.status === "cancelled") {
       const remove = action("Delete this history entry", async () => {
         if (!confirm("Delete this rebuild and its per-novel history? This cannot be undone.")) return;
         await request(`/protagonist-rebuilds/${job.id}`, { method: "DELETE" });
@@ -114,9 +126,9 @@ async function watchRebuild(jobId) {
   const refresh = async () => {
     try {
       const job = await request(`/protagonist-rebuilds/${jobId}`);
-      rebuildStatus(`${job.status === "completed" ? "Finished" : "Running"}: ${jobSummary(job)}.`);
+      rebuildStatus(`${job.status === "completed" ? "Finished" : job.status === "cancelled" ? "Cancelled" : "Running"}: ${jobSummary(job)}.`);
       await loadRebuildHistory(jobId);
-      if (job.status === "completed") clearInterval(rebuildPoll);
+      if (job.status === "completed" || job.status === "cancelled") clearInterval(rebuildPoll);
     } catch (error) { clearInterval(rebuildPoll); rebuildStatus(error.message, true); }
   };
   await refresh();

@@ -152,6 +152,18 @@ def test_rebuild_eligibility_uses_current_traits(monkeypatch):
     assert rebuilds.candidate_novel_ids(object(),False) == [2,3]
 
 
+def test_cancel_rebuild_preserves_completed_history(monkeypatch):
+    client = MagicMock()
+    monkeypatch.setattr(rebuilds, "create_service_client", lambda: client)
+    monkeypatch.setattr(rebuilds, "job_status", lambda job_id, client=None: {"id": job_id, "status": "running"})
+    assert rebuilds.cancel_job("job-1") is True
+    updates = client.table.return_value.update.call_args_list
+    assert updates[0].args[0]["status"] == "cancelled"
+    assert updates[1].args[0] == {
+        "status": "cancelled", "error": "Cancelled by an administrator", "finished_at": updates[0].args[0]["finished_at"],
+    }
+
+
 def test_manual_scores_require_current_trait_set_and_revision(monkeypatch):
     client = MagicMock()
     monkeypatch.setattr(admin,"load_definition",lambda client: DEFINITION)
