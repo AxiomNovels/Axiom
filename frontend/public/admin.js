@@ -25,12 +25,12 @@ async function request(path, options = {}) {
   }
   return data;
 }
-function action(text, handler) {
+function action(text, handler, reportError = status) {
   const button = element("button", text);
   button.type = "button";
   button.addEventListener("click", async () => {
     button.disabled = true;
-    try { await handler(); } catch (error) { status(error.message, true); }
+    try { await handler(); } catch (error) { reportError(error.message, true); }
     finally { button.disabled = false; }
   });
   return button;
@@ -105,7 +105,7 @@ async function loadRebuildHistory(activeJobId) {
         clearInterval(rebuildPoll);
         rebuildStatus("Rebuild cancelled. Completed results were kept.");
         await loadRebuildHistory();
-      });
+      }, rebuildStatus);
       cancel.className = "admin-danger";
       body.append(cancel);
     }

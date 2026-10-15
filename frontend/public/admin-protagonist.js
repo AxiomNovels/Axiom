@@ -2,6 +2,7 @@
 let definitionDraft = null;
 let definitionOriginal = null;
 let definitionDirty = false;
+let definitionTraitIndex = 0;
 
 async function loadDefinitionEditor() {
   if (definitionDirty && !confirm("Discard unsaved trait changes and reload?")) return;
@@ -40,31 +41,59 @@ function renderDefinitionEditor() {
   const host = document.getElementById("definition-traits");
   host.replaceChildren();
   document.getElementById("definition-instructions").value = definitionDraft.instructions;
-  for (const trait of definitionDraft.traits) {
-    const card = element("section", undefined, "definition-trait");
-    const nameLabel = element("label", "Trait name");
-    const name = element("input"); name.value = trait.name; name.required = true; name.maxLength = 100;
-    name.setAttribute("aria-label", `Trait name: ${trait.name || "New trait"}`);
-    nameLabel.append(name);
-    const keyLabel = element("label", "Trait key");
-    const key = element("input"); key.value = trait.key; key.required = true; key.maxLength = 48;
-    key.pattern = "[a-z][a-z0-9_]{0,47}";
-    key.readOnly = definitionOriginal.traits.some(t => t.key === trait.key);
-    keyLabel.append(key, element("small", "Unique lowercase key. Existing keys stay fixed when you rename a trait."));
-    const promptLabel = element("label", "Scoring prompt");
-    const prompt = element("textarea"); prompt.rows = 12; prompt.value = trait.prompt; prompt.required = true; prompt.maxLength = 12000;
-    promptLabel.append(prompt);
-    name.addEventListener("input", () => { trait.name = name.value.trim(); updateDefinitionImpact(); });
-    key.addEventListener("input", () => { trait.key = key.value.trim(); updateDefinitionImpact(); });
-    prompt.addEventListener("input", () => { trait.prompt = prompt.value.trim(); updateDefinitionImpact(); });
-    const remove = action("Delete trait", () => {
-      definitionDraft.traits = definitionDraft.traits.filter(t => t !== trait);
-      renderDefinitionEditor();
-    });
-    remove.disabled = definitionDraft.traits.length <= 1;
-    card.append(nameLabel, keyLabel, promptLabel, remove);
-    host.append(card);
-  }
+  definitionTraitIndex = Math.max(0, Math.min(definitionTraitIndex, definitionDraft.traits.length - 1));
+  const trait = definitionDraft.traits[definitionTraitIndex];
+  const navigation = element("nav", undefined, "definition-trait-navigation");
+  navigation.setAttribute("aria-label", "Trait navigation");
+  const previous = element("button", "‹", "definition-trait-arrow");
+  previous.type = "button"; previous.disabled = definitionTraitIndex === 0;
+  previous.setAttribute("aria-label", "Previous trait");
+  previous.addEventListener("click", () => { definitionTraitIndex -= 1; renderDefinitionEditor(); });
+  const steps = element("div", undefined, "definition-trait-steps");
+  definitionDraft.traits.forEach((item, index) => {
+    const step = element("button", String(index + 1), "definition-trait-step");
+    step.type = "button"; step.title = item.name || `Trait ${index + 1}`;
+    step.setAttribute("aria-label", `Edit trait ${index + 1}: ${item.name || "New trait"}`);
+    step.setAttribute("aria-current", String(index === definitionTraitIndex));
+    step.addEventListener("click", () => { definitionTraitIndex = index; renderDefinitionEditor(); });
+    steps.append(step);
+  });
+  const next = element("button", "›", "definition-trait-arrow");
+  next.type = "button"; next.disabled = definitionTraitIndex === definitionDraft.traits.length - 1;
+  next.setAttribute("aria-label", "Next trait");
+  next.addEventListener("click", () => { definitionTraitIndex += 1; renderDefinitionEditor(); });
+  navigation.append(previous, steps, next);
+
+  const card = element("section", undefined, "definition-trait");
+  const heading = element("div", undefined, "definition-trait-heading");
+  const traitNumber = element("span", `TRAIT ${definitionTraitIndex + 1} OF ${definitionDraft.traits.length}`, "definition-trait-number");
+  const title = element("h3", trait.name || "New trait");
+  heading.append(traitNumber, title);
+  const fields = element("div", undefined, "definition-trait-fields");
+  const nameLabel = element("label", "Trait name");
+  const name = element("input"); name.value = trait.name; name.required = true; name.maxLength = 100;
+  name.setAttribute("aria-label", `Trait name: ${trait.name || "New trait"}`);
+  nameLabel.append(name);
+  const keyLabel = element("label", "Trait key");
+  const key = element("input"); key.value = trait.key; key.required = true; key.maxLength = 48;
+  key.pattern = "[a-z][a-z0-9_]{0,47}";
+  key.readOnly = definitionOriginal.traits.some(t => t.key === trait.key);
+  keyLabel.append(key, element("small", "Unique lowercase key. Existing keys stay fixed when you rename a trait."));
+  fields.append(nameLabel, keyLabel);
+  const promptLabel = element("label", "Scoring prompt");
+  const prompt = element("textarea"); prompt.rows = 12; prompt.value = trait.prompt; prompt.required = true; prompt.maxLength = 12000;
+  promptLabel.append(prompt);
+  name.addEventListener("input", () => { trait.name = name.value.trim(); title.textContent = trait.name || "New trait"; updateDefinitionImpact(); });
+  key.addEventListener("input", () => { trait.key = key.value.trim(); updateDefinitionImpact(); });
+  prompt.addEventListener("input", () => { trait.prompt = prompt.value.trim(); updateDefinitionImpact(); });
+  const remove = action("Delete this trait", () => {
+    definitionDraft.traits = definitionDraft.traits.filter(t => t !== trait);
+    definitionTraitIndex = Math.min(definitionTraitIndex, definitionDraft.traits.length - 1);
+    renderDefinitionEditor();
+  });
+  remove.disabled = definitionDraft.traits.length <= 1;
+  card.append(heading, fields, promptLabel, remove);
+  host.append(navigation, card);
   updateDefinitionImpact();
 }
 
@@ -82,8 +111,9 @@ document.getElementById("definition-instructions").addEventListener("input", eve
 document.getElementById("add-definition-trait").addEventListener("click", () => {
   if (!definitionDraft || definitionDraft.traits.length >= 50) return;
   definitionDraft.traits.push({ key: "", name: "", prompt: "" });
+  definitionTraitIndex = definitionDraft.traits.length - 1;
   renderDefinitionEditor();
-  document.querySelector(".definition-trait:last-child input").focus();
+  document.querySelector(".definition-trait input").focus();
 });
 document.getElementById("definition-form").addEventListener("submit", async event => {
   event.preventDefault();

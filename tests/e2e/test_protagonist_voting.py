@@ -148,7 +148,7 @@ def test_admin_distribution_individual_and_user_wide_deletion(page, frontend, vo
     voting_api["votes"]["moral_integrity"] = 100
     page.on("dialog", lambda dialog: dialog.accept())
     page.goto(frontend + "/admin.html")
-    page.get_by_role("button", name="Novel profiles", exact=True).click()
+    page.get_by_role("button", name="Build Novels", exact=True).click()
     page.get_by_role("button", name="Vote distribution").click()
     host = page.locator("#vote-workspace")
     expect(host).to_contain_text("Reader · Moral Integrity: 100")
@@ -183,7 +183,7 @@ def test_admin_locks_and_unlocks_scores(page, frontend, voting_api):
     login(page)
     page.on("dialog", lambda dialog: dialog.accept())
     page.goto(frontend + "/admin.html")
-    page.get_by_role("button", name="Novel profiles", exact=True).click()
+    page.get_by_role("button", name="Build Novels", exact=True).click()
     page.get_by_role("button", name="Vote distribution").click()
     host = page.locator("#vote-workspace")
     host.get_by_role("button", name="Lock scores", exact=True).click()
@@ -235,9 +235,9 @@ def test_admin_account_actions_menu_and_layout(page, frontend, voting_api):
 def test_manage_definition_stages_changes_and_confirms_impact(page, frontend, voting_api):
     login(page)
     page.goto(frontend + "/admin.html")
-    page.get_by_role("button", name="Manage Protagonist Profile", exact=True).click()
+    page.get_by_role("button", name="Build Protagonist Traits", exact=True).click()
     panel = page.locator("#definition-panel")
-    expect(panel.locator(".definition-trait")).to_have_count(7)
+    expect(panel.locator(".definition-trait")).to_have_count(1)
     expect(panel.get_by_role("button", name="Save definition")).to_be_disabled()
     card = panel.locator(".definition-trait").first
     card.get_by_label("Trait name: Intelligence", exact=True).fill("Determination")
@@ -263,28 +263,31 @@ def test_manage_definition_stages_changes_and_confirms_impact(page, frontend, vo
 def test_manage_definition_add_delete_and_conflict_keep_draft(page, frontend, voting_api):
     login(page)
     page.goto(frontend + "/admin.html")
-    page.get_by_role("button", name="Manage Protagonist Profile", exact=True).click()
+    page.get_by_role("button", name="Build Protagonist Traits", exact=True).click()
     panel = page.locator("#definition-panel")
-    expect(panel.locator(".definition-trait")).to_have_count(7)
+    expect(panel.locator(".definition-trait")).to_have_count(1)
     panel.get_by_role("button", name="Add trait", exact=True).click()
-    card = panel.locator(".definition-trait").last
+    card = panel.locator(".definition-trait")
     card.get_by_label("Trait name: New trait", exact=True).fill("Resilience")
     card.get_by_label("Trait key", exact=False).fill("resilience")
     card.get_by_label("Scoring prompt", exact=True).fill("Perseverance, from 0 to 100.")
-    panel.locator(".definition-trait").first.get_by_role("button", name="Delete trait").click()
+    panel.get_by_role("button", name="Edit trait 1: Intelligence", exact=True).click()
+    panel.locator(".definition-trait").get_by_role("button", name="Delete this trait").click()
     page.once("dialog", lambda dialog: dialog.accept())
     voting_api["conflict"] = True
     panel.get_by_role("button", name="Save definition").click()
     expect(panel.locator("#definition-status")).to_contain_text("Reload and review")
-    expect(panel.locator(".definition-trait").last.get_by_label("Trait name: Resilience", exact=True)).to_have_value("Resilience")
+    panel.get_by_role("button", name="Edit trait 7: Resilience", exact=True).click()
+    expect(panel.locator(".definition-trait").get_by_label("Trait name: Resilience", exact=True)).to_have_value("Resilience")
     assert voting_api["definition_writes"][0]["traits"][-1]["key"] == "resilience"
     assert "intelligence" not in [t["key"] for t in voting_api["definition_writes"][0]["traits"]]
     # Other tabs remain visible independently of the novels panel.
     page.get_by_role("button", name="Accounts", exact=True).click()
     expect(page.locator("#users-panel")).to_be_visible()
     expect(panel).not_to_be_visible()
-    page.get_by_role("button", name="Manage Protagonist Profile", exact=True).click()
-    expect(panel.locator(".definition-trait").last.get_by_label("Trait name: Resilience", exact=True)).to_have_value("Resilience")
+    page.get_by_role("button", name="Build Protagonist Traits", exact=True).click()
+    panel.get_by_role("button", name="Edit trait 7: Resilience", exact=True).click()
+    expect(panel.locator(".definition-trait").get_by_label("Trait name: Resilience", exact=True)).to_have_value("Resilience")
 
 
 def test_finder_and_guide_use_custom_names_as_text(page, frontend, voting_api):
@@ -306,7 +309,7 @@ def test_manual_profile_editor_uses_custom_traits_and_revision(page, frontend, v
         {"key":"resilience","name":"Resilience","prompt":"0 gives up; 100 perseveres."}]}
     login(page)
     page.goto(frontend + "/admin.html")
-    page.get_by_role("button", name="Novel profiles", exact=True).click()
+    page.get_by_role("button", name="Build Novels", exact=True).click()
     page.get_by_role("button", name="Edit profiles", exact=True).click()
     editor = page.locator("#profile-editor")
     expect(editor.locator('input[type="range"]')).to_have_count(1)
