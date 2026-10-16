@@ -317,6 +317,18 @@ def _collect_comments(novel: dict) -> list[str]:
         return []
 
 
+def _generation_failure_message(error: Exception) -> str:
+    """Return a safe, useful message without exposing configuration details."""
+    from profiler.gemini import GeminiAPIError
+
+    if isinstance(error, GeminiAPIError):
+        if error.is_unavailable:
+            return "Gemini is temporarily unavailable. Wait a moment, then try generating this profile again."
+        if error.is_rate_limited:
+            return "Gemini is temporarily rate-limited. Wait a few minutes, then try again."
+    return "This profile couldn't be generated right now. Check the backend log for details, then try again."
+
+
 def _run_spec(spec: ProfileSpec, novel: dict, raw_comments: list[str]) -> ProfileResult:
     """Generate one profile. Never raises."""
     result = ProfileResult(kind=spec.kind, title=spec.title, description=spec.description,
@@ -332,10 +344,10 @@ def _run_spec(spec: ProfileSpec, novel: dict, raw_comments: list[str]) -> Profil
     except ProfileSkipped as skip:
         result.status = STATUS_SKIPPED
         result.message = str(skip)
-    except Exception:
+    except Exception as error:
         logger.exception("Profiler failed for the %s profile of %r", spec.kind, novel.get("title"))
         result.status = STATUS_FAILED
-        result.message = "This profile couldn't be generated right now."
+        result.message = _generation_failure_message(error)
     return result
 
 
@@ -475,9 +487,13 @@ def empty_payload(notice: str | None = None) -> dict[str, Any]:
     return _payload([], notice=notice)
 
 
-def generate_protagonist_preview(novel: dict) -> dict[str, Any]:
+def generate_protagonist_preview(novel: dict, protagonist_name: str | None = None) -> dict[str, Any]:
     """Generate an admin draft without changing saved scores or reader votes."""
     spec = _load_specs()[0]
+    if protagonist_name:
+        # Preserve the normal resolver/prompt path while allowing an admin to
+        # supply a known name when public evidence is ambiguous.
+        novel = {**novel, "protagonist_profiles": {"protagonist_name": protagonist_name}}
     result = _run_spec(spec, novel, _collect_comments(novel))
     return {**result.to_public(), "scores": result.scores}
 

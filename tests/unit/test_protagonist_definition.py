@@ -15,6 +15,7 @@ from routes import admin, search, novels
 from services import protagonist_definition_service as definitions
 from services import novel_profiling_service as profiling
 from services import protagonist_rebuild_service as rebuilds
+from profiler.gemini import GeminiAPIError
 from services.recommendation_service import recommend_novels
 
 
@@ -150,6 +151,13 @@ def test_rebuild_eligibility_uses_current_traits(monkeypatch):
         [{"novel_id":1,"resilience":0,"empathy":0},{"novel_id":2,"resilience":50,"empathy":None}]
     ))
     assert rebuilds.candidate_novel_ids(object(),False) == [2,3]
+
+
+def test_profile_generation_explains_temporary_gemini_failures():
+    unavailable = GeminiAPIError(503, '{"error":{"status":"UNAVAILABLE"}}')
+    limited = GeminiAPIError(429, '{"error":{"status":"RESOURCE_EXHAUSTED"}}')
+    assert "temporarily unavailable" in profiling._generation_failure_message(unavailable)
+    assert "rate-limited" in profiling._generation_failure_message(limited)
 
 
 def test_cancel_rebuild_preserves_completed_history(monkeypatch):

@@ -20,7 +20,7 @@ from routes.users import router as users_router
 from routes.reviews import router as reviews_router
 from routes.review_likes import router as review_likes_router
 from routes.reading_list_reviews import router as reading_list_reviews_router
-from core.config import FRONTEND_ORIGIN
+from core.config import FRONTEND_ORIGINS
 
 
 app = FastAPI(title="Axiom Backend")
@@ -29,7 +29,7 @@ app = FastAPI(title="Axiom Backend")
 # different origins. Supporting both avoids a confusing CORS failure when the
 # frontend is opened with the numeric loopback address.
 frontend_origins = list(dict.fromkeys([
-    FRONTEND_ORIGIN,
+    *FRONTEND_ORIGINS,
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]))

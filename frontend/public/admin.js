@@ -309,7 +309,10 @@ async function openEditor(id) {
     const buttons = element("div", undefined, "profile-actions");
     generate.addEventListener("click", async () => {
       if (saving) return;
-      if (form.dataset.dirty === "true" && !confirm("Replace your unsaved edits with Gemini scores?")) return;
+      const suppliedName = inputs.protagonist_name?.value.trim() || "";
+      const hasUnsavedScores = Object.keys(saved).some(key => inputs[key].dataset.unset !== String(saved[key] == null) ||
+        (inputs[key].dataset.unset !== "true" && Number(inputs[key].value) !== saved[key]));
+      if (hasUnsavedScores && !confirm("Replace your unsaved score edits with Gemini scores?")) return;
       saving = true;
       generate.disabled = save.disabled = reset.disabled = true;
       Object.values(inputs).forEach(input => { input.disabled = true; });
@@ -318,7 +321,10 @@ async function openEditor(id) {
       feedback.textContent = "Gemini is identifying the protagonist and scoring traits. This may take a minute.";
       form.setAttribute("aria-busy", "true");
       try {
-        const draft = await request(`/novels/${id}/profiles/protagonist/generate`, { method: "POST" });
+        const draft = await request(`/novels/${id}/profiles/protagonist/generate`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ protagonist_name: suppliedName || null }),
+        });
         if (version !== editorVersion) return;
         if (draft.revision !== definitionRevision) throw new Error("Trait definitions changed. Reopen this novel profile before generating.");
         if (!draft.protagonist_name || Object.keys(saved).some(key => !Number.isInteger(draft.scores?.[key]) || draft.scores[key] < 0 || draft.scores[key] > 100)) {

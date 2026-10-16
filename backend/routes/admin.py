@@ -1,3 +1,4 @@
+import logging
 from typing import Literal
 from uuid import UUID
 
@@ -11,6 +12,8 @@ from services.protagonist_definition_service import load_definition, measures_fo
 from services.novel_profiling_service import generate_protagonist_preview
 from services.protagonist_rebuild_service import cancel_job, create_job, delete_job, job_items, job_status, rebuild_history, run_job
 
+
+logger = logging.getLogger(__name__)
 
 PROFILES = {"protagonist": "protagonist_profiles"}
 
@@ -79,6 +82,16 @@ class RebuildRequest(BaseModel):
     include_complete: StrictBool = False
 
 
+class ProfileGenerationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    protagonist_name: str | None = Field(default=None, max_length=200)
+
+    @field_validator("protagonist_name")
+    @classmethod
+    def clean_protagonist_name(cls, value: str | None) -> str | None:
+        return value.strip() or None if value is not None else None
+
+
 @router.get("/me")
 def admin_me(admin=Depends(require_special)):
     return {"id": admin[0], "special": True}
@@ -136,6 +149,7 @@ def delete_protagonist_rebuild(job_id: str, admin=Depends(require_special)):
     except ValueError as error:
         raise HTTPException(409, str(error)) from error
     except Exception as error:
+        logger.exception("Couldn't delete protagonist rebuild %s", job_id)
         raise HTTPException(503, "Profile rebuilds are not set up yet. Run database/protagonist_rebuild_jobs.sql in Supabase.") from error
     return {"deleted": True}
 
@@ -150,6 +164,7 @@ def cancel_protagonist_rebuild(job_id: str, admin=Depends(require_special)):
     except ValueError as error:
         raise HTTPException(409, str(error)) from error
     except Exception as error:
+        logger.exception("Couldn't cancel protagonist rebuild %s", job_id)
         raise HTTPException(503, "Profile rebuilds are not set up yet. Run database/protagonist_rebuild_jobs.sql in Supabase.") from error
     return {"cancelled": True}
 
@@ -260,7 +275,7 @@ def novel_profiles(novel_id: int, admin=Depends(require_special)):
 
 
 @router.post("/novels/{novel_id}/profiles/protagonist/generate")
-def generate_scores(novel_id: int, admin=Depends(require_special)):
+def generate_scores(novel_id: int, payload: ProfileGenerationRequest | None = None, admin=Depends(require_special)):
     result = (
         admin[1].table("novels")
         .select("id,title,synopsis,genres,tags,reading_links,protagonist_profiles(protagonist_name)")
@@ -268,7 +283,7 @@ def generate_scores(novel_id: int, admin=Depends(require_special)):
     )
     if not result.data:
         raise HTTPException(404, "Novel not found.")
-    profile = generate_protagonist_preview(result.data[0])
+    profile = generate_protagonist_preview(result.data[0], payload.protagonist_name if payload else None)
     if profile.get("status") != "ready":
         raise HTTPException(422 if profile.get("status") == "skipped" else 502,
                             profile.get("message") or "Gemini could not generate this profile. Try again.")

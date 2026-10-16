@@ -133,8 +133,8 @@ def test_generation_returns_draft_without_saving(service, monkeypatch):
     draft = {"status": "ready", "protagonist_name": "Hero", "scores": dict.fromkeys(MEASURES, 40), "revision": 1}
     generate = MagicMock(return_value=draft)
     monkeypatch.setattr(admin, "generate_protagonist_preview", generate)
-    assert admin.generate_scores(1, ("owner", service)) == draft
-    generate.assert_called_once_with(novel)
+    assert admin.generate_scores(1, None, ("owner", service)) == draft
+    generate.assert_called_once_with(novel, None)
     service.table.return_value.upsert.assert_not_called()
     service.rpc.assert_not_called()
 
@@ -142,11 +142,21 @@ def test_generation_returns_draft_without_saving(service, monkeypatch):
 @pytest.mark.parametrize("status,code", [("skipped", 422), ("failed", 502)])
 def test_generation_failure_keeps_existing_scores(service, monkeypatch, status, code):
     service.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value.data = [{"id": 1}]
-    monkeypatch.setattr(admin, "generate_protagonist_preview", lambda novel: {"status": status, "message": "Unable to generate"})
+    monkeypatch.setattr(admin, "generate_protagonist_preview", lambda novel, protagonist_name=None: {"status": status, "message": "Unable to generate"})
     with pytest.raises(HTTPException) as error:
-        admin.generate_scores(1, ("owner", service))
+        admin.generate_scores(1, None, ("owner", service))
     assert error.value.status_code == code
     service.table.return_value.upsert.assert_not_called()
+
+
+def test_generation_uses_admin_supplied_protagonist_name(service, monkeypatch):
+    novel = {"id": 1, "title": "Example"}
+    service.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value.data = [novel]
+    generate = MagicMock(return_value={"status": "ready"})
+    monkeypatch.setattr(admin, "generate_protagonist_preview", generate)
+    payload = admin.ProfileGenerationRequest(protagonist_name="  Issei Hyoudou  ")
+    assert admin.generate_scores(1, payload, ("owner", service))["status"] == "ready"
+    generate.assert_called_once_with(novel, "Issei Hyoudou")
 
 
 def test_generation_missing_novel_does_not_call_gemini(service, monkeypatch):
@@ -154,6 +164,6 @@ def test_generation_missing_novel_does_not_call_gemini(service, monkeypatch):
     generate = MagicMock()
     monkeypatch.setattr(admin, "generate_protagonist_preview", generate)
     with pytest.raises(HTTPException) as error:
-        admin.generate_scores(1, ("owner", service))
+        admin.generate_scores(1, None, ("owner", service))
     assert error.value.status_code == 404
     generate.assert_not_called()
