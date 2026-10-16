@@ -8,7 +8,10 @@
       <form class="top-search-form search-form" action="/search.html" method="get" aria-label="Search novels"><label for="novel-search">Search novels</label><div class="search-row"><input id="novel-search" name="q" type="search" placeholder="Search novels, authors, keywords..."><button type="submit" aria-label="Search">Search</button></div></form>
       <nav class="nav-links account-nav" aria-label="Account navigation"><div class="guest-actions" data-guest-actions><a href="/login.html">Log in</a><a class="nav-cta" href="/signup.html">Sign up</a></div><div class="user-actions is-hidden" data-user-actions><span class="user-greeting" data-user-greeting></span><button class="logout-button" type="button" data-logout-button>Log out</button></div></nav>
     </header>
-    <main class="about-page info-page team-page">
+    <section class="under-construction-page" data-admin-preview-placeholder aria-labelledby="under-construction-title">
+      <p class="eyebrow">Axiom is growing</p><h1 id="under-construction-title">This page is under construction.</h1><p>We are still preparing this part of Axiom. Please check back soon.</p><a class="button-link" href="/">Back to Axiom</a>
+    </section>
+    <main class="about-page info-page team-page" data-admin-preview data-preview-title="Meet the Axiom Team" hidden>
       <a class="info-back-link" href="/">← Back to Axiom</a>
       <header class="about-heading team-heading">
         <h1>Meet the Axiom team.</h1>
@@ -30,6 +33,6 @@
           <div class="team-member" data-team-member="wafflehunter"><div class="team-avatar"><span>W</span></div><div><div class="team-member-name"><h3>wafflehunter</h3><span class="account-special-badge" data-team-special-badge hidden>Admin</span></div><p>Student developer, relentless webnovel reader, and the builder turning Axiom’s reader-first ideas into a place worth returning to.</p></div></div>
           <div class="team-member" data-team-member="shadowfax"><div class="team-avatar team-avatar-generic"><span>S</span></div><div><div class="team-member-name"><h3>Shadowfax</h3><span class="account-special-badge" data-team-special-badge hidden>Admin</span></div><p>Co-founder and lifelong reader helping shape Axiom’s direction.</p></div></div>
       </section>
-    </main><script src="/runtime-config.js"></script><script src="/script.js"></script><script src="/team.js"></script>
+    </main><script src="/runtime-config.js"></script><script src="/script.js"></script><script src="/admin-preview.js"></script><script src="/team.js"></script>
   </body>
 </html>
