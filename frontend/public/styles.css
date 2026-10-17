@@ -682,6 +682,10 @@ button:hover {
   padding-top: 18px;
 }
 
+#login-brand-title {
+  font-size: clamp(3.25rem, 7.5vw, 6.4rem);
+}
+
 .auth-intro > :not(.auth-mark) {
   position: relative;
   z-index: 1;

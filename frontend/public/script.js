@@ -17,7 +17,7 @@ function renderBackendWakeOverlay() {
       <div class="backend-wake-dialog">
         <span class="backend-wake-mark" aria-hidden="true">A</span>
         <h1>Waking up Axiom</h1>
-        <p>Starting up Axiom's servers. This may take around a minute to load. Thank you for your patience.</p>
+        <p>Starting up our servers. This may take around a minute to load. Thank you for your patience.</p>
         <div class="backend-wake-progress" aria-hidden="true"><span></span></div>
       </div>
     </section>
