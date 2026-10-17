@@ -1352,6 +1352,13 @@ button {
   line-height: 1.04;
 }
 
+.under-construction-symbol {
+  color: #f5c451;
+  font-size: 2.15rem;
+  line-height: 1;
+  text-shadow: 0 0 18px rgba(245, 196, 81, 0.28);
+}
+
 .under-construction-page p:not(.eyebrow) {
   max-width: 520px;
   margin: 0;

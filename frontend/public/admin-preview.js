@@ -1,20 +1,24 @@
-// These pages are being written privately before their public launch. The
-// content remains available to Admin Hub users for review; everyone else sees
-// the launch placeholder.
+// These private pages are available only to Admin Hub users. Everyone else is
+// sent to one shared under-construction page.
 async function revealAdminPreview() {
   const preview = document.querySelector("[data-admin-preview]");
-  const placeholder = document.querySelector("[data-admin-preview-placeholder]");
-  if (!preview || !placeholder) return;
+  if (!preview) return;
+
+  function showConstructionPage() {
+    window.location.replace("/under-construction.html");
+  }
 
   try {
     const response = await authFetch(`${API_BASE}/api/admin/me`);
-    if (!response.ok) return;
+    if (!response.ok) {
+      showConstructionPage();
+      return;
+    }
 
     preview.hidden = false;
-    placeholder.hidden = true;
     document.title = preview.dataset.previewTitle || document.title;
   } catch {
-    // Guests and ordinary accounts intentionally stay on the placeholder.
+    showConstructionPage();
   }
 }
 
