@@ -2212,6 +2212,10 @@ body.modal-open { overflow:hidden; }
   font-size: 1.05rem;
 }
 
+.friends-add-button {
+  margin-top: 18px;
+}
+
 .friends-tabs {
   display: inline-flex;
   gap: 4px;
