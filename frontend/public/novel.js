@@ -725,29 +725,43 @@ function createMoreActions({ isOwner, onEdit, onDelete }) {
   menu.className = "review-more-actions";
   const trigger = document.createElement("summary");
   trigger.setAttribute("aria-label", "More comment actions");
-  trigger.textContent = "•••";
+  trigger.textContent = "⋯";
   const panel = document.createElement("div");
   panel.className = "review-more-menu";
+  panel.setAttribute("role", "menu");
 
   if (isOwner) {
     const edit = document.createElement("button");
     edit.type = "button";
+    edit.dataset.menuAction = "edit";
+    edit.setAttribute("role", "menuitem");
     edit.textContent = "Edit";
     edit.addEventListener("click", () => { menu.open = false; onEdit?.(); });
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "is-danger";
+    remove.dataset.menuAction = "delete";
+    remove.setAttribute("role", "menuitem");
     remove.textContent = "Delete";
     remove.addEventListener("click", () => { menu.open = false; onDelete?.(); });
     panel.append(edit, remove);
     panel.appendChild(document.createElement("hr"));
   }
 
-  panel.append(
-    createPlaceholderAction("Follow comment"),
-    createPlaceholderAction("Report")
-  );
+  const follow = createPlaceholderAction("Follow comment");
+  follow.dataset.menuAction = "follow";
+  follow.setAttribute("role", "menuitem");
+  const report = createPlaceholderAction("Report");
+  report.dataset.menuAction = "report";
+  report.setAttribute("role", "menuitem");
+  panel.append(follow, report);
   menu.append(trigger, panel);
+  menu.addEventListener("toggle", () => {
+    if (!menu.open) return;
+    document.querySelectorAll(".review-more-actions[open]").forEach((other) => {
+      if (other !== menu) other.open = false;
+    });
+  });
   return menu;
 }
 
