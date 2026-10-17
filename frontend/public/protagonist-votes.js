@@ -22,7 +22,7 @@ async function loadProtagonistVotes(novelId, message = "") {
     const data = await call();
     host.replaceChildren();
     if (!data.eligible) {
-      host.append(node("p", "Voting opens when all current protagonist scores are filled in."));
+      host.append(node("p", "The protagonist profile is currently unavailable. Voting opens after its initial values are initialized."));
       return;
     }
     const summary = node("div"); summary.className = "voting-summary";
@@ -44,11 +44,6 @@ async function loadProtagonistVotes(novelId, message = "") {
       const form = node("form"); form.className = "trait-vote-form";
       const description = node("div"); description.className = "vote-trait-description";
       description.append(node("h4", title), node("p", poles));
-      const guide = node("details");
-      const prompt = node("p", data.traits.find(trait => trait.key === key).prompt);
-      prompt.style.whiteSpace = "pre-wrap";
-      guide.append(node("summary", "Scoring guide"), prompt);
-      description.append(guide);
       const current = node("span", String(data.profile[key])); current.className = "vote-current";
       const currentLabel = node("div"); currentLabel.className = "vote-current-label";
       currentLabel.append(node("small", "Current"), current);

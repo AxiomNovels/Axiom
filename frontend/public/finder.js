@@ -239,8 +239,10 @@ function createProfileFilters(grid, measures) {
     function syncEnabledState() {
       const enabled = checkbox.checked;
 
-      minSlider.disabled = !enabled;
-      maxSlider.disabled = !enabled;
+      // Keep the handles usable even before the checkbox is selected. Moving
+      // either one opts this trait into the search automatically.
+      minSlider.disabled = false;
+      maxSlider.disabled = false;
 
       range.classList.toggle("is-disabled", !enabled);
       field.classList.toggle("is-enabled", enabled);
@@ -249,8 +251,38 @@ function createProfileFilters(grid, measures) {
     }
 
     checkbox.addEventListener("change", syncEnabledState);
-    minSlider.addEventListener("input", () => syncRange(minSlider));
-    maxSlider.addEventListener("input", () => syncRange(maxSlider));
+    function enableFromRange() {
+      if (checkbox.checked) return;
+      checkbox.checked = true;
+      syncEnabledState();
+    }
+
+    // A pointer can land on either the thumb or its track; make both paths
+    // opt in straight away. A click on the bar also moves whichever handle is
+    // closest, which makes choosing a range much quicker.
+    range.addEventListener("pointerdown", (event) => {
+      enableFromRange();
+
+      const track = range.querySelector(".profile-range-track");
+      const bounds = track.getBoundingClientRect();
+      const isOnTrack = event.clientY >= bounds.top - 10 && event.clientY <= bounds.bottom + 10;
+      if (!isOnTrack || !bounds.width) return;
+
+      const clickedValue = Math.round(Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width)) * 100);
+      const changedSlider = Math.abs(clickedValue - Number(minSlider.value)) <= Math.abs(clickedValue - Number(maxSlider.value))
+        ? minSlider
+        : maxSlider;
+      changedSlider.value = clickedValue;
+      syncRange(changedSlider);
+    });
+    minSlider.addEventListener("input", () => {
+      enableFromRange();
+      syncRange(minSlider);
+    });
+    maxSlider.addEventListener("input", () => {
+      enableFromRange();
+      syncRange(maxSlider);
+    });
 
     // Initial state: trait is not part of the search.
     syncEnabledState();

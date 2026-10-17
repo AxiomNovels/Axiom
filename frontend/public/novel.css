@@ -90,7 +90,7 @@
   border: 1px solid var(--line);
   border-radius: 12px;
   background: rgba(14, 7, 25, 0.66);
-  padding: 1.5rem;
+  padding: 1.7rem 1.5rem 1.55rem;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.2);
 }
 
@@ -380,13 +380,41 @@
 }
 
 .profile-section h2 {
-  margin-bottom: 0.25rem;
+  margin-bottom: 0;
+}
+
+.profile-section .profile-heading-row {
+  align-items: center;
+  margin-bottom: 1.2rem;
 }
 
 .profile-section-description {
   opacity: 0.7;
   font-size: 0.9rem;
   margin-bottom: 1rem;
+}
+
+#protagonist-profile {
+  display: grid;
+  gap: 0.78rem;
+}
+
+#protagonist-profile > .trait-row,
+#protagonist-profile > .trait-with-poles {
+  margin-bottom: 0;
+}
+
+#protagonist-profile .trait-row {
+  gap: 0.95rem;
+}
+
+#protagonist-profile .trait-label {
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+
+#protagonist-profile .trait-bar-track {
+  height: 9px;
 }
 
 .trait-row {
@@ -2820,7 +2848,7 @@ body.modal-open { overflow:hidden; }
 /* .reviews-section sets display:grid, which would override the hidden attribute */
 .list-reviews-section[hidden] { display: none; }
 
-.profile-vote-link { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); color: #cfa4e8; font-size: 12px; text-decoration: none; }
+.profile-vote-link { display: flex; justify-content: space-between; align-items: center; margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); color: #cfa4e8; font-size: 12px; text-decoration: none; }
 .profile-vote-link[hidden] { display: none; }
 .profile-vote-link:hover { color: var(--ink); }
 

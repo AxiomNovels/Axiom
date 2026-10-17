@@ -2493,7 +2493,7 @@ button {
 
   box-shadow: none;
 
-  cursor: not-allowed;
+  cursor: pointer;
 }
 
 .profile-range.is-disabled .profile-range-input::-moz-range-thumb {
@@ -2503,7 +2503,7 @@ button {
 
   box-shadow: none;
 
-  cursor: not-allowed;
+  cursor: pointer;
 }
 
 /* =========================================================

@@ -298,6 +298,13 @@ def test_finder_and_guide_use_custom_names_as_text(page, frontend, voting_api):
     expect(filters.locator("strong")).to_have_text('<img src=x onerror="window.injected=true">')
     expect(filters.locator("img")).to_have_count(0)
     expect(filters.locator('[name="resilience_min"]')).to_have_count(1)
+    trait_filter = filters.locator(".profile-filter")
+    expect(trait_filter.locator("[data-profile-enabled]")).not_to_be_checked()
+    trait_filter.locator(".range-min").evaluate(
+        "el => { el.value = '35'; el.dispatchEvent(new Event('input', {bubbles:true})); }"
+    )
+    expect(trait_filter.locator("[data-profile-enabled]")).to_be_checked()
+    expect(trait_filter.locator('[name="resilience_min"]')).to_have_value("35")
     page.goto(frontend + "/protagonist-profile-info.html")
     expect(page.locator(".trait-guide")).to_have_count(1)
     expect(page.locator(".trait-guide-body")).to_have_text("A new rubric")

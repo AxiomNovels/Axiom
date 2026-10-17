@@ -18,15 +18,15 @@
 #protagonist-votes [role="status"] { min-height: 20px; margin: 10px 0 0; color: #cf9ee9; }
 #protagonist-votes fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 #protagonist-votes legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-.trait-vote-form { display: grid; grid-template-columns: minmax(0, 1fr) 70px 260px; align-items: center; gap: 24px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+.trait-vote-form { display: grid; grid-template-columns: minmax(260px, 1fr) 52px auto; align-items: start; gap: 12px; padding: 22px 0; border-bottom: 1px solid var(--line); }
 .vote-trait-description h4 { font-size: 13px; margin: 0 0 5px; font-weight: 600; }
 .vote-trait-description p { font-size: 11px; color: var(--muted); margin: 0 0 7px; }
 .vote-trait-description small { display: block; color: var(--dim); font-size: 10px; }
-.vote-current-label { display: flex; flex-direction: column; gap: 4px; }
-.vote-current-label small { font-size: 10px; color: var(--muted); }
+.vote-current-label { display: flex; flex-direction: column; gap: 5px; justify-self: start; }
+.vote-current-label small { color: var(--muted); font-size: 10px; line-height: 12px; }
 .vote-current { font-size: 23px; font-variant-numeric: tabular-nums; color: #d9b6ed; }
-.vote-controls { display: flex; align-items: flex-end; gap: 10px; }
-.vote-controls label { font-size: 10px; color: var(--muted); display: flex; flex-direction: column; gap: 5px; }
+.vote-controls { display: flex; align-items: flex-end; justify-content: flex-start; gap: 12px; min-width: 0; }
+.vote-controls label { color: var(--muted); display: flex; flex-direction: column; gap: 5px; font-size: 10px; line-height: 12px; }
 .vote-controls input { width: 82px; height: 36px; background: #0b0711; border: 1px solid var(--line-strong); border-radius: 7px; padding: 8px; color: var(--ink); font: inherit; font-size: 13px; }
 .vote-controls button { width: auto; min-width: 66px; height: 36px; margin: 0; padding: 0 12px; font-size: 11px; border: 1px solid #ac73cc55; border-radius: 7px; background: #6f338e; color: var(--ink); box-shadow: none; cursor: pointer; }
 .vote-controls button:hover { background: #8844aa; }
@@ -39,6 +39,11 @@
 .voting-footnote { text-align: center; color: var(--dim); font-size: 11px; margin-top: 20px; }
 .voting-login { display: inline-block; color: #d5abea; margin-top: 16px; font-size: 13px; }
 .voting-page :is(a,button,input,summary):focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+@media(max-width: 850px) {
+  .trait-vote-form { grid-template-columns: minmax(0, 1fr) 70px 230px; gap: 16px; }
+  .vote-controls { justify-content: flex-start; gap: 10px; }
+  .vote-current-label { justify-self: start; }
+}
 @media(max-width: 700px) {
   .voting-page { padding: 0 20px; margin-top: 24px; }
   .voting-heading { margin: 28px 0; }
