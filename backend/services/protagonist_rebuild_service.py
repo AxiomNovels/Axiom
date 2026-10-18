@@ -11,7 +11,10 @@ from profiler.regenerate_profiles import regenerate
 
 
 PAGE_SIZE = 500
-DEFAULT_DELAY_SECONDS = 1.0
+# Keep bulk rebuilds comfortably below Gemini's request-per-minute limits.  A
+# profile generation itself also takes time, so this is a minimum pause between
+# one novel finishing and the next one beginning.
+DEFAULT_DELAY_SECONDS = 5.0
 
 
 def _now() -> str:
@@ -149,5 +152,11 @@ def run_job(job_id: str) -> None:
         completed = sum(row["status"] == "completed" for row in counts)
         failed = sum(row["status"] == "failed" for row in counts)
         client.table("protagonist_rebuild_jobs").update({"processed": completed + failed, "succeeded": completed, "failed": failed}).eq("id", job_id).execute()
-        time.sleep(DEFAULT_DELAY_SECONDS)
+        # Do not add needless wait time after the final novel. The next loop
+        # still rechecks the job status, so a cancellation during the pause
+        # prevents another Gemini request from starting.
+        queued = (client.table("protagonist_rebuild_items").select("id")
+                  .eq("job_id", job_id).eq("status", "queued").limit(1).execute().data or [])
+        if queued:
+            time.sleep(DEFAULT_DELAY_SECONDS)
     client.table("protagonist_rebuild_jobs").update({"status": "completed", "finished_at": _now()}).eq("id", job_id).eq("status", "running").execute()
