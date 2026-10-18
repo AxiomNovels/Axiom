@@ -168,7 +168,7 @@ function renderChipList(container, values, chipClassName) {
 }
 
 function renderNovel(novel) {
-  document.title = `${novel.title} | Axiom`;
+  if (window.setNovelSeo) window.setNovelSeo(novel, getNovelIdFromUrl());
 
   const titleEl = document.getElementById("novel-title");
   const authorEl = document.getElementById("novel-author");
@@ -195,6 +195,10 @@ function renderNovel(novel) {
     if (novel.cover_image_url) {
       const coverImage = document.createElement("img");
       coverImage.className = "novel-cover-image";
+      coverImage.width = 320;
+      coverImage.height = 480;
+      coverImage.loading = "eager";
+      coverImage.decoding = "async";
       coverImage.referrerPolicy = "no-referrer";
       coverImage.src = novel.cover_image_url;
       coverImage.alt = `${novel.title} cover`;

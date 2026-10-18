@@ -9,6 +9,61 @@ const AUTH_MODE_KEY = "axiomAuthMode";
 const NORMAL_SESSION_COOKIE = "axiomNormalSession";
 const BACKEND_WAKE_DELAY_MS = 1_200;
 
+const SEO_ORIGIN = "https://axiomnovels.com";
+
+function setSeoMeta(name, content, attribute = "name") {
+  if (!content) return;
+  let element = document.head.querySelector(`meta[${attribute}="${name}"]`);
+  if (!element) {
+    element = document.createElement("meta");
+    element.setAttribute(attribute, name);
+    document.head.appendChild(element);
+  }
+  element.setAttribute("content", content);
+}
+
+function setCanonical(pathname) {
+  let link = document.head.querySelector('link[rel="canonical"]');
+  if (!link) {
+    link = document.createElement("link");
+    link.rel = "canonical";
+    document.head.appendChild(link);
+  }
+  link.href = `${SEO_ORIGIN}${pathname}`;
+}
+
+function setNovelSeo(novel, novelId) {
+  const title = novel.title || "Webnovel";
+  const description = (novel.synopsis || `Explore ${title} on Axiom, with reader reviews and a protagonist profile.`).trim().slice(0, 160);
+  const canonicalPath = `/novel.html?id=${encodeURIComponent(novelId)}`;
+  document.title = `${title} | Axiom`;
+  setSeoMeta("description", description);
+  setCanonical(canonicalPath);
+  setSeoMeta("og:type", "book", "property");
+  setSeoMeta("og:title", `${title} | Axiom`, "property");
+  setSeoMeta("og:description", description, "property");
+  setSeoMeta("og:url", `${SEO_ORIGIN}${canonicalPath}`, "property");
+  if (novel.cover_image_url) setSeoMeta("og:image", novel.cover_image_url, "property");
+  let structuredData = document.head.querySelector('script[data-seo="novel"]');
+  if (!structuredData) {
+    structuredData = document.createElement("script");
+    structuredData.type = "application/ld+json";
+    structuredData.dataset.seo = "novel";
+    document.head.appendChild(structuredData);
+  }
+  structuredData.textContent = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Book",
+    name: title,
+    author: novel.author ? { "@type": "Person", name: novel.author } : undefined,
+    description,
+    image: novel.cover_image_url || undefined,
+    url: `${SEO_ORIGIN}${canonicalPath}`,
+  });
+}
+
+window.setNovelSeo = setNovelSeo;
+
 function renderBackendWakeOverlay() {
   if (document.querySelector("[data-backend-wake-overlay]")) return;
 
