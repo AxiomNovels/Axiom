@@ -68,10 +68,10 @@ function renderBackendWakeOverlay() {
   if (document.querySelector("[data-backend-wake-overlay]")) return;
 
   document.body.insertAdjacentHTML("beforeend", `
-    <section class="backend-wake-overlay" data-backend-wake-overlay role="status" aria-live="polite" aria-label="Starting Axiom's server">
+    <section class="backend-wake-overlay" data-backend-wake-overlay role="status" aria-live="polite" aria-label="Loading Axiom">
       <div class="backend-wake-dialog">
         <span class="backend-wake-mark" aria-hidden="true">A</span>
-        <h1>Waking up Axiom</h1>
+        <h1>Loading Axiom</h1>
         <p>Starting up our servers. This may take around a minute to load. Thank you for your patience.</p>
         <div class="backend-wake-progress" aria-hidden="true"><span></span></div>
       </div>
