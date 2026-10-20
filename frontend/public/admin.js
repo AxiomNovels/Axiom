@@ -4,7 +4,7 @@ let adminId;
 let dirty = false;
 let editorVersion = 0;
 let rebuildPoll;
-const state = { users: { page: 1, query: "", version: 0 }, novels: { page: 1, query: "", version: 0 } };
+const state = { users: { page: 1, query: "", sort: "name", version: 0 }, novels: { page: 1, query: "", version: 0 } };
 
 function element(tag, text, className) {
   const node = document.createElement(tag);
@@ -70,6 +70,11 @@ function jobSummary(job) {
 }
 function displayBuildTime(value) {
   return value ? new Date(value).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "Just now";
+}
+function displayLastOnline(value) {
+  if (!value) return "Never logged in";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 }
 async function loadRebuildHistory(activeJobId) {
   const host = document.getElementById("profile-rebuild-history");
@@ -149,7 +154,8 @@ async function loadList(kind) {
   const current = state[kind];
   const version = ++current.version;
   status("Loading...");
-  const data = await request(`/${kind}?q=${encodeURIComponent(current.query)}&page=${current.page}`);
+  const sort = kind === "users" ? `&sort=${encodeURIComponent(current.sort)}` : "";
+  const data = await request(`/${kind}?q=${encodeURIComponent(current.query)}&page=${current.page}${sort}`);
   if (version !== current.version) return;
   const results = document.getElementById(`${kind}-results`);
   results.replaceChildren();
@@ -164,7 +170,12 @@ async function loadList(kind) {
     avatar.setAttribute("aria-hidden", "true");
     const description = element("div", undefined, "admin-description");
     description.append(element("strong", name));
-    description.append(element("small", kind === "users" ? (item.special ? "Special account" : "Reader") : (item.author || "Unknown author")));
+    if (kind === "users") {
+      description.append(element("small", item.special ? "Special account" : "Reader"));
+      description.append(element("small", `Last online: ${displayLastOnline(item.last_online)}`));
+    } else {
+      description.append(element("small", item.author || "Unknown author"));
+    }
     identity.append(avatar, description);
     const badge = element("span", kind === "users" ? (item.banned ? "Banned" : "Active") : "Novel", `admin-badge ${item.banned ? "is-banned" : kind === "users" ? "is-active" : ""}`);
     const actions = element("div", undefined, "admin-row-actions");
@@ -483,6 +494,11 @@ for (const kind of ["users", "novels"]) {
     loadList(kind).catch(error => status(error.message, true));
   });
 }
+document.getElementById("users-sort").addEventListener("change", event => {
+  state.users.sort = event.currentTarget.value;
+  state.users.page = 1;
+  loadList("users").catch(error => status(error.message, true));
+});
 window.addEventListener("beforeunload", event => { if (dirty) { event.preventDefault(); event.returnValue = ""; } });
 (async () => {
   try { const me = await request("/me"); adminId = me.id; adminContent.hidden = false; await loadList("users"); }

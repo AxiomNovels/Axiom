@@ -206,19 +206,30 @@ def save_home_feature(payload: HomeFeatureUpdate, admin=Depends(require_special)
 
 
 @router.get("/users")
-def users(q: str = Query("", max_length=100), page: int = Query(1, ge=1), admin=Depends(require_special)):
+def users(q: str = Query("", max_length=100), page: int = Query(1, ge=1),
+          sort: Literal["name", "last_online"] = "name", admin=Depends(require_special)):
     _, client = admin
     query = client.table("profiles").select("id,username,created_at", count="exact")
     if q.strip():
         query = query.ilike("username", "%" + q.strip().replace("%", "\\%").replace("_", "\\_") + "%")
-    result = query.order("username").order("id").range((page - 1) * 25, page * 25 - 1).execute()
+    # Last sign-in time lives on the Supabase Auth user, rather than in profiles.
+    # Fetch all matching profiles for that sort so page boundaries are applied
+    # after the auth data has been joined in.
+    if sort == "last_online":
+        result = query.order("username").order("id").execute()
+    else:
+        result = query.order("username").order("id").range((page - 1) * 25, page * 25 - 1).execute()
     rows = []
     for profile in result.data or []:
         user = client.auth.admin.get_user_by_id(profile["id"]).user
         metadata = (user.app_metadata or {}) if user else {}
         rows.append({**profile, "special": metadata.get("axiom_special") is True,
-                     "banned": metadata.get("axiom_banned") is True})
-    return {"users": rows, "total": result.count, "page": page}
+                     "banned": metadata.get("axiom_banned") is True,
+                     "last_online": getattr(user, "last_sign_in_at", None) if user else None})
+    if sort == "last_online":
+        rows.sort(key=lambda row: (row["last_online"] or ""), reverse=True)
+        rows = rows[(page - 1) * 25:page * 25]
+    return {"users": rows, "total": result.count, "page": page, "sort": sort}
 
 
 @router.patch("/users/{user_id}/ban")

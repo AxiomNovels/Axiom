@@ -32,6 +32,44 @@ def test_special_allowed(service):
     assert admin.require_special(("owner", None)) == ("owner", service)
 
 
+def test_users_include_last_online_and_support_name_sort(service):
+    service.table.return_value.select.return_value.order.return_value.order.return_value.range.return_value.execute.return_value.data = [
+        {"id": "one", "username": "Alice", "created_at": "2026-01-01T00:00:00Z"},
+    ]
+    service.table.return_value.select.return_value.order.return_value.order.return_value.range.return_value.execute.return_value.count = 1
+    service.auth.admin.get_user_by_id.return_value.user = SimpleNamespace(
+        app_metadata={}, last_sign_in_at="2026-10-18T12:00:00Z"
+    )
+
+    result = admin.users(q="", page=1, sort="name", admin=("owner", service))
+
+    assert result["users"][0]["last_online"] == "2026-10-18T12:00:00Z"
+    assert result["sort"] == "name"
+    service.table.return_value.select.return_value.order.return_value.order.return_value.range.assert_called_once_with(0, 24)
+
+
+def test_users_sort_last_online_before_paginating(service):
+    query = service.table.return_value.select.return_value
+    query.order.return_value.order.return_value.execute.return_value.data = [
+        {"id": "old", "username": "Old", "created_at": "2026-01-01T00:00:00Z"},
+        {"id": "new", "username": "New", "created_at": "2026-01-01T00:00:00Z"},
+        {"id": "never", "username": "Never", "created_at": "2026-01-01T00:00:00Z"},
+    ]
+    query.order.return_value.order.return_value.execute.return_value.count = 3
+
+    def user_by_id(user_id):
+        return SimpleNamespace(user=SimpleNamespace(
+            app_metadata={},
+            last_sign_in_at={"old": "2026-01-01T00:00:00Z", "new": "2026-10-18T12:00:00Z", "never": None}[user_id],
+        ))
+
+    service.auth.admin.get_user_by_id.side_effect = user_by_id
+    result = admin.users(q="", page=1, sort="last_online", admin=("owner", service))
+
+    assert [user["id"] for user in result["users"]] == ["new", "old", "never"]
+    query.order.return_value.order.return_value.range.assert_not_called()
+
+
 def test_ordinary_account_cannot_call_admin_routes(service):
     service.auth.admin.get_user_by_id.return_value.user = SimpleNamespace(app_metadata={})
     app.dependency_overrides[auth.get_current_user] = lambda: ("ordinary", None)
