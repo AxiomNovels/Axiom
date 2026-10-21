@@ -70,7 +70,11 @@ async function handleRequest(request, response) {
   }
   if (requestPath === "/runtime-config.js") {
     const apiBase = (process.env.API_BASE || "http://localhost:8000").replace(/\/+$/, "");
-    const body = `window.AXIOM_RUNTIME_CONFIG = Object.freeze({ apiBase: ${JSON.stringify(apiBase)} });`;
+    // The beacon token is a public site identifier, never a Cloudflare API token.
+    const beaconToken = process.env.CLOUDFLARE_WEB_ANALYTICS_TOKEN || "";
+    const config = { apiBase };
+    if (/^[a-f0-9]{32}$/i.test(beaconToken)) config.webAnalyticsToken = beaconToken;
+    const body = `window.AXIOM_RUNTIME_CONFIG = Object.freeze(${JSON.stringify(config)});`;
     response.writeHead(200, {
       "Content-Type": "text/javascript; charset=utf-8",
       "Cache-Control": "no-store"

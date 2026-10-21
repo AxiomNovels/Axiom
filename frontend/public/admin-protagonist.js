@@ -98,7 +98,7 @@ function renderDefinitionEditor() {
 }
 
 document.getElementById("definition-tab").addEventListener("click", () => {
-  for (const section of ["users", "novels", "home", "definition"]) {
+  for (const section of ["users", "novels", "analytics", "home", "definition"]) {
     document.getElementById(`${section}-panel`).hidden = section !== "definition";
     document.getElementById(`${section}-tab`).setAttribute("aria-pressed", String(section === "definition"));
   }

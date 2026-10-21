@@ -2,6 +2,19 @@ const LOCAL_API_BASE = "http://localhost:8000";
 // Cloudflare provides this at request time; local development falls back to
 // the local backend without requiring any environment setup.
 const API_BASE = window.AXIOM_RUNTIME_CONFIG?.apiBase || LOCAL_API_BASE;
+// Optional manual Cloudflare Web Analytics collection for the production site.
+// Leave unset when Cloudflare injects the beacon automatically.
+document.addEventListener("DOMContentLoaded", () => {
+  const token = window.AXIOM_RUNTIME_CONFIG?.webAnalyticsToken;
+  if (!/^[a-f0-9]{32}$/i.test(token || "")) return;
+  if (!["axiomnovels.com", "www.axiomnovels.com"].includes(location.hostname)) return;
+  if (document.querySelector('script[src*="cloudflareinsights.com/beacon.min.js"], script[data-cf-beacon]')) return;
+  const beacon = document.createElement("script");
+  beacon.src = "https://static.cloudflareinsights.com/beacon.min.js";
+  beacon.defer = true;
+  beacon.setAttribute("data-cf-beacon", JSON.stringify({ token }));
+  document.head.append(beacon);
+});
 const COVER_CLASSES = ["cover-one", "cover-two", "cover-three", "cover-four", "cover-five"];
 let sessionRefreshPromise = null;
 let sessionRefreshTimer = null;

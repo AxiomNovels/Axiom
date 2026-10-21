@@ -67,6 +67,20 @@ def voting_api(page):
         elif path == "/admin/users":
             users = state.get("users", [{"id": USER, "username": "Reader", "special": True}])
             payload = {"users": users, "total": len(users)}
+        elif path == "/admin/traffic":
+            if state.get("traffic_response"):
+                route.fulfill(status=200, content_type="application/json", body=json.dumps(state["traffic_response"]))
+                return
+            if state.get("traffic_error"):
+                route.fulfill(status=503, content_type="application/json", body=json.dumps({"detail": "Cloudflare account analytics permission is required."}))
+                return
+            payload = {"status": "ok", "timezone": "UTC", "start_date": "2026-10-13", "end_date": "2026-10-19",
+                       "summary": {"visits": 12, "page_views": 31, "today": {"visits": 3, "page_views": 8}},
+                       "daily": [{"date": "2026-10-13", "visits": 2, "page_views": 5, "percentage_change": None},
+                                 {"date": "2026-10-14", "visits": 7, "page_views": 18, "percentage_change": 250.0},
+                                 {"date": "2026-10-19", "visits": 3, "page_views": 8, "percentage_change": -57.1}],
+                       "countries": [{"code": "US", "name": "United States", "visits": 9, "page_views": 23},
+                                     {"code": "CA", "name": "Canada", "visits": 3, "page_views": 8}]}
         elif path == "/admin/novels":
             payload = {"novels": [{"id": 1, "title": "Test novel"}], "total": 1}
         elif path == "/admin/novels/1/profiles":
@@ -163,6 +177,58 @@ def test_admin_distribution_individual_and_user_wide_deletion(page, frontend, vo
     host.get_by_role("button", name="Delete all votes by this user").click()
     expect(host).to_contain_text("No votes found.")
     assert ("DELETE", f"/admin/users/{USER}/protagonist-votes") in voting_api["requests"]
+
+
+def test_admin_traffic_section_renders_and_changes_range(page, frontend, voting_api):
+    login(page)
+    page.goto(frontend + "/admin.html")
+    page.get_by_role("button", name="Analytics", exact=True).click()
+    expect(page.get_by_role("heading", name="Daily Website Traffic")).to_be_visible()
+    expect(page.locator("#traffic-total-visitors")).to_have_text("12")
+    expect(page.locator("#traffic-total-page-views")).to_have_text("31")
+    expect(page.locator("#traffic-table-body tr")).to_have_count(3)
+    expect(page.locator("#country-map .country-bubble")).to_have_count(2)
+    expect(page.locator("#country-table-body tr")).to_have_count(2)
+    assert page.locator("#country-map .country-land").count() > 200
+    us = page.locator('.country-bubble[data-country="US"]')
+    ca = page.locator('.country-bubble[data-country="CA"]')
+    assert (float(us.get_attribute("r")) / float(ca.get_attribute("r"))) ** 2 == pytest.approx(3)
+    us.hover()
+    expect(page.get_by_role("tooltip")).to_contain_text("United States: 9 visits, 23 page views")
+    ca.focus()
+    expect(page.get_by_role("tooltip")).to_contain_text("Canada: 3 visits, 8 page views")
+    ca.press("Escape")
+    expect(page.get_by_role("tooltip")).to_be_hidden()
+    with page.expect_request(lambda request: "/admin/traffic?days=30" in request.url):
+        page.locator("#traffic-range").select_option("30")
+    expect(page.locator("#traffic-total-visitors")).to_have_text("12")
+    page.set_viewport_size({"width": 390, "height": 844})
+    assert page.locator("#country-map").evaluate("el => el.scrollWidth <= el.clientWidth")
+    page.locator('.country-bubble[data-country="CA"]').click()
+    expect(page.get_by_role("tooltip")).to_contain_text("Canada: 3 visits")
+    page.screenshot(path="test-results/analytics-mobile.png", full_page=True)
+    voting_api["traffic_error"] = True
+    page.locator("#traffic-range").select_option("90")
+    expect(page.locator("#traffic-status")).to_contain_text("permission is required")
+    expect(page.locator("#country-map .country-bubble")).to_have_count(0)
+    expect(page.locator("#traffic-retry")).to_be_visible()
+    expect(page.get_by_role("button", name="Accounts", exact=True)).to_be_visible()
+
+
+@pytest.mark.parametrize("response", [
+    {"status": "unconfigured", "message": "Enable Cloudflare Web Analytics and configure the backend."},
+    {"status": "empty", "daily": [], "countries": []},
+])
+def test_admin_traffic_without_measurements_never_shows_request_totals(page, frontend, voting_api, response):
+    login(page)
+    voting_api["traffic_response"] = response
+    page.goto(frontend + "/admin.html")
+    page.get_by_role("button", name="Analytics", exact=True).click()
+    expect(page.locator("#country-status")).to_contain_text("Web Analytics")
+    expect(page.locator("#traffic-content")).to_be_hidden()
+    expect(page.locator("#country-map .country-bubble")).to_have_count(0)
+    page.get_by_role("button", name="Accounts", exact=True).click()
+    expect(page.locator("#analytics-panel")).to_be_hidden()
 
 
 def test_locked_reader_votes_still_saved(page, frontend, voting_api):

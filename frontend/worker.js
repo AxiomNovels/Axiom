@@ -33,7 +33,11 @@ export default {
 
     if (url.pathname === "/runtime-config.js") {
       const apiBase = (env.API_BASE || "").replace(/\/+$/, "");
-      const body = `window.AXIOM_RUNTIME_CONFIG = Object.freeze({ apiBase: ${JSON.stringify(apiBase)} });`;
+      // Public beacon identifier only. API credentials stay on the backend.
+      const beaconToken = env.CLOUDFLARE_WEB_ANALYTICS_TOKEN || "";
+      const config = { apiBase };
+      if (/^[a-f0-9]{32}$/i.test(beaconToken)) config.webAnalyticsToken = beaconToken;
+      const body = `window.AXIOM_RUNTIME_CONFIG = Object.freeze(${JSON.stringify(config)});`;
 
       return new Response(body, {
         headers: {

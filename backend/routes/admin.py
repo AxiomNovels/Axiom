@@ -11,6 +11,7 @@ from models.protagonist_definition import DefinitionUpdate
 from services.protagonist_definition_service import load_definition, measures_for, definition_error
 from services.novel_profiling_service import generate_protagonist_preview
 from services.protagonist_rebuild_service import cancel_job, create_job, delete_job, job_items, job_status, rebuild_history, run_job
+from services.cloudflare_analytics import AnalyticsConfigurationError, AnalyticsUpstreamError, daily_traffic
 
 
 logger = logging.getLogger(__name__)
@@ -95,6 +96,21 @@ class ProfileGenerationRequest(BaseModel):
 @router.get("/me")
 def admin_me(admin=Depends(require_special)):
     return {"id": admin[0], "special": True}
+
+
+@router.get("/traffic")
+def traffic(days: int = Query(7), admin=Depends(require_special)):
+    # Query parameters arrive as text before FastAPI converts them. Using an
+    # integer query plus an explicit allow-list avoids Pydantic Literal values
+    # being compared against the raw string ("7") in some FastAPI versions.
+    if days not in {7, 30, 90}:
+        raise HTTPException(422, "Input should be 7, 30 or 90.")
+    try:
+        return daily_traffic(days)
+    except AnalyticsConfigurationError as error:
+        raise HTTPException(503, str(error)) from error
+    except AnalyticsUpstreamError as error:
+        raise HTTPException(error.status_code, str(error)) from error
 
 
 @router.get("/protagonist-definition")

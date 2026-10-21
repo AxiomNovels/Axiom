@@ -76,6 +76,93 @@ function displayLastOnline(value) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 }
+let trafficLoadVersion = 0;
+const trafficNumber = new Intl.NumberFormat();
+function formatTrafficNumber(value) { return trafficNumber.format(Number(value) || 0); }
+function formatTrafficDate(value) {
+  return new Date(`${value}T12:00:00`).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+}
+function trafficErrorMessage(error) {
+  if (error.message.includes("Configure CLOUDFLARE")) return error.message;
+  return error.message || "Traffic analytics could not be loaded. Please try again.";
+}
+function renderTrafficChart(rows) {
+  const host = document.getElementById("traffic-chart");
+  host.replaceChildren();
+  if (!rows.length) { host.append(element("p", "No traffic data available for this range.")); return; }
+  const width = 900; const height = 300;
+  const left = 48; const right = 18; const top = 22; const bottom = 44;
+  const max = Math.max(1, ...rows.flatMap(row => [row.visits, row.page_views]));
+  const x = index => left + (index / Math.max(1, rows.length - 1)) * (width - left - right);
+  const y = value => top + (1 - value / max) * (height - top - bottom);
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`); svg.setAttribute("focusable", "false");
+  const grid = document.createElementNS("http://www.w3.org/2000/svg", "g"); grid.setAttribute("class", "traffic-grid");
+  [0, .5, 1].forEach(fraction => {
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", left); line.setAttribute("x2", width - right); line.setAttribute("y1", y(max * fraction)); line.setAttribute("y2", y(max * fraction)); grid.append(line);
+  });
+  svg.append(grid);
+  const series = [{ key: "visits", className: "traffic-visitors", label: "Visits" }, { key: "page_views", className: "traffic-page-views", label: "Page views" }];
+  series.forEach(seriesInfo => {
+    const points = rows.map((row, index) => `${x(index)},${y(row[seriesInfo.key])}`).join(" ");
+    const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+    polyline.setAttribute("points", points); polyline.setAttribute("class", seriesInfo.className); svg.append(polyline);
+    rows.forEach((row, index) => {
+      const point = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      point.setAttribute("cx", x(index)); point.setAttribute("cy", y(row[seriesInfo.key])); point.setAttribute("r", "4"); point.setAttribute("class", seriesInfo.className);
+      const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+      title.textContent = `${formatTrafficDate(row.date)} · ${seriesInfo.label}: ${formatTrafficNumber(row[seriesInfo.key])}`; point.append(title); svg.append(point);
+    });
+  });
+  const labels = document.createElement("div"); labels.className = "traffic-chart-labels";
+  labels.append(element("span", "Visits", "traffic-legend-visitors"), element("span", "Page views", "traffic-legend-page-views"));
+  host.append(svg, labels);
+}
+function renderTraffic(data) {
+  const rows = data.daily || [];
+  const summary = data.summary || {};
+  document.getElementById("traffic-total-visitors").textContent = formatTrafficNumber(summary.visits);
+  document.getElementById("traffic-total-page-views").textContent = formatTrafficNumber(summary.page_views);
+  document.getElementById("traffic-today-visitors").textContent = summary.today ? formatTrafficNumber(summary.today.visits) : "Unavailable";
+  document.getElementById("traffic-today-page-views").textContent = summary.today ? formatTrafficNumber(summary.today.page_views) : "Unavailable";
+  document.getElementById("traffic-chart-note").textContent = `Browser visits, known bots excluded · ${data.timezone || "UTC"}`;
+  renderTrafficChart(rows);
+  const body = document.getElementById("traffic-table-body"); body.replaceChildren();
+  rows.slice().reverse().forEach(row => {
+    const tr = document.createElement("tr");
+    tr.append(element("td", formatTrafficDate(row.date)), element("td", formatTrafficNumber(row.visits)), element("td", formatTrafficNumber(row.page_views)), element("td", row.percentage_change == null ? "—" : `${row.percentage_change > 0 ? "+" : ""}${row.percentage_change}%`));
+    body.append(tr);
+  });
+  document.getElementById("traffic-content").hidden = false;
+  document.getElementById("traffic-status").textContent = data.status === "ok" ? `Showing ${data.start_date} to ${data.end_date}. Recent data is provisional and may be delayed. Visits count arrivals, not unique people.` : "";
+  renderCountryMap(data.countries || []);
+}
+async function loadTraffic() {
+  const version = ++trafficLoadVersion;
+  clearCountryMap("Loading visitor countries...");
+  const statusTarget = document.getElementById("traffic-status");
+  const retry = document.getElementById("traffic-retry");
+  const content = document.getElementById("traffic-content");
+  statusTarget.classList.remove("error"); statusTarget.textContent = "Loading traffic analytics..."; retry.hidden = true; content.hidden = true;
+  try {
+    const data = await request(`/traffic?days=${document.getElementById("traffic-range").value}`);
+    if (version !== trafficLoadVersion) return;
+    if (data.status === "unconfigured") {
+      clearCountryMap("Enable Web Analytics to collect browser visits and visitor countries.");
+      statusTarget.textContent = data.message; retry.hidden = true; return;
+    }
+    if (data.status === "empty") {
+      clearCountryMap("No measured browser visits yet. Check that the Web Analytics beacon is enabled for the website.");
+      statusTarget.textContent = "No traffic data is available for this date range."; retry.hidden = false; return;
+    }
+    renderTraffic(data);
+  } catch (error) {
+    if (version !== trafficLoadVersion) return;
+    clearCountryMap("Visitor countries could not be loaded. Retry using the button above.");
+    statusTarget.textContent = trafficErrorMessage(error); statusTarget.classList.add("error"); retry.hidden = false;
+  }
+}
 async function loadRebuildHistory(activeJobId) {
   const host = document.getElementById("profile-rebuild-history");
   const data = await request("/protagonist-rebuilds");
@@ -443,7 +530,7 @@ async function searchHomeFeatureNovels() {
 }
 
 document.getElementById("home-tab").addEventListener("click", () => {
-  ["users", "novels", "home", "definition"].forEach((section) => {
+  ["users", "novels", "analytics", "home", "definition"].forEach((section) => {
     document.getElementById(`${section}-panel`).hidden = section !== "home";
     document.getElementById(`${section}-tab`).setAttribute("aria-pressed", String(section === "home"));
   });
@@ -479,16 +566,17 @@ document.getElementById("rebuild-outdated").addEventListener("click", () => star
 document.getElementById("rebuild-all").addEventListener("click", () => startRebuild(true).catch(error => rebuildStatus(error.message, true)));
 document.getElementById("refresh-rebuild-history").addEventListener("click", () => loadRebuildHistory().catch(error => rebuildStatus(error.message, true)));
 
-for (const kind of ["users", "novels"]) {
+for (const kind of ["users", "novels", "analytics"]) {
   document.getElementById(`${kind}-tab`).addEventListener("click", () => {
-    for (const section of ["users", "novels", "home", "definition"]) {
+    for (const section of ["users", "novels", "analytics", "home", "definition"]) {
       document.getElementById(`${section}-panel`).hidden = section !== kind;
       document.getElementById(`${section}-tab`).setAttribute("aria-pressed", String(section === kind));
     }
+    if (kind === "analytics") { loadTraffic(); return; }
     if (kind === "novels") loadRebuildHistory().catch(error => rebuildStatus(error.message, true));
     loadList(kind).catch(error => status(error.message, true));
   });
-  document.getElementById(`${kind}-search`).addEventListener("submit", event => {
+  if (kind !== "analytics") document.getElementById(`${kind}-search`).addEventListener("submit", event => {
     event.preventDefault();
     state[kind].query = document.getElementById(`${kind}-query`).value.trim(); state[kind].page = 1;
     loadList(kind).catch(error => status(error.message, true));
@@ -499,6 +587,8 @@ document.getElementById("users-sort").addEventListener("change", event => {
   state.users.page = 1;
   loadList("users").catch(error => status(error.message, true));
 });
+document.getElementById("traffic-range").addEventListener("change", () => loadTraffic());
+document.getElementById("traffic-retry").addEventListener("click", () => loadTraffic());
 window.addEventListener("beforeunload", event => { if (dirty) { event.preventDefault(); event.returnValue = ""; } });
 (async () => {
   try { const me = await request("/me"); adminId = me.id; adminContent.hidden = false; await loadList("users"); }

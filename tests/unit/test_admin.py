@@ -32,6 +32,26 @@ def test_special_allowed(service):
     assert admin.require_special(("owner", None)) == ("owner", service)
 
 
+def test_traffic_rejects_unsupported_range(service):
+    with pytest.raises(HTTPException) as error:
+        admin.traffic(14, ("owner", service))
+    assert error.value.status_code == 422
+    assert error.value.detail == "Input should be 7, 30 or 90."
+
+
+@pytest.mark.parametrize("days", [7, 30, 90])
+def test_traffic_query_strings_are_parsed_before_range_validation(service, monkeypatch, days):
+    load = MagicMock(return_value={"status": "empty"})
+    monkeypatch.setattr(admin, "daily_traffic", load)
+    app.dependency_overrides[admin.require_special] = lambda: ("owner", service)
+    try:
+        response = TestClient(app).get(f"/api/admin/traffic?days={days}")
+        assert response.status_code == 200
+        load.assert_called_once_with(days)
+    finally:
+        app.dependency_overrides.clear()
+
+
 def test_users_include_last_online_and_support_name_sort(service):
     service.table.return_value.select.return_value.order.return_value.order.return_value.range.return_value.execute.return_value.data = [
         {"id": "one", "username": "Alice", "created_at": "2026-01-01T00:00:00Z"},
@@ -75,7 +95,7 @@ def test_ordinary_account_cannot_call_admin_routes(service):
     app.dependency_overrides[auth.get_current_user] = lambda: ("ordinary", None)
     try:
         client = TestClient(app)
-        for path in ("/me", "/users", "/novels", "/novels/1/profiles"):
+        for path in ("/me", "/traffic", "/users", "/novels", "/novels/1/profiles"):
             assert client.get("/api/admin" + path).status_code == 403
         assert client.patch("/api/admin/users/00000000-0000-0000-0000-000000000001/ban", json={"banned": True}).status_code == 403
         assert client.put("/api/admin/novels/1/profiles/philosophy", json={"scores": {}}).status_code == 403
@@ -98,7 +118,7 @@ def test_banned_existing_session_rejected(monkeypatch):
 def test_all_admin_routes_require_login():
     client = TestClient(app)
     for method, path, body in [
-        ("GET", "/me", None), ("GET", "/users", None), ("GET", "/novels", None),
+        ("GET", "/me", None), ("GET", "/traffic", None), ("GET", "/users", None), ("GET", "/novels", None),
         ("GET", "/novels/1/profiles", None),
         ("PATCH", "/users/00000000-0000-0000-0000-000000000001/ban", {"banned": True}),
         ("PUT", "/novels/1/profiles/philosophy", {"scores": {}}),
