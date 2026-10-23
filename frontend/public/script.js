@@ -11,6 +11,41 @@ const BACKEND_WAKE_DELAY_MS = 1_200;
 
 const SEO_ORIGIN = "https://axiomnovels.com";
 
+function renderSiteFooter() {
+  if (document.querySelector(".site-footer")) return;
+
+  document.body.insertAdjacentHTML("beforeend", `
+    <footer class="site-footer">
+      <div class="site-footer-main">
+        <div class="site-footer-intro">
+          <a class="brand" href="/" aria-label="Axiom home">
+            <img src="/assets/axiom-mark.png" alt="" class="brand-logo" width="48" height="48">
+            <img src="/assets/axiom-wordmark.png" alt="" class="brand-wordmark" width="128">
+          </a>
+          <p>The premier webnovel finder</p>
+        </div>
+        <nav class="site-footer-nav" aria-label="Footer navigation">
+          <h2>Explore Axiom</h2>
+          <a href="/finder.html">Series finder</a>
+          <a href="/mission.html">Our mission</a>
+          <a href="/team.html">Meet the team</a>
+        </nav>
+        <div class="site-footer-contact">
+          <h2><a href="mailto:axiomnovels@gmail.com">Contact us</a></h2>
+          <p>Questions, feedback, or a novel to share?</p>
+          <a href="mailto:axiomnovels@gmail.com">axiomnovels@gmail.com</a>
+        </div>
+      </div>
+      <div class="site-footer-legal">
+        <p>&copy; ${new Date().getFullYear()} Axiom. All rights reserved.</p>
+        <p>Copyright applies to Axiom&rsquo;s original content and design. Novels, cover art, and other third-party content belong to their respective owners.</p>
+      </div>
+    </footer>
+  `);
+}
+
+renderSiteFooter();
+
 function setSeoMeta(name, content, attribute = "name") {
   if (!content) return;
   let element = document.head.querySelector(`meta[${attribute}="${name}"]`);
