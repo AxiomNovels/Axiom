@@ -59,3 +59,19 @@ The all-SQL suite executes every `database/*.sql` file in dependency order with
 isolated Supabase auth/role substitutes and the actual pgcrypto extension. It
 checks repeatable migrations, RPC argument names, review/reply constraints,
 reading-list triggers, Admin Hub privileges, RLS, and banned-account restrictions.
+
+## First-party analytics
+
+```powershell
+backend\.venv\Scripts\python.exe -m pytest -c tests\pytest.ini tests\unit\test_analytics.py
+node tests/integration/analytics_database.mjs
+node --test tests/integration/analytics_worker.mjs
+backend\.venv\Scripts\python.exe -m pytest -c tests\pytest.ini tests\e2e\test_analytics.py
+```
+
+These checks use controlled API/database substitutes and require no Cloudflare
+account or live Supabase project. They cover trust headers, event validation,
+report authorization, body/rate limits, SQL aggregation, concurrent-time caps,
+deduplication, retention, Worker proxying, consent, maps, exports, and mobile layout.
+Browser tests save desktop/mobile dashboard previews under `test-results/`.
+See `database/ANALYTICS.md` for production setup and metric definitions.

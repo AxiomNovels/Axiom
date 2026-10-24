@@ -443,7 +443,7 @@ async function searchHomeFeatureNovels() {
 }
 
 document.getElementById("home-tab").addEventListener("click", () => {
-  ["users", "novels", "home", "definition", "deletion"].forEach((section) => {
+  ["users", "novels", "home", "definition", "deletion", "analytics"].forEach((section) => {
     document.getElementById(`${section}-panel`).hidden = section !== "home";
     document.getElementById(`${section}-tab`).setAttribute("aria-pressed", String(section === "home"));
   });
@@ -481,7 +481,7 @@ document.getElementById("refresh-rebuild-history").addEventListener("click", () 
 
 for (const kind of ["users", "novels"]) {
   document.getElementById(`${kind}-tab`).addEventListener("click", () => {
-    for (const section of ["users", "novels", "home", "definition", "deletion"]) {
+    for (const section of ["users", "novels", "home", "definition", "deletion", "analytics"]) {
       document.getElementById(`${section}-panel`).hidden = section !== kind;
       document.getElementById(`${section}-tab`).setAttribute("aria-pressed", String(section === kind));
     }

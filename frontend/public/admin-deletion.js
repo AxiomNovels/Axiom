@@ -49,7 +49,7 @@ async function loadDeletionNovels() {
 }
 
 document.getElementById("deletion-tab").addEventListener("click", () => {
-  for (const section of ["users", "novels", "home", "definition", "deletion"]) {
+  for (const section of ["users", "novels", "home", "definition", "deletion", "analytics"]) {
     document.getElementById(`${section}-panel`).hidden = section !== "deletion";
     document.getElementById(`${section}-tab`).setAttribute("aria-pressed", String(section === "deletion"));
   }
