@@ -160,3 +160,12 @@ feature migrations before deploying this change. Deletion and the affected
 readers' Inbox notices commit together. See
 [novel deletion setup and behavior](docs/NOVEL_DELETION.md) for migration order,
 cleanup scope, and verification commands.
+
+### First-party admin analytics
+
+Stage 1 analytics adds traffic, country, active-time, signup, and restricted IP
+reports to the Admin Hub. It uses Axiom's backend and Worker request metadata;
+no Cloudflare Analytics API token is required. Collection defaults to disabled.
+Apply `database/analytics.sql` after the existing profiles/admin migrations,
+schedule retention cleanup, and configure the backend and Worker together.
+See [analytics setup and metric definitions](database/ANALYTICS.md) before enabling.

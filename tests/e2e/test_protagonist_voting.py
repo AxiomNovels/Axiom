@@ -32,6 +32,12 @@ def frontend():
 
 @pytest.fixture
 def voting_api(page):
+    # The fixture static server has no runtime endpoint; provide the same public
+    # configuration contract as the Node server instead of a script-loading 404.
+    page.route("**/runtime-config.js", lambda route: route.fulfill(
+        content_type="application/javascript",
+        body='window.AXIOM_RUNTIME_CONFIG = {apiBase:"http://localhost:8000",analyticsEnabled:false};',
+    ))
     state = {"eligible": True, "locked": False, "votes": {}, "requests": [],
              "definition": json.loads(json.dumps(DEFINITION)), "definition_writes": []}
 
