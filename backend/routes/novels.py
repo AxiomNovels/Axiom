@@ -1,13 +1,15 @@
 import logging
+import secrets
 
 import httpx
 import requests
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from services import novel_profiling_service as novel_profiling
 from services.recommendation_service import recommend_novels
+from services.popular_service import popular_novels
 from services.protagonist_definition_service import load_definition, measures_for
 from core.auth import get_current_user
 from core.database import create_service_client, supabase
@@ -221,6 +223,20 @@ def get_featured_novels():
         raise HTTPException(status_code=500, detail=str(error))
 
     return response.data
+
+@router.get("/popular")
+def get_popular_novels(
+    page: int = Query(1, ge=1),
+    seed: str | None = Query(None, min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9-]+$"),
+):
+    try:
+        return popular_novels(
+            supabase, page=page, seed=seed or secrets.token_hex(16), columns=NOVEL_LIST_COLUMNS,
+        )
+    except Exception as error:
+        logger.exception("Could not load popular novels")
+        raise HTTPException(status_code=503, detail="Popular novels are temporarily unavailable.") from error
+
 
 @router.get("")
 def list_novels():

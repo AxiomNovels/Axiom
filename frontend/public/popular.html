@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Popular novels | Axiom</title>
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/novel.css">
+    <link rel="stylesheet" href="/popular.css">
+  </head>
+  <body>
+    <header class="site-header home-header">
+      <a class="brand" href="/" aria-label="Axiom home">
+        <img src="/assets/axiom-mark.png" alt="" class="brand-logo">
+        <img src="/assets/axiom-wordmark.png" alt="" class="brand-wordmark">
+      </a>
+      <nav class="nav-links reader-nav" aria-label="Primary navigation">
+        <a href="/finder.html">Finder</a>
+        <a href="/readers.html">Readers</a>
+        <a href="/popular.html" aria-current="page">Popular</a>
+      </nav>
+      <form class="top-search-form search-form" action="/search.html" method="get" aria-label="Search novels">
+        <label for="novel-search">Search novels</label>
+        <div class="search-row">
+          <input id="novel-search" name="q" type="search" placeholder="Search novels, authors, keywords...">
+          <button type="submit" aria-label="Search">Search</button>
+        </div>
+      </form>
+      <nav class="nav-links account-nav" aria-label="Account navigation">
+        <div class="guest-actions" data-guest-actions>
+          <a href="/login.html">Log in</a>
+          <a class="nav-cta" href="/signup.html">Sign up</a>
+        </div>
+        <div class="user-actions is-hidden" data-user-actions>
+          <span class="user-greeting" data-user-greeting></span>
+          <button class="logout-button" type="button" data-logout-button>Log out</button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="search-results-page popular-page">
+      <section class="search-results-heading" aria-labelledby="popular-title">
+        <p class="eyebrow">Discover your next read</p>
+        <h1 id="popular-title">Popular novels</h1>
+        <p>Sorted by average Axiom review rating, highest first.</p>
+        <p data-popular-summary role="status">Loading novels&hellip;</p>
+      </section>
+      <section class="series-results" data-popular-results aria-label="Popular novels" aria-busy="true">
+        <p class="search-empty">Loading novels&hellip;</p>
+      </section>
+      <nav class="popular-pagination" data-popular-pagination aria-label="Novel pages" hidden></nav>
+      <noscript><p>Enable JavaScript to browse popular novels.</p></noscript>
+    </main>
+
+    <script src="/runtime-config.js"></script>
+    <script src="/script.js"></script>
+    <script src="/popular.js"></script>
+  </body>
+</html>

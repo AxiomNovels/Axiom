@@ -34,6 +34,19 @@ On first setup, replace the placeholder Supabase values in `backend/.env`.
 Verify the backend with `http://localhost:8000/api/health`, then verify finder
 metadata with `http://localhost:8000/api/search/options`.
 
+## Popular novels
+
+The Popular navigation tab opens `/popular.html`, with up to 20 novels per page.
+Novels rank by their average Axiom review rating (highest first); unrated novels
+appear last. Ties use a random seed preserved in page links, so paging, reloading,
+and browser Back keep the same tie order. New reviews or catalogue changes can
+change rankings while browsing.
+
+`GET /api/novels/popular?page=1&seed=example` returns the page, counts, and seed.
+Omit `seed` to generate a new order. Ranking inputs are read with explicit database
+pagination, and full novel metadata is fetched only for the requested page.
+This uses the existing novels and reviews tables; no migration is required.
+
 ## WebNovel upload access
 
 WebNovel may serve Cloudflare's "Just a moment..." verification page instead of
