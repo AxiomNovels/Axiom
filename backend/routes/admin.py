@@ -2,7 +2,7 @@ import logging
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, field_validator
 
 from core.auth import get_current_user
@@ -12,6 +12,7 @@ from types import SimpleNamespace
 from models.protagonist_definition import DefinitionUpdate
 from services.protagonist_definition_service import load_definition, measures_for, definition_error
 from services.novel_profiling_service import generate_protagonist_preview
+from services.novel_deletion_service import delete_novel
 from services.protagonist_rebuild_service import cancel_job, create_job, delete_job, job_items, job_status, rebuild_history, run_job
 
 
@@ -263,6 +264,11 @@ def novels(q: str = Query("", max_length=150), page: int = Query(1, ge=1), admin
         query = query.ilike("title", "%" + q.strip().replace("%", "\\%").replace("_", "\\_") + "%")
     result = query.order("title").order("id").range((page - 1) * 25, page * 25 - 1).execute()
     return {"novels": result.data or [], "total": result.count, "page": page}
+
+
+@router.delete("/novels/{novel_id}")
+def remove_novel(novel_id: int = Path(gt=0), admin=Depends(require_special)):
+    return delete_novel(admin[1], novel_id, admin[0])
 
 
 def find_novel(client, novel_id):

@@ -152,3 +152,11 @@ The database handles schema changes and clears affected scores, defaults, and
 votes atomically. The existing profile rebuild tools use the saved definition.
 See [the implementation and verification report](database/MANAGE_PROTAGONIST_PROFILE_REPORT.md)
 for deployment details and design decisions.
+
+SPECIAL admins can remove novels through the **Remove Novels** tab or the
+novel page's **Delete novel** button. Apply
+[`database/delete_novel.sql`](database/delete_novel.sql) after the existing
+feature migrations before deploying this change. Deletion and the affected
+readers' Inbox notices commit together. See
+[novel deletion setup and behavior](docs/NOVEL_DELETION.md) for migration order,
+cleanup scope, and verification commands.

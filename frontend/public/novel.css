@@ -3679,3 +3679,6 @@ body.modal-open { overflow:hidden; }
 .upload-novel-page select option {
   background-color: rgba(3, 1, 8, 0.78);
 }
+
+.novel-delete-button { border: 1px solid #9e3434; color: #9e3434; background: transparent; border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+.novel-delete-button:disabled { opacity: .6; cursor: wait; }

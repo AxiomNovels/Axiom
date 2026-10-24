@@ -226,6 +226,7 @@ async function openEditor(id) {
   if (version !== editorVersion) return;
   dirty = false;
   const editor = document.getElementById("profile-editor");
+  editor.dataset.novelId = String(id);
   const heading = element("div", undefined, "editor-heading");
   const title = element("div");
   title.append(element("p", "PROFILE WORKSPACE", "eyebrow"), element("h2", data.novel.title), element("p", "Saved scores are loaded below. Drag a slider or use the arrow keys to adjust it."));
@@ -442,7 +443,7 @@ async function searchHomeFeatureNovels() {
 }
 
 document.getElementById("home-tab").addEventListener("click", () => {
-  ["users", "novels", "home", "definition"].forEach((section) => {
+  ["users", "novels", "home", "definition", "deletion"].forEach((section) => {
     document.getElementById(`${section}-panel`).hidden = section !== "home";
     document.getElementById(`${section}-tab`).setAttribute("aria-pressed", String(section === "home"));
   });
@@ -480,7 +481,7 @@ document.getElementById("refresh-rebuild-history").addEventListener("click", () 
 
 for (const kind of ["users", "novels"]) {
   document.getElementById(`${kind}-tab`).addEventListener("click", () => {
-    for (const section of ["users", "novels", "home", "definition"]) {
+    for (const section of ["users", "novels", "home", "definition", "deletion"]) {
       document.getElementById(`${section}-panel`).hidden = section !== kind;
       document.getElementById(`${section}-tab`).setAttribute("aria-pressed", String(section === kind));
     }

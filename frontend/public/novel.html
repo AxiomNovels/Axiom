@@ -57,6 +57,10 @@
             <div class="novel-heading">
               <h1 id="novel-title">Loading...</h1>
               <p class="novel-author" id="novel-author"></p>
+              <div id="novel-admin-actions" hidden>
+                <button id="novel-delete" class="novel-delete-button" type="button">Delete novel</button>
+                <p id="novel-delete-status" role="status" aria-live="polite"></p>
+              </div>
               <div class="novel-rating-summary" id="novel-rating-summary" aria-live="polite"></div>
               <div class="novel-stats" id="novel-stats" aria-live="polite"></div>
 
@@ -142,6 +146,6 @@
     </main>
 
     <script src="/runtime-config.js"></script><script src="/script.js"></script>
-    <script src="/novel.js"></script>
+    <script src="/novel-deletion.js"></script><script src="/novel.js"></script>
   </body>
 </html>

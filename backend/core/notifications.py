@@ -16,8 +16,8 @@ def create_notification(
     Notifications are always written with the service-role client: the
     `notifications` table intentionally has no INSERT policy for regular
     users, since notifications only ever come from the system, never
-    from other users. This is the single place that should ever write to
-    that table.
+    from other users. Atomic novel deletion writes its notices inside
+    database/delete_novel.sql so delivery and cleanup commit together.
 
     `notif_type` / `data` let the frontend render richer, interactive
     notifications (e.g. "friend_request", carrying the friendship id and

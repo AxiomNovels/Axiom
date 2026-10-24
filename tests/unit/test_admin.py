@@ -32,6 +32,47 @@ def test_special_allowed(service):
     assert admin.require_special(("owner", None)) == ("owner", service)
 
 
+@pytest.mark.parametrize("metadata", [{}, {"axiom_special": "true"}, {"axiom_special": True, "axiom_banned": True}])
+def test_novel_deletion_rejects_non_admins(service, metadata):
+    client = TestClient(app)
+    assert client.delete("/api/admin/novels/1").status_code == 401
+    service.auth.admin.get_user_by_id.return_value.user = SimpleNamespace(app_metadata=metadata)
+    app.dependency_overrides[auth.get_current_user] = lambda: ("ordinary", None)
+    try:
+        assert client.delete("/api/admin/novels/1").status_code == 403
+        service.rpc.assert_not_called()
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_novel_deletion_uses_atomic_rpc(service):
+    service.auth.admin.get_user_by_id.return_value.user = SimpleNamespace(app_metadata={"axiom_special": True})
+    service.rpc.return_value.execute.return_value.data = {"deleted": True, "notified_readers": 2}
+    app.dependency_overrides[auth.get_current_user] = lambda: ("owner", None)
+    try:
+        client = TestClient(app)
+        assert client.delete("/api/admin/novels/0").status_code == 422
+        response = client.delete("/api/admin/novels/1")
+        assert response.status_code == 200
+        assert response.json() == {"deleted": True, "notified_readers": 2}
+        service.rpc.assert_called_once_with("delete_novel", {"p_novel_id": 1, "p_actor_id": "owner"})
+        service.table.assert_not_called()
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.parametrize("code,status", [("P0002", 404), ("42501", 403), ("PGRST202", 503), ("23503", 500)])
+def test_novel_deletion_reports_failures_without_fallback(service, code, status):
+    error = RuntimeError("private database details")
+    error.code = code
+    service.rpc.return_value.execute.side_effect = error
+    with pytest.raises(HTTPException) as raised:
+        admin.remove_novel(1, ("owner", service))
+    assert raised.value.status_code == status
+    assert "private database details" not in raised.value.detail
+    service.table.assert_not_called()
+
+
 def test_users_include_last_online_and_support_name_sort(service):
     service.table.return_value.select.return_value.order.return_value.order.return_value.range.return_value.execute.return_value.data = [
         {"id": "one", "username": "Alice", "created_at": "2026-01-01T00:00:00Z"},

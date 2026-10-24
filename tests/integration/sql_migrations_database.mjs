@@ -139,6 +139,102 @@ assert.equal((await db.query("select count(*)::int n from public.reading_lists")
 await db.exec("delete from public.reviews where id=1");
 assert.equal((await db.query("select count(*)::int n from public.review_replies")).rows[0].n, 0);
 assert.equal((await db.query("select count(*)::int n from public.review_reply_likes")).rows[0].n, 0);
+// Inbox and scraper tables predate the checked-in migrations.
+await db.exec(`alter table public.novels add column reading_links jsonb default '[]';
+  create table public.notifications (
+    id uuid primary key default gen_random_uuid(), user_id uuid references auth.users(id),
+    subject text not null, body text not null, type text not null default 'system',
+    data jsonb not null default '{}', is_read boolean not null default false);
+  create table public.scrape_staging(id bigint primary key, published_novel_id bigint,
+    source_url text, raw_payload jsonb);
+  create table public.review_likes(review_id bigint references public.reviews(id), user_id uuid);
+  update auth.users set raw_app_meta_data = raw_app_meta_data - 'axiom_banned';`);
+await apply("delete_novel.sql");
+await apply("delete_novel.sql");
+const removeNovel = (id, actor = owner) => db.query("select public.delete_novel($1,$2) result", [id, actor]);
+// Exercise cleanup with real current trait/vote triggers and a NO ACTION profile FK.
+await db.exec(`update public.novels set reading_links='[{"url":"https://example.test/novel/1"}]' where id=1;
+  insert into public.scrape_staging values
+    (1,1,'https://example.test/old','{}'),
+    (2,null,'https://example.test/novel/1','{"title":"Staged duplicate"}'),
+    (3,2,'https://example.test/novel/2','{}');`);
+await db.query("update public.profiles set novels_uploaded=array[1,2,1]::bigint[] where id=$1", [reader]);
+await db.query("insert into public.reviews(id,novel_id,user_id,rating) values (10,1,$1,4)", [reader]);
+await db.query("insert into public.review_replies(id,review_id,user_id,comment) values (10,10,$1,'Delete me')", [owner]);
+await db.query("insert into public.review_reply_likes(reply_id,user_id) values (10,$1)", [reader]);
+await db.query("insert into public.review_likes values (10,$1),(2,$1)", [reader]);
+// One uploader-only user, one list-only user and one user in both groups.
+await db.query("update public.profiles set novels_uploaded=array[1]::bigint[] where id=$1", [owner]);
+const third = '00000000-0000-0000-0000-000000000003';
+await db.query("insert into public.reading_list_novels(reading_list_id,novel_id,user_id) select id,1,user_id from public.reading_lists where user_id=$1", [third]);
+await db.query("insert into public.reading_list_novels(reading_list_id,novel_id,user_id) values ($1,2,$2)", [readerList, reader]);
+for (const role of ['anon','authenticated']) {
+  await db.exec(`set role ${role}`);
+  await assert.rejects(removeNovel(1), /permission denied/);
+  await assert.rejects(db.exec('delete from public.novels where id=1'), /permission denied/);
+  await db.exec('reset role');
+}
+await db.exec('set role service_role');
+await assert.rejects(removeNovel(1, reader), /SPECIAL/);
+await db.exec('reset role');
+await db.query("update auth.users set raw_app_meta_data = raw_app_meta_data || '{\"axiom_banned\":true}' where id=$1", [owner]);
+await db.exec('set role service_role');
+await assert.rejects(removeNovel(1), /SPECIAL/);
+await db.exec('reset role');
+await db.query("update auth.users set raw_app_meta_data = raw_app_meta_data - 'axiom_banned' where id=$1", [owner]);
+// Failed notice delivery rolls back upload cleanup and leaves all novel data.
+await db.exec("alter table public.notifications add constraint fail_delivery check (false)");
+await db.exec('set role service_role');
+await assert.rejects(removeNovel(1), /fail_delivery/);
+await db.exec('reset role');
+assert.deepEqual((await db.query('select novels_uploaded from public.profiles where id=$1', [reader])).rows[0].novels_uploaded, [1,2,1]);
+assert.equal((await db.query('select count(*)::int n from public.novels')).rows[0].n, 2);
+await db.exec('alter table public.notifications drop constraint fail_delivery');
+// Failure late in cleanup rolls back notices too.
+await db.exec('create table public.deletion_blocker(novel_id bigint references public.novels(id)); insert into public.deletion_blocker values (1)');
+await db.exec('set role service_role');
+await assert.rejects(removeNovel(1), /foreign key/);
+await db.exec('reset role');
+assert.equal((await db.query('select count(*)::int n from public.notifications')).rows[0].n, 0);
+assert.equal((await db.query('select count(*)::int n from public.protagonist_votes where novel_id=1')).rows[0].n, 1);
+await db.exec('drop table public.deletion_blocker; set role service_role');
+assert.deepEqual((await removeNovel(1)).rows[0].result, {deleted:true,notified_readers:3});
+await assert.rejects(removeNovel(1), /Novel not found/);
+await db.exec('reset role');
+for (const table of ['novels','protagonist_profiles','protagonist_baselines','protagonist_votes','reading_list_novels','reviews','protagonist_rebuild_items','home_feature']) {
+  const column = table === 'novels' ? 'id' : 'novel_id';
+  assert.equal((await db.query(`select count(*)::int n from public.${table} where ${column}=1`)).rows[0].n, 0, table);
+}
+for (const table of ['review_replies','review_reply_likes']) {
+  assert.equal((await db.query(`select count(*)::int n from public.${table}`)).rows[0].n, 0, table);
+}
+assert.deepEqual((await db.query('select id from public.scrape_staging')).rows, [{id:3}]);
+assert.equal((await db.query('select count(*)::int n from public.review_likes')).rows[0].n, 1);
+assert.equal((await db.query('select count(*)::int n from public.reading_lists')).rows[0].n, 3);
+assert.equal((await db.query('select count(*)::int n from public.reading_list_novels where novel_id=2')).rows[0].n, 1);
+assert.equal((await db.query('select comment from public.reviews where id=2')).rows[0].comment, 'Other review');
+assert.deepEqual((await db.query('select novels_uploaded from public.profiles where id=$1', [reader])).rows[0].novels_uploaded, [2]);
+await db.query('update public.profiles set novels_uploaded=array[1,2]::bigint[] where id=$1', [reader]);
+assert.deepEqual((await db.query('select novels_uploaded from public.profiles where id=$1', [reader])).rows[0].novels_uploaded, [2]);
+const notices = (await db.query('select * from public.notifications')).rows;
+assert.equal(notices.length, 3);
+assert.equal(new Set(notices.map(n => n.user_id)).size, 3);
+for (const notice of notices) {
+  assert.equal(notice.is_read, false);
+  assert.equal(notice.type, 'system');
+  assert.deepEqual(notice.data, {});
+  assert.match(notice.body, /Reverend Insanity.*violated Axiom's content policy/);
+}
+// Recipient delivery is not truncated at PostgREST's usual 1,000-row limit.
+await db.exec(`insert into auth.users(id) select md5('delete-reader-' || i)::uuid from generate_series(1,1100) i;
+  insert into public.profiles(id,username,novels_uploaded)
+  select md5('delete-reader-' || i)::uuid, 'Deletion reader ' || i, array[2]::bigint[] from generate_series(1,1100) i;
+  drop table public.scrape_staging;
+  set role service_role;`);
+assert.deepEqual((await removeNovel(2)).rows[0].result, {deleted:true,notified_readers:1101});
+await db.exec('reset role');
+assert.equal((await db.query('select count(*)::int n from public.notifications')).rows[0].n, 1104);
+assert.equal((await db.query('select count(*)::int n from public.profiles where cardinality(novels_uploaded)>0')).rows[0].n, 0);
 assert.deepEqual([...applied].sort(), readdirSync(directory).filter(name => name.endsWith(".sql")).sort());
 await db.close();
 console.log(`All ${applied.size} SQL files executed successfully: ordered installation, repeatable migrations, constraints, triggers, RLS, bans, and preservation checks.`);

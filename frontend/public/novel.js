@@ -1101,6 +1101,36 @@ async function loadSimilarNovels(novelId) {
   }
 }
 
+async function setupNovelDeletion(novel) {
+  if (!getStoredSession()?.access_token) return;
+  const host = document.getElementById("novel-admin-actions");
+  try {
+    const access = await authFetch(`${API_BASE}/api/admin/me`);
+    if (!access.ok) return;
+    host.hidden = false;
+    const remove = document.getElementById("novel-delete");
+    const feedback = document.getElementById("novel-delete-status");
+    remove.addEventListener("click", async () => {
+      remove.disabled = true;
+      feedback.textContent = "";
+      try {
+        if (!await confirmNovelDeletion(novel)) return;
+        // Leave the deleted detail page and offer a clear completion message.
+        const main = document.querySelector("main");
+        const heading = document.createElement("h1");
+        heading.textContent = "Novel deleted";
+        const message = document.createElement("p");
+        message.textContent = "The novel and its associated data have been removed. Affected readers have been notified in their Inbox.";
+        const link = document.createElement("a");
+        link.href = "/admin.html"; link.textContent = "Return to Admin Hub";
+        main.replaceChildren(heading, message, link);
+        document.title = "Novel deleted | Axiom";
+      } catch (error) { feedback.textContent = error.message; }
+      finally { remove.disabled = false; }
+    });
+  } catch { /* The novel remains available if the admin access check fails. */ }
+}
+
 async function loadNovel() {
   console.log("[novel.js] loadNovel() starting");
 
@@ -1133,6 +1163,7 @@ async function loadNovel() {
       PROTAGONIST_MEASURES = definition.traits;
     } catch { PROTAGONIST_MEASURES = []; }
     renderNovel(novel);
+    setupNovelDeletion(novel);
     if (!PROTAGONIST_MEASURES.length) document.getElementById("protagonist-profile").textContent = "Trait definitions are temporarily unavailable. Refresh to retry.";
     const voteLink = document.getElementById("protagonist-vote-link");
     voteLink.href = `/vote.html?id=${encodeURIComponent(novelId)}`;
