@@ -70,9 +70,7 @@
     box.setAttribute("aria-label", "Analytics preferences");
     const text = document.createElement("p");
     text.textContent = "Reader analytics are enabled by default and measure page visits, country, and active time. When signed in, activity can be linked to your account. You can turn reader analytics off here. Request counts are collected separately.";
-    const link = document.createElement("a");
-    link.href = "/analytics-privacy.html"; link.textContent = "How analytics works";
-    box.append(text, link);
+    box.append(text);
     for (const [label, value] of [["Turn analytics on", "accepted"], ["Turn analytics off", "declined"]]) {
       const button = document.createElement("button");
       button.type = "button"; button.textContent = label;

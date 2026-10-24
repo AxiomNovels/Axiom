@@ -26,7 +26,7 @@
 5. Enable `ANALYTICS_LOG_IPS=true` on the backend only if restricted raw IP
    collection is wanted and retention/access arrangements are ready. It defaults
    to false. The IP log opens separately and its access is recorded in backend logs.
-6. Review `/analytics-privacy.html` and applicable privacy/consent requirements
+6. Review your site's privacy notice and applicable privacy/consent requirements
    before enabling live collection. Reader events default to enabled; saved opt-outs and DNT/GPC disable them. This behavior is not a determination that implied consent is appropriate for every visitor or jurisdiction.
 7. Visit the site, browse, interact for 30 seconds, and
    check the Analytics tab with a SPECIAL account. Check countries, request types,
