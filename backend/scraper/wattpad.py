@@ -6,6 +6,7 @@ import httpx
 from selectolax.parser import HTMLParser
 
 from .genres import IN_HOUSE_GENRES
+from core.source_http import source_get, source_url
 
 
 BASE_URL = "https://www.wattpad.com"
@@ -30,10 +31,9 @@ def fetch(url: str) -> str:
     Fetch a public Wattpad story page and return its HTML.
     """
 
-    response = httpx.get(
-        url,
+    response = source_get(
+        httpx.get, url, "wattpad.com", redirect_option="follow_redirects",
         headers=HEADERS,
-        follow_redirects=True,
         timeout=20,
     )
 
@@ -1322,6 +1322,9 @@ def scrape_wattpad(
     Fetch and parse a Wattpad story page.
     """
 
+    url = source_url(url, "wattpad.com")
+    if not re.search(r"/story/\d+(?:[-/?#]|$)", url):
+        raise ValueError("Expected a Wattpad story URL.")
     html = fetch(url)
 
     return parse_wattpad(

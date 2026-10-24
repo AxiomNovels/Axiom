@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from curl_cffi import requests as browser_requests
 
 from .genres import IN_HOUSE_GENRES
+from core.source_http import source_get, source_url
 
 
 BASE_URL = "https://www.webnovel.com"
@@ -33,12 +34,11 @@ def _browser_request(url: str, proxy: str | None = None):
     # Let curl_cffi supply a consistent Chrome User-Agent, client hints, TLS
     # handshake and HTTP/2 settings. Reusing HEADERS would mix browser versions.
     try:
-        return browser_requests.get(
-            url,
+        return source_get(
+            browser_requests.get, url, "webnovel.com",
             impersonate="chrome",
             headers={"Accept-Language": "en-US,en;q=0.9"},
             timeout=20,
-            allow_redirects=True,
             proxy=proxy,
         )
     except browser_requests.exceptions.RequestException as error:
@@ -92,19 +92,15 @@ def normalize_url(
             "WebNovel URL or ID cannot be empty."
         )
 
-    # Already a WebNovel URL.
-    if "webnovel.com" in value.lower():
-        return value
-
     # Numeric ID.
     if value.isdigit():
         return (
             f"{BASE_URL}/book/{value}"
         )
 
-    raise ValueError(
-        f"Could not understand WebNovel URL or ID: {value}"
-    )
+    value = source_url(value, "webnovel.com")
+    extract_story_id(value)
+    return value
 
 
 def extract_story_id(
@@ -207,8 +203,8 @@ def fetch(url: str) -> str:
     else:
         # Preserve the existing successful path; do not retry 404s, rate limits,
         # or server errors, and do not send an unbounded series of requests.
-        response = requests.get(
-            url, headers=HEADERS, timeout=20, allow_redirects=True,
+        response = source_get(
+            requests.get, url, "webnovel.com", headers=HEADERS, timeout=20,
         )
         if response.status_code == 403 or is_challenge(response):
             logger.info("WebNovel refused the plain request; retrying with Chrome transport")
@@ -267,12 +263,11 @@ def fetch_review_statistics(
     # from a server/datacenter IP. Any of those must never make the whole scrape
     # fail, so every failure here simply means "no statistics".
     try:
-        response = requests.get(
-            url,
+        response = source_get(
+            requests.get, url, "webnovel.com",
             params=params,
             headers=HEADERS,
             timeout=20,
-            allow_redirects=True,
         )
         response.raise_for_status()
         data = response.json()

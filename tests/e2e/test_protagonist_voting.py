@@ -139,7 +139,7 @@ def test_guest_and_unestablished_profiles(page, frontend, voting_api):
     expect(page.get_by_role("link", name="Log in to vote")).to_be_visible()
     voting_api["eligible"] = False
     page.reload()
-    expect(page.locator("#protagonist-votes")).to_contain_text("Voting opens when all current")
+    expect(page.locator("#protagonist-votes")).to_contain_text("Voting opens after its initial values are initialized.")
     expect(page.locator("#protagonist-votes input")).to_have_count(0)
 
 

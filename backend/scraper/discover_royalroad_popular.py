@@ -518,7 +518,7 @@ def scrape_and_score(popularity_hits: dict[str, int]) -> list[Candidate]:
                     popularity_score=score, quality_reasons=reasons,
                 ))
             except Exception as exc:
-                if isinstance(exc, httpx.HTTPStatusError) and 500 <= exc.response.status_code < 600:
+                if isinstance(exc, httpx.HTTPStatusError) and 500 <= exc.response.status_code < 600 and exc.response.status_code != 503:
                     # An individual broken novel must not discard the batch.
                     # Repeated failures indicate a source outage; stop normally.
                     consecutive_server_errors += 1

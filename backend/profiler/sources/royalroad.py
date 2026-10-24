@@ -2,6 +2,7 @@ import re
 from urllib.parse import urlparse
 
 import requests
+from core.source_http import source_get
 from bs4 import BeautifulSoup
 
 
@@ -22,7 +23,7 @@ def validate_royalroad_url(url: str) -> None:
 
 
 def fetch_royalroad(url: str) -> str:
-    response = requests.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
+    response = source_get(requests.get, url, "royalroad.com", headers=HEADERS, timeout=20)
     response.raise_for_status()
     if "text/html" not in response.headers.get("content-type", "").casefold():
         raise ValueError("Royal Road did not return HTML")

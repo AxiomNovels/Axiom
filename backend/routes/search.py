@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 
 from routes.novels import NOVEL_LIST_COLUMNS
 from core.database import supabase
+from core.pagination import all_rows
 from services.search_service import filter_novels, sort_novels
 from services.protagonist_definition_service import load_definition, measures_for
 
@@ -43,7 +44,7 @@ def _rating_threshold(value):
 
 
 def _fetch_catalogue():
-    return supabase.table("novels").select(SEARCH_COLUMNS).execute().data or []
+    return all_rows(supabase.table("novels").select(SEARCH_COLUMNS).order("id"))
 
 
 @router.get("/options")
@@ -52,13 +53,7 @@ def search_options():
         # Finder options only need basic novel metadata. Keeping this query
         # independent from profile-table embeds lets a fresh clone load tags
         # even while optional profile migrations are still being applied.
-        novels = (
-            supabase.table("novels")
-            .select("tags, genres, status")
-            .execute()
-            .data
-            or []
-        )
+        novels = all_rows(supabase.table("novels").select("tags, genres, status").order("id"))
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
     definition = load_definition()

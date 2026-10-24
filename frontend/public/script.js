@@ -94,9 +94,10 @@ async function monitorBackendWake() {
 
   let overlayTimer = window.setTimeout(renderBackendWakeOverlay, BACKEND_WAKE_DELAY_MS);
 
-  while (true) {
+  const deadline = Date.now() + 90_000;
+  while (Date.now() < deadline) {
     try {
-      const response = await fetch(`${API_BASE}/api/health`, { cache: "no-store" });
+      const response = await fetch(`${API_BASE}/api/health`, { cache: "no-store", signal: AbortSignal.timeout(10_000) });
       if (response.ok) {
         window.clearTimeout(overlayTimer);
         removeBackendWakeOverlay();
@@ -109,6 +110,8 @@ async function monitorBackendWake() {
 
     await new Promise((resolve) => window.setTimeout(resolve, 2_000));
   }
+  window.clearTimeout(overlayTimer);
+  removeBackendWakeOverlay();
 }
 
 monitorBackendWake();
@@ -126,6 +129,7 @@ const COMPACT_NUMBER_UNITS = [
 ];
 
 function formatCompactNumber(value) {
+  if (value == null || String(value).trim() === "") return null;
   const number = Number(value);
   if (!Number.isFinite(number) || number < 0) return null;
 
@@ -255,8 +259,10 @@ async function refreshAuthSession() {
         body: JSON.stringify({ refresh_token: currentSession.refresh_token })
       });
       const result = await response.json().catch(() => ({}));
+      // A response from an earlier login must not replace or resurrect it.
+      if (getStoredSession()?.refresh_token !== currentSession.refresh_token) return false;
       if (!response.ok || !result.session?.access_token) {
-        clearAuthState();
+        if (response.status === 401 || response.status === 403) clearAuthState();
         return false;
       }
       storeAuthState(result.user || getStoredUser(), result.session, sessionIsRemembered());
@@ -273,7 +279,7 @@ async function refreshAuthSession() {
   return sessionRefreshPromise;
 }
 
-function scheduleSessionRefresh() {
+function scheduleSessionRefresh(minimumDelay = 0) {
   if (sessionRefreshTimer) window.clearTimeout(sessionRefreshTimer);
 
   const expiresAt = Number(getStoredSession()?.expires_at);
@@ -281,10 +287,10 @@ function scheduleSessionRefresh() {
 
   // Refresh one minute before expiry. This is scheduled only while a page is
   // open; returning to the app is also covered by authFetch's 401 retry.
-  const delay = Math.max(0, expiresAt * 1000 - Date.now() - 60_000);
+  const delay = Math.max(minimumDelay, expiresAt * 1000 - Date.now() - 60_000);
   sessionRefreshTimer = window.setTimeout(() => {
     refreshAuthSession().then((refreshed) => {
-      if (!refreshed && getAccessToken()) scheduleSessionRefresh();
+      if (!refreshed && getAccessToken()) scheduleSessionRefresh(30_000);
     });
   }, delay);
 }

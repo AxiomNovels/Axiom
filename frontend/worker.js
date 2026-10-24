@@ -16,7 +16,7 @@ export default {
       const paths = new Set(sitemapPaths);
       const apiBase = (env.API_BASE || "").replace(/\/+$/, "");
       try {
-        const catalogue = await fetch(`${apiBase}/api/novels`);
+        const catalogue = await fetch(`${apiBase}/api/novels`, { signal: AbortSignal.timeout(4000) });
         if (catalogue.ok) {
           const novels = await catalogue.json();
           for (const novel of Array.isArray(novels) ? novels : []) {
@@ -44,7 +44,8 @@ export default {
     }
 
     const response = await env.ASSETS.fetch(request);
-    if (!noindexPaths.has(url.pathname)) return response;
+    const pagePath = url.pathname.endsWith(".html") ? url.pathname : `${url.pathname.replace(/\/$/, "")}.html`;
+    if (!noindexPaths.has(pagePath)) return response;
     const headers = new Headers(response.headers);
     headers.set("X-Robots-Tag", "noindex, nofollow");
     return new Response(response.body, { status: response.status, statusText: response.statusText, headers });

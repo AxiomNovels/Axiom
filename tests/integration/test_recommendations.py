@@ -27,9 +27,9 @@ class Catalogue:
 
 
 def test_similar_endpoint_searches_beyond_first_page(monkeypatch):
-    source = {"id": 1, "genres": ["Fantasy", "Mystery"]}
-    rows = [{"id": i, "title": str(i), "genres": ["Fantasy"]} for i in range(2, 503)]
-    rows[-1]["genres"] = ["Fantasy", "Mystery"]
+    source = {"id": 1, "tags": ["Magic", "Mystery"]}
+    rows = [{"id": i, "title": str(i), "tags": ["Magic"]} for i in range(2, 503)]
+    rows[-1]["tags"] = ["Magic", "Mystery"]
     pages = []
     monkeypatch.setattr(routes, "get_novel", lambda identity: source)
     monkeypatch.setattr(routes, "supabase", Catalogue(rows, pages))

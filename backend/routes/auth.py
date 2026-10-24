@@ -61,7 +61,7 @@ def find_profile_id_by_username(username: str):
     response = (
         supabase.table("username_lookup")
         .select("id")
-        .ilike("username", username)
+        .ilike("username", username.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_"))
         .limit(1)
         .execute()
     )
@@ -75,7 +75,7 @@ def signup(payload: SignupRequest):
         raise HTTPException(status_code=409, detail="That username is already taken.")
 
     try:
-        response = supabase.auth.sign_up(
+        response = create_public_client().auth.sign_up(
             {
                 "email": payload.email,
                 "password": payload.password,
@@ -86,21 +86,22 @@ def signup(payload: SignupRequest):
         raise auth_error(error, 400)
 
     user = response.user
-    if user:
+    # Supabase may return an obfuscated user for a repeated signup. It does
+    # not prove this request created an account, and must never authorize deletion.
+    if user and getattr(user, "identities", None) != []:
         try:
             create_service_client().table("profiles").insert(
                 {"id": user.id, "username": payload.username}
             ).execute()
         except Exception as error:
-            # Almost always a duplicate username that slipped through the
-            # check above in a race condition. Remove the auth account we
-            # just created so a bad signup doesn't leave an orphaned user.
-            try:
-                create_service_client().auth.admin.delete_user(user.id)
-            except Exception:
-                pass
+            # Preserve the Auth account on a failed/ambiguous database write.
+            # It may predate this request, or the insert may have committed
+            # before its response was lost. Retrying must not delete user data.
+            duplicate = getattr(error, "code", None) == "23505"
             raise HTTPException(
-                status_code=409, detail="That username is already taken."
+                status_code=409 if duplicate else 503,
+                detail="That username or account already exists. Please log in or choose another username."
+                if duplicate else "Couldn't finish setting up your profile. Please retry signup.",
             ) from error
 
         # Send the one-time welcome notification (inbox row + email copy).
@@ -143,7 +144,7 @@ def login(payload: LoginRequest):
         email = user.email
 
     try:
-        response = supabase.auth.sign_in_with_password(
+        response = create_public_client().auth.sign_in_with_password(
             {
                 "email": email,
                 "password": payload.password,
@@ -166,7 +167,10 @@ def refresh_session(payload: RefreshSessionRequest):
     except Exception as error:
         # A refresh token may be expired, revoked, or already rotated. Do not
         # expose provider details; the browser will clear its local session.
-        raise HTTPException(status_code=401, detail="Your session has expired. Please log in again.") from error
+        status = getattr(error, "status", None) or getattr(error, "status_code", None)
+        if status in (400, 401, 403, 422):
+            raise HTTPException(status_code=401, detail="Your session has expired. Please log in again.") from error
+        raise HTTPException(status_code=503, detail="Session refresh is temporarily unavailable. Please try again.") from error
 
     if not getattr(response, "session", None):
         raise HTTPException(status_code=401, detail="Your session has expired. Please log in again.")

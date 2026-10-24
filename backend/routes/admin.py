@@ -7,6 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, field_
 
 from core.auth import get_current_user
 from core.database import create_service_client
+from core.pagination import all_rows
+from types import SimpleNamespace
 from models.protagonist_definition import DefinitionUpdate
 from services.protagonist_definition_service import load_definition, measures_for, definition_error
 from services.novel_profiling_service import generate_protagonist_preview
@@ -118,7 +120,7 @@ def protagonist_rebuild_status(job_id: str, admin=Depends(require_special)):
     try:
         result = job_status(job_id)
     except Exception as error:
-        raise HTTPException(503, "Profile rebuilds are not set up yet. Run database/protagonist_rebuild_jobs.sql in Supabase.") from error
+        raise HTTPException(503, "Profile rebuilds are not set up yet. Apply database/protagonist_rebuild_jobs.sql and database/rebuild_atomic_creation.sql in Supabase.") from error
     if not result:
         raise HTTPException(404, "Profile rebuild job not found.")
     return result
@@ -136,7 +138,7 @@ def protagonist_rebuild_history(admin=Depends(require_special)):
     try:
         return {"jobs": rebuild_history()}
     except Exception as error:
-        raise HTTPException(503, "Profile rebuilds are not set up yet. Run database/protagonist_rebuild_jobs.sql in Supabase.") from error
+        raise HTTPException(503, "Profile rebuilds are not set up yet. Apply database/protagonist_rebuild_jobs.sql and database/rebuild_atomic_creation.sql in Supabase.") from error
 
 
 @router.delete("/protagonist-rebuilds/{job_id}")
@@ -150,7 +152,7 @@ def delete_protagonist_rebuild(job_id: str, admin=Depends(require_special)):
         raise HTTPException(409, str(error)) from error
     except Exception as error:
         logger.exception("Couldn't delete protagonist rebuild %s", job_id)
-        raise HTTPException(503, "Profile rebuilds are not set up yet. Run database/protagonist_rebuild_jobs.sql in Supabase.") from error
+        raise HTTPException(503, "Profile rebuilds are not set up yet. Apply database/protagonist_rebuild_jobs.sql and database/rebuild_atomic_creation.sql in Supabase.") from error
     return {"deleted": True}
 
 
@@ -165,7 +167,7 @@ def cancel_protagonist_rebuild(job_id: str, admin=Depends(require_special)):
         raise HTTPException(409, str(error)) from error
     except Exception as error:
         logger.exception("Couldn't cancel protagonist rebuild %s", job_id)
-        raise HTTPException(503, "Profile rebuilds are not set up yet. Run database/protagonist_rebuild_jobs.sql in Supabase.") from error
+        raise HTTPException(503, "Profile rebuilds are not set up yet. Apply database/protagonist_rebuild_jobs.sql and database/rebuild_atomic_creation.sql in Supabase.") from error
     return {"cancelled": True}
 
 
@@ -176,7 +178,7 @@ def start_protagonist_rebuild(payload: RebuildRequest, background_tasks: Backgro
     except ValueError as error:
         raise HTTPException(409, str(error)) from error
     except Exception as error:
-        raise HTTPException(503, "Profile rebuilds are not set up yet. Run database/protagonist_rebuild_jobs.sql in Supabase.") from error
+        raise HTTPException(503, "Profile rebuilds are not set up yet. Apply database/protagonist_rebuild_jobs.sql and database/rebuild_atomic_creation.sql in Supabase.") from error
     background_tasks.add_task(run_job, job["id"])
     return job
 
@@ -216,7 +218,8 @@ def users(q: str = Query("", max_length=100), page: int = Query(1, ge=1),
     # Fetch all matching profiles for that sort so page boundaries are applied
     # after the auth data has been joined in.
     if sort == "last_online":
-        result = query.order("username").order("id").execute()
+        profiles = all_rows(query.order("username").order("id"))
+        result = SimpleNamespace(data=profiles, count=len(profiles))
     else:
         result = query.order("username").order("id").range((page - 1) * 25, page * 25 - 1).execute()
     rows = []
@@ -227,7 +230,7 @@ def users(q: str = Query("", max_length=100), page: int = Query(1, ge=1),
                      "banned": metadata.get("axiom_banned") is True,
                      "last_online": getattr(user, "last_sign_in_at", None) if user else None})
     if sort == "last_online":
-        rows.sort(key=lambda row: (row["last_online"] or ""), reverse=True)
+        rows.sort(key=lambda row: (str(row["last_online"] or "")), reverse=True)
         rows = rows[(page - 1) * 25:page * 25]
     return {"users": rows, "total": result.count, "page": page, "sort": sort}
 

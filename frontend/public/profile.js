@@ -175,6 +175,9 @@ async function loadProfile() {
   const aboutMeEl = document.getElementById("about-me");
   const counterEl = document.querySelector("[data-about-me-counter]");
 
+  form.dataset.loaded = "false";
+  form.querySelector('button[type="submit"]').disabled = true;
+
   try {
     const response = await authFetch(`${API_BASE}/api/profile`);
     if (response.status === 401) {
@@ -208,6 +211,8 @@ async function loadProfile() {
 
     (profile.tag_preferences || []).forEach((tag) => preferredTags.add(tag));
     renderPreferredTags();
+    form.dataset.loaded = "true";
+    form.querySelector('button[type="submit"]').disabled = false;
   } catch (error) {
     if (usernameEl) usernameEl.textContent = "Couldn't load";
     if (joinDateEl) joinDateEl.textContent = "Couldn't load";
@@ -222,6 +227,7 @@ function setupProfileForm() {
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (form.dataset.loaded !== "true") return;
     clearProfileMessage();
 
     const button = form.querySelector('button[type="submit"]');
@@ -449,9 +455,8 @@ async function applyAvatarEdit() {
   applyButton.textContent = "Saving...";
   applyButton.disabled = true;
 
-  const dataUrl = exportAvatarImage();
-
   try {
+    const dataUrl = exportAvatarImage();
     const response = await authFetch(`${API_BASE}/api/profile/avatar`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -133,11 +133,10 @@ async function watchRebuild(jobId) {
       const job = await request(`/protagonist-rebuilds/${jobId}`);
       rebuildStatus(`${job.status === "completed" ? "Finished" : job.status === "cancelled" ? "Cancelled" : "Running"}: ${jobSummary(job)}.`);
       await loadRebuildHistory(jobId);
-      if (job.status === "completed" || job.status === "cancelled") clearInterval(rebuildPoll);
+      if (job.status !== "completed" && job.status !== "cancelled") rebuildPoll = setTimeout(refresh, 4000);
     } catch (error) { clearInterval(rebuildPoll); rebuildStatus(error.message, true); }
   };
   await refresh();
-  rebuildPoll = setInterval(refresh, 4000);
 }
 async function startRebuild(includeComplete) {
   const label = includeComplete ? "every protagonist profile" : "only incomplete or outdated protagonist profiles";

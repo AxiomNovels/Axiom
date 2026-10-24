@@ -172,11 +172,11 @@ function createNotificationCard(notification) {
   readToggleButton.type = "button";
   readToggleButton.className = "ghost-link inbox-read-toggle";
 
-  function applyReadState(isRead) {
+  function applyReadState(isRead, refreshBadge = true) {
     notification.is_read = isRead;
     details.classList.toggle("is-unread", !isRead);
     readToggleButton.textContent = isRead ? "Mark as unread" : "Mark as read";
-    window.refreshInboxBadge?.();
+    if (refreshBadge) window.refreshInboxBadge?.();
   }
 
   readToggleButton.addEventListener("click", async () => {
@@ -214,7 +214,7 @@ function createNotificationCard(notification) {
   body.appendChild(actions);
   details.append(summary, body);
 
-  applyReadState(notification.is_read);
+  applyReadState(notification.is_read, false);
 
   details.addEventListener("toggle", async () => {
     if (!details.open || notification.is_read) return;

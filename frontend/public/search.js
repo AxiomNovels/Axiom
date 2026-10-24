@@ -31,7 +31,11 @@ function resultCard(novel, index) {
   else cover.textContent = novel.title;
   const copy = document.createElement("div");
   const tagList = novel.tags || [];
-  const tags = tagList.slice(0, 6).map((tag) => `<span>${tag}</span>`).join("");
+  const tags = tagList.slice(0, 6).map((tag) => {
+    const chip = document.createElement("span");
+    chip.textContent = tag;
+    return chip.outerHTML;
+  }).join("");
   const remainingTags = tagList.length > 6 ? `<span class="more-tags">+${tagList.length - 6}</span>` : "";
   copy.innerHTML = `<div class="result-title-row"><div><h3></h3><p class="result-author"></p></div><span class="result-status"></span></div><div class="result-rating"></div><div class="result-stats"></div><p class="result-synopsis"></p><div class="result-tags">${tags}${remainingTags}</div>`;
   copy.querySelector("h3").textContent = novel.title; copy.querySelector(".result-author").textContent = `by ${novel.author || "Unknown"}`;
@@ -41,7 +45,7 @@ function resultCard(novel, index) {
   // Chapter count is optional per novel -- only shown when it actually
   // exists, compactly (e.g. "1.2K chapters").
   const statParts = [];
-  const chapterCount = Number(novel.chapter_count);
+  const chapterCount = formatCompactNumber(novel.chapter_count) == null ? NaN : Number(novel.chapter_count);
   if (Number.isFinite(chapterCount) && chapterCount >= 0) statParts.push(`${formatCompactNumber(chapterCount)} ${chapterCount === 1 ? "chapter" : "chapters"}`);
   const statsEl = copy.querySelector(".result-stats");
   statsEl.textContent = statParts.join(" · ");

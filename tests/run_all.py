@@ -43,6 +43,7 @@ def stop(process):
         process.wait(timeout=5)
     except subprocess.TimeoutExpired:
         process.kill()
+        process.wait()
 
 
 def run_e2e():
@@ -56,12 +57,17 @@ def run_e2e():
     missing = sorted(required - test_values.keys())
     if missing:
         raise RuntimeError(f"Missing test settings: {', '.join(missing)}")
+    ordinary_url = dotenv_values(ROOT / "backend" / ".env").get("SUPABASE_URL", "")
+    if test_values["SUPABASE_URL"].rstrip("/").casefold() == ordinary_url.rstrip("/").casefold():
+        raise RuntimeError("Live E2E blocked: tests/.env.test and backend/.env use the same Supabase project. Configure a dedicated test project.")
 
     environment = os.environ.copy()
     environment.update(test_values)
     environment["FRONTEND_ORIGIN"] = FRONTEND_URL
     environment["TEST_FRONTEND_URL"] = FRONTEND_URL
     environment["TEST_BACKEND_URL"] = BACKEND_URL
+    environment["API_BASE"] = BACKEND_URL
+    environment["AXIOM_LIVE_TESTS"] = "1"
 
     backend = subprocess.Popen(
         [
@@ -75,13 +81,13 @@ def run_e2e():
         cwd=ROOT / "backend",
         env=environment,
     )
-    frontend = subprocess.Popen(
-        ["node", "server.js"],
-        cwd=ROOT / "frontend",
-        env={**environment, "PORT": "3100"},
-    )
-
+    frontend = None
     try:
+        frontend = subprocess.Popen(
+            ["node", "server.js"],
+            cwd=ROOT / "frontend",
+            env={**environment, "PORT": "3100"},
+        )
         wait_for(f"{BACKEND_URL}/api/health", backend)
         wait_for(f"{FRONTEND_URL}/", frontend)
         return subprocess.run(
@@ -97,7 +103,8 @@ def run_e2e():
             env=environment,
         ).returncode
     finally:
-        stop(frontend)
+        if frontend is not None:
+            stop(frontend)
         stop(backend)
 
 

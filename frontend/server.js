@@ -49,19 +49,30 @@ async function sitemapXml() {
 }
 
 function safePublicPath(requestUrl) {
+  try {
   const url = new URL(requestUrl, `http://localhost:${PORT}`);
   const pathname = url.pathname === "/" ? "/index.html" : url.pathname;
   const decodedPath = decodeURIComponent(pathname);
   const filePath = path.normalize(path.join(PUBLIC_DIR, decodedPath));
 
-  if (!filePath.startsWith(PUBLIC_DIR)) {
+  const relative = path.relative(PUBLIC_DIR, filePath);
+  if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative) || decodedPath.includes("\0")) {
     return null;
   }
 
   return filePath;
+  } catch {
+    return null;
+  }
 }
 
 async function handleRequest(request, response) {
+  const filePath = safePublicPath(request.url);
+  if (!filePath) {
+    response.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+    response.end("Bad request");
+    return;
+  }
   const requestPath = new URL(request.url, `http://localhost:${PORT}`).pathname;
   if (requestPath === "/sitemap.xml") {
     response.writeHead(200, { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, max-age=300" });
@@ -76,14 +87,6 @@ async function handleRequest(request, response) {
       "Cache-Control": "no-store"
     });
     response.end(body);
-    return;
-  }
-
-  const filePath = safePublicPath(request.url);
-
-  if (!filePath) {
-    response.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
-    response.end("Bad request");
     return;
   }
 

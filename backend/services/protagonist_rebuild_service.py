@@ -6,6 +6,7 @@ import time
 from datetime import datetime, timezone
 
 from core.database import create_service_client
+from core.pagination import all_rows
 from services.protagonist_definition_service import load_definition, measures_for
 from profiler.regenerate_profiles import regenerate
 
@@ -45,22 +46,16 @@ def candidate_novel_ids(client, include_complete: bool) -> list[int]:
 
 def create_job(requested_by: str, include_complete: bool) -> dict:
     client = create_service_client()
-    active = client.table("protagonist_rebuild_jobs").select("id").in_("status", ["queued", "running"]).limit(1).execute().data or []
-    if active:
-        raise ValueError("A protagonist-profile rebuild is already running.")
-    all_novel_ids = [row["id"] for row in _rows(client, "novels", "id")]
     novel_ids = candidate_novel_ids(client, include_complete)
-    job = client.table("protagonist_rebuild_jobs").insert({
-        "requested_by": requested_by, "mode": "all" if include_complete else "outdated", "total": len(novel_ids),
-    }).execute().data[0]
-    selected_ids = set(novel_ids)
-    for start in range(0, len(all_novel_ids), PAGE_SIZE):
-        client.table("protagonist_rebuild_items").insert([
-            {"job_id": job["id"], "novel_id": novel_id,
-             "status": "queued" if novel_id in selected_ids else "not_needed"}
-            for novel_id in all_novel_ids[start:start + PAGE_SIZE]
-        ]).execute()
-    return job
+    try:
+        return client.rpc("create_protagonist_rebuild", {
+            "p_requested_by": requested_by, "p_include_complete": include_complete,
+            "p_novel_ids": novel_ids,
+        }).execute().data
+    except Exception as error:
+        if getattr(error, "code", None) == "P0001" and "already running" in str(error):
+            raise ValueError("A protagonist-profile rebuild is already running.") from error
+        raise
 
 
 def job_status(job_id: str, client=None) -> dict | None:
@@ -130,7 +125,9 @@ def run_job(job_id: str) -> None:
            .eq("id", job_id).limit(1).execute().data or [])
     if not job or job[0]["status"] != "queued":
         return
-    client.table("protagonist_rebuild_jobs").update({"status": "running", "started_at": _now()}).eq("id", job_id).execute()
+    claimed = client.table("protagonist_rebuild_jobs").update({"status": "running", "started_at": _now()}).eq("id", job_id).eq("status", "queued").execute().data
+    if not claimed:
+        return
     while True:
         job = (client.table("protagonist_rebuild_jobs").select("status")
                .eq("id", job_id).limit(1).execute().data or [])
@@ -141,14 +138,16 @@ def run_job(job_id: str) -> None:
         if not items:
             break
         item = items[0]
-        client.table("protagonist_rebuild_items").update({"status": "running", "started_at": _now()}).eq("id", item["id"]).execute()
+        claimed = client.table("protagonist_rebuild_items").update({"status": "running", "started_at": _now()}).eq("id", item["id"]).eq("status", "queued").execute().data
+        if not claimed:
+            continue
         status, error = "completed", None
         try:
             regenerate(item["novel_id"], minimum_confidence=75, fetch_comments=True, save=True)
         except Exception as exc:  # retain each failure for admin review/retry
             status, error = "failed", str(exc)[:1000]
         client.table("protagonist_rebuild_items").update({"status": status, "error": error, "finished_at": _now()}).eq("id", item["id"]).execute()
-        counts = client.table("protagonist_rebuild_items").select("status").eq("job_id", job_id).execute().data or []
+        counts = all_rows(client.table("protagonist_rebuild_items").select("status").eq("job_id", job_id).order("id"))
         completed = sum(row["status"] == "completed" for row in counts)
         failed = sum(row["status"] == "failed" for row in counts)
         client.table("protagonist_rebuild_jobs").update({"processed": completed + failed, "succeeded": completed, "failed": failed}).eq("id", job_id).execute()

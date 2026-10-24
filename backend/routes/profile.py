@@ -48,24 +48,7 @@ def update_my_profile(payload: ProfileUpdate, auth=Depends(get_current_user)):
     try:
         response = (
             client.table("profiles")
-            .update(
-                {
-                    "gender": payload.gender,
-                    "city": payload.city,
-                    "country": payload.country,
-                    "about_me": payload.about_me,
-                    "tag_preferences": payload.tag_preferences,
-                    "discord_username": payload.discord_username,
-                    "discord_visibility": payload.discord_visibility,
-                    "instagram_username": payload.instagram_username,
-                    "instagram_visibility": payload.instagram_visibility,
-                    "reddit_username": payload.reddit_username,
-                    "reddit_visibility": payload.reddit_visibility,
-                    "tiktok_username": payload.tiktok_username,
-                    "tiktok_visibility": payload.tiktok_visibility,
-                    "online_status_visibility": payload.online_status_visibility,
-                }
-            )
+            .update(payload.model_dump(exclude_unset=True))
             .eq("id", user_id)
             .execute()
         )

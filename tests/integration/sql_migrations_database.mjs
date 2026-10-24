@@ -64,6 +64,41 @@ for (const file of ["protagonist_profile_measures.sql", "protagonist_votes.sql",
   "protagonist_rebuild_jobs.sql", "admin_hub.sql", "manage_protagonist_profile.sql",
   "remove_retired_profiles.sql"]) await apply(file);
 for (const file of ["protagonist_rebuild_jobs.sql", "admin_hub.sql", "manage_protagonist_profile.sql", "remove_retired_profiles.sql"]) await apply(file);
+for (const file of ["audit_hardening.sql", "rebuild_atomic_creation.sql"]) {
+  await apply(file);
+  await apply(file);
+}
+// Private profile fields cannot be read through the direct REST table, even
+// with the original permissive public SELECT policy still installed.
+await db.exec("alter table public.profiles add column discord_username text");
+await db.query("update public.profiles set discord_username='private-handle' where id=$1", [owner]);
+await db.query("select set_config('request.jwt.claim.sub',$1,false)", [reader]);
+await db.exec("set role authenticated");
+assert.deepEqual((await db.query("select id from public.profiles")).rows.map(r => r.id), [reader]);
+assert.equal((await db.query("select count(*)::int n from public.username_lookup")).rows[0].n, 2);
+await assert.rejects(db.query("select discord_username from public.username_lookup"), /does not exist/);
+await db.exec("reset role");
+const ownerList = (await db.query("select id from public.reading_lists where user_id=$1", [owner])).rows[0].id;
+const readerList = (await db.query("select id from public.reading_lists where user_id=$1", [reader])).rows[0].id;
+await db.exec("set role authenticated");
+await assert.rejects(db.query("insert into public.reading_list_novels(reading_list_id,novel_id,user_id) values ($1,1,$2)", [ownerList, reader]), /row-level security/);
+await db.query("insert into public.reading_list_novels(reading_list_id,novel_id,user_id) values ($1,1,$2)", [readerList, reader]);
+await assert.rejects(db.query("update public.reading_list_novels set reading_list_id=$1 where user_id=$2", [ownerList, reader]), /row-level security/);
+await assert.rejects(db.query("update public.review_replies set parent_reply_id=2 where id=1"), /cannot change/);
+await assert.rejects(db.query("update public.review_replies set parent_reply_id=1 where id=1"), /own parent/);
+await db.query("update public.review_replies set comment='Safe edit' where id=1");
+await db.exec("reset role; set role anon");
+await db.query("select set_config('request.jwt.claim.sub','',false)");
+assert.equal((await db.query("select count(*)::int n from public.profiles")).rows[0].n, 0);
+assert.equal((await db.query("select count(*)::int n from public.username_lookup")).rows[0].n, 2);
+await assert.rejects(db.query("select public.create_protagonist_rebuild($1,true,array[1,2]::bigint[])", [owner]), /permission denied/);
+await db.exec("reset role; set role service_role");
+const job = (await db.query("select public.create_protagonist_rebuild($1,false,array[1]::bigint[]) job", [owner])).rows[0].job;
+assert.equal(job.total, 1);
+assert.deepEqual((await db.query("select status from public.protagonist_rebuild_items where job_id=$1 order by novel_id", [job.id])).rows.map(r => r.status), ['queued','not_needed']);
+await assert.rejects(db.query("select public.create_protagonist_rebuild($1,true,array[1,2]::bigint[])", [owner]), /already running/);
+assert.equal((await db.query("select count(*)::int n from public.protagonist_rebuild_jobs")).rows[0].n, 1);
+await db.exec("reset role");
 assert.equal((await db.query("select raw_app_meta_data->>'axiom_special' special from auth.users where id=$1", [owner])).rows[0].special, "true");
 assert.equal((await db.query("select to_regclass('public.philosophy_profiles') t")).rows[0].t, null);
 assert.equal((await db.query("select to_regclass('public.storytelling_style_profiles') t")).rows[0].t, null);

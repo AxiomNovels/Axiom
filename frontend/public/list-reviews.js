@@ -682,7 +682,7 @@ function createListReviewCard(listId, review) {
 
 // Scroll to and highlight #review-<id> / #reply-<id>, like the novel page does.
 function focusListReviewDiscussionTarget() {
-  const targetId = decodeURIComponent(window.location.hash.slice(1));
+  const targetId = window.location.hash.slice(1);
   if (!/^(review|reply)-\d+$/.test(targetId)) return;
   const target = document.getElementById(targetId);
   if (!target) return;
@@ -706,7 +706,7 @@ function renderListReviews(listId, payload) {
 
   // Like the novel feed, only reviews with a written comment get a card.
   // Rating-only reviews still count toward the average shown in the overview.
-  const reviewsWithComments = payload.reviews.filter((review) => review.comment);
+  const reviewsWithComments = payload.reviews.filter((review) => review.comment || review.replies?.length || review.user_id === getStoredUser()?.id);
   if (!reviewsWithComments.length) {
     const empty = document.createElement("p");
     empty.className = "reviews-empty";

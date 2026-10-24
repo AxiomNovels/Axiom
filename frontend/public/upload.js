@@ -156,7 +156,7 @@ function showNovelLink(el, prefix, novelId, title) {
 // When a count is available it's shown compactly (e.g. "123.4K") with
 // the exact figure available on hover/focus via the title attribute.
 function describeCount(el, value) {
-  const number = Number(value);
+  const number = formatCompactNumber(value) == null ? NaN : Number(value);
   if (!Number.isFinite(number) || number < 0) {
     el.textContent = "Unknown";
     el.removeAttribute("title");

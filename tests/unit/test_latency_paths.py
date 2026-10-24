@@ -55,8 +55,12 @@ class DirectoryQuery:
         self.rows = self.rows[:count]
         return self
 
+    def range(self, start, end):
+        self.page = (start, end)
+        return self
+
     def execute(self):
-        return SimpleNamespace(data=self.rows)
+        return SimpleNamespace(data=self.rows[self.page[0]:self.page[1] + 1] if hasattr(self, "page") else self.rows)
 
 
 @pytest.mark.parametrize("sort, expected", [

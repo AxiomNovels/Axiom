@@ -44,12 +44,15 @@ class FakeQuery:
     def __init__(self, rows):
         self.rows = rows
         self.selected_id = None
+        self.orders = []
+        self.page = None
+        self.is_single = False
 
     def select(self, *_args):
         return self
 
     def order(self, field):
-        self.rows = sorted(self.rows, key=lambda row: row[field])
+        self.orders.append(field)
         return self
 
     def eq(self, field, value):
@@ -57,10 +60,20 @@ class FakeQuery:
         return self
 
     def single(self):
+        self.is_single = True
+        return self
+
+    def range(self, start, end):
+        self.page = (start, end)
         return self
 
     def execute(self):
-        data = self.rows[0] if len(self.rows) == 1 else self.rows
+        rows = self.rows[:]
+        for field in reversed(self.orders):
+            rows.sort(key=lambda row: row[field])
+        if self.page:
+            rows = rows[self.page[0]:self.page[1] + 1]
+        data = rows[0] if self.is_single and rows else rows
         return FakeResponse(data)
 
 

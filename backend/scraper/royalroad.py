@@ -6,6 +6,7 @@ from curl_cffi import requests as browser_requests
 from selectolax.parser import HTMLParser
 
 from .genres import IN_HOUSE_GENRES
+from core.source_http import source_get
 
 
 BASE_URL = "https://www.royalroad.com"
@@ -184,7 +185,7 @@ class RoyalRoadClient:
             )
         request = httpx.Request("GET", url)
         try:
-            response = self.browser.get(url)
+            response = source_get(self.browser.get, url, "royalroad.com")
         except browser_requests.exceptions.RequestException as error:
             raise httpx.RequestError(
                 f"Royal Road browser request failed ({type(error).__name__}).",
@@ -202,7 +203,7 @@ class RoyalRoadClient:
         if self.browser is not None:
             response = self._browser_get(url)
         else:
-            response = self.direct.get(url)
+            response = source_get(self.direct.get, url, "royalroad.com", redirect_option="follow_redirects")
             if response.status_code == 403 or is_challenge(response):
                 response = self._browser_get(url)
 

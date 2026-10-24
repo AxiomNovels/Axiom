@@ -50,12 +50,12 @@ def test_users_include_last_online_and_support_name_sort(service):
 
 def test_users_sort_last_online_before_paginating(service):
     query = service.table.return_value.select.return_value
-    query.order.return_value.order.return_value.execute.return_value.data = [
+    query.order.return_value.order.return_value.range.return_value.execute.return_value.data = [
         {"id": "old", "username": "Old", "created_at": "2026-01-01T00:00:00Z"},
         {"id": "new", "username": "New", "created_at": "2026-01-01T00:00:00Z"},
         {"id": "never", "username": "Never", "created_at": "2026-01-01T00:00:00Z"},
     ]
-    query.order.return_value.order.return_value.execute.return_value.count = 3
+    query.order.return_value.order.return_value.range.return_value.execute.return_value.count = 3
 
     def user_by_id(user_id):
         return SimpleNamespace(user=SimpleNamespace(
@@ -67,7 +67,7 @@ def test_users_sort_last_online_before_paginating(service):
     result = admin.users(q="", page=1, sort="last_online", admin=("owner", service))
 
     assert [user["id"] for user in result["users"]] == ["new", "old", "never"]
-    query.order.return_value.order.return_value.range.assert_not_called()
+    query.order.return_value.order.return_value.range.assert_called_once_with(0, 499)
 
 
 def test_ordinary_account_cannot_call_admin_routes(service):

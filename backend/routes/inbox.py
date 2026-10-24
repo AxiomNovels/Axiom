@@ -90,7 +90,7 @@ def get_unread_count(auth=Depends(get_current_user)):
     try:
         response = (
             client.table("notifications")
-            .select("id")
+            .select("id", count="exact", head=True)
             .eq("user_id", user_id)
             .eq("is_read", False)
             .execute()
@@ -98,7 +98,7 @@ def get_unread_count(auth=Depends(get_current_user)):
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
 
-    return {"unread_count": len(response.data or [])}
+    return {"unread_count": response.count or 0}
 
 
 @router.delete("/{notification_id}")

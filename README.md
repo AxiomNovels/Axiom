@@ -1,14 +1,13 @@
-# Philosophy Book Recommender
+# Axiom
 
-A hybrid recommendation system that recommends philosophical fiction based on users' protagonist, philosophical, and storytelling interests.
+A novel discovery app with reader profiles, reviews, reading lists, social features,
+and protagonist traits. Recommendations use tags and protagonist profiles.
 
 ## Features
 
 * Content-based filtering
-* Semantic embeddings
-* Philosophy ontology
-* Collaborative filtering
-* Explainable recommendations
+* Protagonist profiling and trait voting
+* Reader reviews, reading lists, and social features
 
 ## Local frontend
 
@@ -76,18 +75,16 @@ together; the existing frontend already displays the API's source-access message
 
 ## Generate novel profiles
 
-From `backend/`, generate all three profiles with one command:
+From `backend/`, preview a protagonist profile:
 
 ```bash
-python -m profiler.profile_all NOVEL_ID --save
+python -m profiler.profile_protagonist NOVEL_ID
 ```
 
-Each profile also has its own command:
+To save the profile:
 
 ```bash
 python -m profiler.profile_protagonist NOVEL_ID --save
-python -m profiler.profile_philosophy NOVEL_ID --save
-python -m profiler.profile_storytelling NOVEL_ID --save
 ```
 
 Omit `--save` for a preview, or add `--yes` with `--save` for a
@@ -114,6 +111,11 @@ non-interactive run.
 
 
 ## Admin hub
+
+Audit deployment notes and manual regression checks are in
+[`AUDIT_REPORT.md`](AUDIT_REPORT.md). Apply `database/audit_hardening.sql` after
+the profile/list/reply/admin migrations and `database/rebuild_atomic_creation.sql`
+after `database/protagonist_rebuild_jobs.sql`, before deploying the updated backend.
 
 Run `database/admin_hub.sql` once in the Supabase SQL editor. It grants SPECIAL
 access to the existing **wafflehunter** account, locks catalog profile writes to

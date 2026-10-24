@@ -21,6 +21,7 @@ def required_test_setting(name):
     return value
 
 
+@pytest.mark.skipif(os.getenv("AXIOM_LIVE_TESTS") != "1", reason="Use run_all.py with a dedicated Supabase test project for the live journey")
 def test_complete_reader_journey(page):
     supabase_url = required_test_setting("SUPABASE_URL")
     secret_key = required_test_setting("SUPABASE_SECRET_KEY")
@@ -56,15 +57,17 @@ def test_complete_reader_journey(page):
             }
         )
         user_id = created.user.id
+        admin.table("profiles").insert({"id": user_id, "username": f"test_{uuid.uuid4().hex[:12]}"}).execute()
 
         page.goto(f"{FRONTEND_URL}/signup.html")
         expect(page.get_by_role("heading", name="Sign up for Axiom")).to_be_visible()
 
         page.goto(f"{FRONTEND_URL}/login.html")
-        page.locator("#email").fill(email)
+        page.locator("#identifier").fill(email)
         page.locator("#password").fill(password)
         page.get_by_role("button", name="Log in").click()
-        page.wait_for_url(f"{FRONTEND_URL}/")
+        page.wait_for_url(f"{FRONTEND_URL}/lists.html")
+        page.goto(f"{FRONTEND_URL}/")
 
         stored_user = page.evaluate("JSON.parse(localStorage.getItem('axiomUser'))")
         assert stored_user and stored_user.get("id")
@@ -101,10 +104,10 @@ def test_complete_reader_journey(page):
         expect(page.locator("[data-guest-actions]")).to_be_visible()
 
         page.goto(f"{FRONTEND_URL}/login.html")
-        page.locator("#email").fill(email)
+        page.locator("#identifier").fill(email)
         page.locator("#password").fill(password)
         page.get_by_role("button", name="Log in").click()
-        page.wait_for_url(f"{FRONTEND_URL}/")
+        page.wait_for_url(f"{FRONTEND_URL}/lists.html")
         expect(page.locator("[data-user-actions]")).to_be_visible()
     finally:
         if user_id:

@@ -6,6 +6,7 @@ from routes.novels import NOVEL_LIST_COLUMNS
 
 from core.auth import get_optional_current_user
 from core.database import create_service_client
+from core.pagination import all_rows
 from services.reading_list_like_service import attach_like_summaries
 from services.reading_list_review_service import attach_rating_summaries
 
@@ -217,11 +218,10 @@ def list_public_users(
             client.table("profiles")
             .select("id, username, avatar_url, about_me, country, tag_preferences, online_status_visibility")
             .order("username")
-            .limit(100 if sort == "last_online" else safe_limit)
         )
         if query:
             request = request.ilike("username", f"%{query}%")
-        profiles = request.execute().data or []
+        profiles = all_rows(request.order("id")) if sort == "last_online" else request.limit(safe_limit).execute().data or []
     except Exception:
         raise HTTPException(status_code=500, detail="Couldn't load the reader directory.")
 
@@ -243,7 +243,7 @@ def list_public_users(
         # Stable passes preserve alphabetical order when check-ins tie.
         users.sort(key=lambda user: user.get("username", "").casefold())
         users.sort(
-            key=lambda user: last_heartbeat_by_user.get(str(user["id"]), ""),
+            key=lambda user: last_heartbeat_by_user.get(str(user["id"]), "") if user["_public_presence"] else "",
             reverse=True,
         )
         users.sort(key=lambda user: not user["_public_presence"])

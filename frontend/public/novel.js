@@ -124,6 +124,7 @@ function renderNovelStats(novel) {
   ];
 
   stats.forEach(({ value, singular, plural }) => {
+    if (formatCompactNumber(value) == null) return;
     const number = Number(value);
     if (!Number.isFinite(number) || number < 0) return;
 
@@ -218,8 +219,11 @@ function renderNovel(novel) {
   if (linksEl) {
     linksEl.innerHTML = "";
     (novel.reading_links || []).forEach((link) => {
+      let readingUrl;
+      try { readingUrl = new URL(link.url); } catch { return; }
+      if (!["https:", "http:"].includes(readingUrl.protocol)) return;
       const a = document.createElement("a");
-      a.href = link.url;
+      a.href = readingUrl.href;
       a.textContent = `Read on ${link.platform}`;
       a.target = "_blank";
       a.rel = "noopener noreferrer";
@@ -906,7 +910,7 @@ function renderReviews(novelId, payload) {
   renderReviewComposer(novelId, payload.reviews);
   const list = document.querySelector("[data-reviews-list]");
   list.innerHTML = "";
-  const reviewsWithComments = payload.reviews.filter((review) => review.comment);
+  const reviewsWithComments = payload.reviews.filter((review) => review.comment || review.replies?.length || review.user_id === getStoredUser()?.id);
   if (!reviewsWithComments.length) {
     list.innerHTML = `<p class="reviews-empty">${payload.review_count ? "No written comments yet." : "No reviews yet. Start the conversation."}</p>`;
     return;
@@ -975,7 +979,7 @@ function renderReviews(novelId, payload) {
 }
 
 function focusReviewDiscussionTarget() {
-  const targetId = decodeURIComponent(window.location.hash.slice(1));
+  const targetId = window.location.hash.slice(1);
   if (!/^(review|reply)-\d+$/.test(targetId)) return;
   const target = document.getElementById(targetId);
   if (!target) return;

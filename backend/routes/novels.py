@@ -11,6 +11,7 @@ from services.recommendation_service import recommend_novels
 from services.protagonist_definition_service import load_definition, measures_for
 from core.auth import get_current_user
 from core.database import create_service_client, supabase
+from core.pagination import all_rows
 from scraper.content_policy import (
     POLICY_VIOLATION_CODE,
     POLICY_VIOLATION_MESSAGE,
@@ -54,7 +55,7 @@ SOURCE_UNREACHABLE_MESSAGE = (
 def _debug_reason(error: Exception, status: int | None) -> str:
     """One short ASCII line describing the failure, for the X-Scrape-Debug
     response header (visible in the browser's Network tab). Safe to delete."""
-    text = f"{type(error).__name__}: {error}" + (f" [HTTP {status}]" if status else "")
+    text = f"{type(error).__name__}" + (f" [HTTP {status}]" if status else "")
     return " ".join(text.split()).encode("ascii", "ignore").decode("ascii")[:200]
 
 
@@ -70,7 +71,7 @@ def _scrape_failure(source: str, url: str, error: Exception) -> HTTPException:
       * 422 -- we did get a response, but the link is wrong (e.g. 404, not a
         book URL) or the page isn't one we can parse.
 
-    The exact exception is logged and sent back in the X-Scrape-Debug header.
+    Only the exception type and HTTP status are logged and returned; URLs and provider messages may contain secrets.
     """
     status = getattr(getattr(error, "response", None), "status_code", None)
     bad_link = isinstance(error, (
@@ -92,7 +93,7 @@ def _scrape_failure(source: str, url: str, error: Exception) -> HTTPException:
 
     reason = _debug_reason(error, status)
     logger.warning(
-        "Upload scrape failed for %s (%s): %s", url, source, reason, exc_info=True
+        "Upload scrape failed (%s): %s", source, reason
     )
     headers = {"X-Scrape-Debug": reason}
 
@@ -224,16 +225,16 @@ def get_featured_novels():
 @router.get("")
 def list_novels():
     try:
-        response = (
+        rows = all_rows(
             supabase.table("novels")
             .select(NOVEL_LIST_COLUMNS)
             .order("title")
-            .execute()
+            .order("id")
         )
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
 
-    return response.data
+    return rows
 
 
 @router.get("/mine")

@@ -2,6 +2,7 @@ import re
 from urllib.parse import urljoin, urlparse
 
 import requests
+from core.source_http import source_get
 from bs4 import BeautifulSoup
 
 
@@ -32,7 +33,7 @@ def validate_wattpad_url(url: str) -> None:
 
 
 def fetch_wattpad(url: str) -> str:
-    response = requests.get(url, headers=HEADERS, timeout=20, allow_redirects=True)
+    response = source_get(requests.get, url, "wattpad.com", headers=HEADERS, timeout=20)
     response.raise_for_status()
     if "text/html" not in response.headers.get("content-type", "").casefold():
         raise ValueError("Wattpad did not return HTML")
