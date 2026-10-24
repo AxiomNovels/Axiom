@@ -64,7 +64,7 @@ for (const file of ["protagonist_profile_measures.sql", "protagonist_votes.sql",
   "protagonist_rebuild_jobs.sql", "admin_hub.sql", "manage_protagonist_profile.sql",
   "remove_retired_profiles.sql"]) await apply(file);
 for (const file of ["protagonist_rebuild_jobs.sql", "admin_hub.sql", "manage_protagonist_profile.sql", "remove_retired_profiles.sql"]) await apply(file);
-for (const file of ["audit_hardening.sql", "rebuild_atomic_creation.sql"]) {
+for (const file of ["audit_hardening.sql", "rebuild_atomic_creation.sql", "analytics.sql"]) {
   await apply(file);
   await apply(file);
 }

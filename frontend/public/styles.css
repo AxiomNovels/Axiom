@@ -147,6 +147,11 @@ body {
 .site-footer-legal { padding-top: 20px; border-top: 1px solid var(--line); font-size: .75rem; }
 .site-footer-legal p { margin: 0; }
 .site-footer-legal p + p { margin-top: 6px; }
+.site-footer .analytics-preferences { width: auto; min-height: 32px; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: inherit; font: inherit; padding: 0; margin-left: 16px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.analytics-consent { position: fixed; bottom: 20px; left: 16px; right: 16px; z-index: 1000; max-width: 680px; margin: auto; padding: 22px; border: 1px solid var(--line-strong); border-radius: 12px; background: #190c24; color: var(--ink); box-shadow: 0 12px 40px #0008; font-size: .9rem; }
+.analytics-consent p { margin: 0 0 14px; line-height: 1.6; }
+.analytics-consent a { display: block; margin-bottom: 14px; }
+.analytics-consent button { width: auto; margin: 4px 12px 0 0; padding: 10px 14px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--accent-soft); color: var(--ink); cursor: pointer; }
 
 @media (max-width: 700px) {
   .site-footer { margin-top: 40px; padding-top: 28px; }
