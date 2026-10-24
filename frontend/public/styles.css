@@ -114,6 +114,45 @@ body {
   color: var(--ink);
 }
 
+/* Shared footer on every application page. */
+.site-footer {
+  width: min(1240px, calc(100% - 32px));
+  margin: 64px auto 0;
+  padding: 36px 0 24px;
+  border-top: 1px solid var(--line-strong);
+  color: var(--muted);
+  font-size: .85rem;
+  line-height: 1.7;
+}
+
+.site-footer-main {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1.2fr;
+  gap: 40px;
+  padding-bottom: 30px;
+}
+
+.site-footer-main > * { min-width: 0; }
+.site-footer-intro p { max-width: 280px; margin: 14px 0 0; }
+.site-footer h2 { margin: 0 0 12px; color: var(--gold); font-size: .85rem; font-weight: 600; }
+.site-footer a { color: var(--muted); text-decoration: none; }
+.site-footer h2 a { color: inherit; }
+.site-footer a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
+.site-footer a:focus-visible { outline: 2px solid var(--focus); outline-offset: 5px; border-radius: 3px; }
+.site-footer .brand:hover { text-decoration: none; }
+.site-footer-nav { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.site-footer-nav h2 { margin-bottom: 6px; }
+.site-footer-contact p { margin: 0 0 8px; }
+.site-footer-contact > a { overflow-wrap: anywhere; }
+.site-footer-legal { padding-top: 20px; border-top: 1px solid var(--line); font-size: .75rem; }
+.site-footer-legal p { margin: 0; }
+.site-footer-legal p + p { margin-top: 6px; }
+
+@media (max-width: 700px) {
+  .site-footer { margin-top: 40px; padding-top: 28px; }
+  .site-footer-main { grid-template-columns: 1fr; gap: 28px; }
+}
+
 .backend-wake-overlay {
   position: fixed;
   z-index: 9999;

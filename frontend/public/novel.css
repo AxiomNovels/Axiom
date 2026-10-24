@@ -14,11 +14,15 @@
   outline-offset: 2px;
 }
 
+.novel-detail,
+body:has(.novel-detail) .site-footer {
+  width: min(1320px, calc(100% - 48px));
+}
+
 .novel-detail {
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  width: min(1320px, calc(100% - 48px));
   margin: 0 auto;
   padding: 2rem 0 5rem;
 }
@@ -568,8 +572,12 @@
 }
 
 @media (max-width: 720px) {
-  .novel-detail {
+  .novel-detail,
+  body:has(.novel-detail) .site-footer {
     width: min(100% - 32px, 640px);
+  }
+
+  .novel-detail {
     padding-top: 1.25rem;
   }
 
