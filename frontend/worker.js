@@ -1,7 +1,59 @@
-// Cloudflare serves matching static files directly. This Worker only handles
-// the small runtime configuration endpoint and any unmatched asset requests.
-export default {
-  async fetch(request, env) {
+// run_worker_first keeps asset request counts visible to first-party analytics.
+const analyticsOn = (env) => env.ANALYTICS_ENABLED === "true" && !!env.ANALYTICS_EDGE_SECRET;
+
+function edgeHeaders(request, env) {
+  const headers = new Headers(request.headers);
+  headers.delete("host");
+  headers.set("X-Axiom-Edge-Secret", env.ANALYTICS_EDGE_SECRET);
+  headers.set("X-Axiom-Country", /^[A-Z]{2}$/.test(request.cf?.country || "") ? request.cf.country : "XX");
+  headers.set("X-Axiom-Client-IP", request.headers.get("CF-Connecting-IP") || "");
+  return headers;
+}
+
+async function proxyAnalytics(request, env, path) {
+  // Keep browser requests on the first-party origin, and add trusted location metadata.
+  const target = `${env.API_BASE.replace(/\/+$/, "")}${path}`;
+  const headers = edgeHeaders(request, env);
+  const init = { method: request.method, headers, redirect: "manual", signal: AbortSignal.timeout(15000) };
+  if (!["GET", "HEAD"].includes(request.method)) init.body = request.body;
+  return fetch(target, init);
+}
+
+async function logFrontendRequest(request, response, env) {
+  try {
+    const url = new URL(request.url);
+    const page = url.pathname === "/" || !url.pathname.split("/").pop().includes(".") || url.pathname.endsWith(".html");
+    const result = await fetch(`${env.API_BASE.replace(/\/+$/, "")}/api/analytics/edge`, {
+      method: "POST", headers: { "Content-Type": "application/json", "X-Axiom-Edge-Secret": env.ANALYTICS_EDGE_SECRET },
+      body: JSON.stringify({ path: url.pathname.length <= 240 ? url.pathname : "/other",
+        country: /^[A-Z]{2}$/.test(request.cf?.country || "") ? request.cf.country : "XX",
+        ip: request.headers.get("CF-Connecting-IP") || null, kind: page ? "page" : "asset", status: response.status }),
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!result.ok) console.warn("Analytics request collection unavailable:", result.status);
+  } catch { console.warn("Analytics request collection unavailable"); }
+}
+
+const worker = {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    if (analyticsOn(env) && url.pathname.startsWith("/__axiom/backend/api/")) {
+      const path = url.pathname.slice("/__axiom/backend".length);
+      // Edge intake is private even though the general API proxy is public.
+      if (path.startsWith("/api/analytics/edge")) return new Response("Not found", { status: 404 });
+      return proxyAnalytics(request, env, path + url.search);
+    }
+    if (url.pathname === "/__axiom/events") {
+      if (!analyticsOn(env) || request.method !== "POST") return new Response(null, { status: 404 });
+      if (request.headers.get("Origin") !== url.origin) return new Response(null, { status: 403 });
+      return proxyAnalytics(request, env, "/api/analytics/events");
+    }
+    const response = await worker.serve(request, env);
+    if (analyticsOn(env) && !["/runtime-config.js", "/favicon.ico", "/robots.txt"].includes(url.pathname)
+        && !url.pathname.startsWith("/__axiom/")) ctx.waitUntil(logFrontendRequest(request, response, env));
+    return response;
+  },
+  async serve(request, env) {
     const url = new URL(request.url);
     const siteOrigin = "https://axiomnovels.com";
     const sitemapPaths = ["/", "/finder.html", "/readers.html"];
@@ -32,8 +84,9 @@ export default {
     }
 
     if (url.pathname === "/runtime-config.js") {
-      const apiBase = (env.API_BASE || "").replace(/\/+$/, "");
-      const body = `window.AXIOM_RUNTIME_CONFIG = Object.freeze({ apiBase: ${JSON.stringify(apiBase)} });`;
+      const enabled = analyticsOn(env);
+      const apiBase = enabled ? `${url.origin}/__axiom/backend` : (env.API_BASE || "").replace(/\/+$/, "");
+      const body = `window.AXIOM_RUNTIME_CONFIG = Object.freeze({ apiBase: ${JSON.stringify(apiBase)}, analyticsEnabled: ${enabled}, analyticsEndpoint: "/__axiom/events" });`;
 
       return new Response(body, {
         headers: {
@@ -51,3 +104,5 @@ export default {
     return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
   }
 };
+
+export default worker;

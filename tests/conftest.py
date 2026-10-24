@@ -14,6 +14,7 @@ if os.environ.get("AXIOM_LIVE_TESTS") != "1":
         "SUPABASE_SECRET_KEY": "test-secret-key",
         "GEMINI_API_KEY": "test-gemini-key",
         "FRONTEND_ORIGIN": "http://localhost:3000",
+        "ANALYTICS_ENABLED": "false",
     })
 
 if str(BACKEND) not in sys.path:

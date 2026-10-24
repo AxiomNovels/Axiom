@@ -1,9 +1,14 @@
+import hmac
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from routes.admin import router as admin_router
+from routes.analytics import router as analytics_router
+from services import analytics_service
+from core.analytics_body_limit import AnalyticsBodyLimit
 from routes.protagonist_votes import router as protagonist_votes_router
 from routes.auth import router as auth_router
 from routes.friendships import router as friendships_router
@@ -25,6 +30,29 @@ from core.config import FRONTEND_ORIGINS
 
 app = FastAPI(title="Axiom Backend")
 
+
+@app.middleware("http")
+async def count_api_requests(request: Request, call_next):
+    secret = analytics_service.EDGE_SECRET
+    edge = bool(secret and hmac.compare_digest(secret.encode(), request.headers.get("x-axiom-edge-secret", "").encode()))
+    location = {"country": request.headers.get("x-axiom-country", "XX"),
+                "ip": request.headers.get("x-axiom-client-ip")} if edge else {}
+    try:
+        response = await call_next(request)
+    except Exception:
+        if request.url.path.startswith("/api/") and not request.url.path.startswith(("/api/analytics", "/api/admin/analytics", "/api/health")):
+            route = request.scope.get("route")
+            analytics_service.submit({"event": "request", "source": "backend", "kind": "api",
+                                      "path": getattr(route, "path", "/api/other"), "status": 500, **location})
+        raise
+    if request.url.path.startswith("/api/") and not request.url.path.startswith(("/api/analytics", "/api/admin/analytics", "/api/health")):
+        route = request.scope.get("route")
+        analytics_service.submit({"event": "request", "source": "backend", "kind": "api",
+                                  "path": getattr(route, "path", "/api/other"), "status": response.status_code, **location})
+    if request.url.path.startswith("/api/admin/analytics"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
 # Both addresses refer to the local frontend, but browsers treat them as
 # different origins. Supporting both avoids a confusing CORS failure when the
 # frontend is opened with the numeric loopback address.
@@ -42,6 +70,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(AnalyticsBodyLimit)
 
 # Field names -> a friendly, human-readable description, used to build
 # specific "please enter X" messages instead of FastAPI's raw, generic
@@ -84,6 +113,7 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
 
 
 app.include_router(admin_router)
+app.include_router(analytics_router)
 app.include_router(protagonist_votes_router)
 app.include_router(auth_router)
 app.include_router(reviews_router)
