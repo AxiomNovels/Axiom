@@ -51,16 +51,18 @@
           <section class="novel-hero">
             <div class="novel-cover-column">
               <div class="novel-cover" id="novel-cover" aria-hidden="true"></div>
-              <div class="novel-reading-links" id="novel-reading-links"></div>
+              <div class="novel-cover-actions">
+                <div class="novel-reading-links" id="novel-reading-links"></div>
+                <div id="novel-admin-actions" hidden>
+                  <button id="novel-delete" class="novel-delete-button" type="button">Delete novel</button>
+                  <p id="novel-delete-status" role="status" aria-live="polite"></p>
+                </div>
+              </div>
             </div>
 
             <div class="novel-heading">
               <h1 id="novel-title">Loading...</h1>
               <p class="novel-author" id="novel-author"></p>
-              <div id="novel-admin-actions" hidden>
-                <button id="novel-delete" class="novel-delete-button" type="button">Delete novel</button>
-                <p id="novel-delete-status" role="status" aria-live="polite"></p>
-              </div>
               <div class="novel-rating-summary" id="novel-rating-summary" aria-live="polite"></div>
               <div class="novel-stats" id="novel-stats" aria-live="polite"></div>
 
@@ -71,9 +73,9 @@
                   <div class="novel-tags" id="novel-tags"></div>
                 </div>
 
-                <div class="novel-reading-list" id="novel-reading-list" aria-live="polite"></div>
               </div>
             </div>
+            <div class="novel-reading-list" id="novel-reading-list" aria-live="polite"></div>
           </section>
 
 

@@ -32,11 +32,12 @@ body:has(.novel-detail) .site-footer {
 }
 
 .novel-hero {
-  display: flex;
-  gap: clamp(2rem, 3vw, 3rem);
-  align-items: flex-start;
-  justify-content: flex-start;
-  min-height: 350px;
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  grid-template-areas: "cover heading" "actions reading-list";
+  column-gap: clamp(2rem, 3vw, 3rem);
+  row-gap: 0.5rem;
+  align-items: start;
 }
 
 .novel-layout {
@@ -103,6 +104,7 @@ body:has(.novel-detail) .site-footer {
 }
 
 .novel-cover {
+  grid-area: cover;
   width: 230px;
   height: 336px;
   flex-shrink: 0;
@@ -119,19 +121,31 @@ body:has(.novel-detail) .site-footer {
 }
 
 .novel-cover-column {
-  width: 230px;
-  flex-shrink: 0;
+  display: contents;
+}
+
+.novel-cover:has(.novel-cover-image) {
+  padding: 0;
+}
+
+.novel-cover-actions {
+  grid-area: actions;
+  min-width: 0;
 }
 
 .novel-cover-column .novel-reading-links {
-  margin-top: 0.9rem;
+  margin-top: 0;
   width: 100%;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.novel-cover-column .reading-link {
-  display: block;
+.novel-cover-column .reading-link,
+.novel-cover-column .novel-delete-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   width: 100%;
   box-sizing: border-box;
   text-align: center;
@@ -146,8 +160,8 @@ body:has(.novel-detail) .site-footer {
 }
 
 .novel-heading {
-  flex: 1;
-  min-width: 240px;
+  grid-area: heading;
+  min-width: 0;
 }
 
 .novel-author {
@@ -227,7 +241,8 @@ body:has(.novel-detail) .site-footer {
   margin-top: 0;
 }
 
-.reading-link {
+.reading-link,
+.novel-delete-button {
   font-size: 0.85rem;
   padding: 0.35rem 0.75rem;
   border-radius: 0.4rem;
@@ -237,6 +252,7 @@ body:has(.novel-detail) .site-footer {
 }
 
 .novel-reading-list {
+  grid-area: reading-list;
   width: 100%;
 }
 
@@ -586,9 +602,8 @@ body:has(.novel-detail) .site-footer {
   }
 
   .novel-hero {
-    align-items: flex-start;
-    min-height: 0;
-    flex-wrap: wrap;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "cover" "actions" "heading" "reading-list";
   }
 
   .novel-cover {
@@ -596,8 +611,16 @@ body:has(.novel-detail) .site-footer {
     height: 292px;
   }
 
-  .novel-cover-column {
+  .novel-cover-actions {
     width: 200px;
+  }
+
+  .novel-heading {
+    margin-top: 1rem;
+  }
+
+  .novel-hero > .novel-reading-list {
+    margin-top: 0.5rem;
   }
 
   .novel-meta-actions {
@@ -3680,5 +3703,41 @@ body.modal-open { overflow:hidden; }
   background-color: rgba(3, 1, 8, 0.78);
 }
 
-.novel-delete-button { border: 1px solid #9e3434; color: #9e3434; background: transparent; border-radius: 6px; padding: 8px 12px; cursor: pointer; }
-.novel-delete-button:disabled { opacity: .6; cursor: wait; }
+#novel-admin-actions {
+  margin-top: 0.5rem;
+}
+
+.novel-delete-button {
+  min-height: 0;
+  font-family: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  color: #f0a1aa;
+  border-color: rgba(240, 161, 170, 0.4);
+  background: rgba(160, 45, 65, 0.1);
+  box-shadow: none;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.novel-delete-button:hover:not(:disabled) {
+  color: #ffd3d9;
+  border-color: #f0a1aa;
+  background: rgba(160, 45, 65, 0.22);
+  box-shadow: none;
+  transform: none;
+}
+
+.novel-delete-button:focus-visible {
+  outline: 2px solid #f0a1aa;
+  outline-offset: 3px;
+}
+
+.novel-delete-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+#novel-delete-status:empty {
+  display: none;
+}
