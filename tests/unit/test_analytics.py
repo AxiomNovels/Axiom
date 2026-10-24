@@ -26,6 +26,15 @@ def payload(**kwargs):
     return {"id": str(uuid4()), "session_id": str(uuid4()), "event": "page_view", "path": "/novel.html", **kwargs}
 
 
+def test_public_config_shares_only_collection_flag(client, monkeypatch):
+    response = client.get("/api/analytics/config")
+    assert response.status_code == 200
+    assert response.json() == {"enabled": True}
+    assert response.headers["cache-control"] == "no-store"
+    monkeypatch.setattr(service, "ENABLED", False)
+    assert client.get("/api/analytics/config").json() == {"enabled": False}
+
+
 def test_browser_cannot_choose_identity_or_location(client):
     for field in ("user_id", "country", "ip", "source"):
         assert client.post("/api/analytics/events", json=payload(**{field: "spoofed"})).status_code == 422

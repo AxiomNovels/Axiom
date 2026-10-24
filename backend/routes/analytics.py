@@ -22,6 +22,13 @@ def trusted(request):
     return bool(analytics.EDGE_SECRET and hmac.compare_digest(supplied.encode(), analytics.EDGE_SECRET.encode()))
 
 
+@router.get("/analytics/config")
+def public_config(response: Response):
+    """Only the public collection flag; never expose edge or database credentials."""
+    response.headers["Cache-Control"] = "no-store"
+    return {"enabled": analytics.ENABLED}
+
+
 @router.post("/analytics/events", status_code=202)
 def collect(event: BrowserEvent, request: Request, auth=Depends(get_optional_current_user)):
     if not analytics.ENABLED:

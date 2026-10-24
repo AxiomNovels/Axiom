@@ -27,15 +27,20 @@
    collection is wanted and retention/access arrangements are ready. It defaults
    to false. The IP log opens separately and its access is recorded in backend logs.
 6. Review `/analytics-privacy.html` and applicable privacy/consent requirements
-   before enabling live collection. Reader events are opt-in; DNT/GPC disable them.
-7. Visit the site, allow optional analytics, browse, interact for 30 seconds, and
+   before enabling live collection. Reader events default to enabled; saved opt-outs and DNT/GPC disable them. This behavior is not a determination that implied consent is appropriate for every visitor or jurisdiction.
+7. Visit the site, browse, interact for 30 seconds, and
    check the Analytics tab with a SPECIAL account. Check countries, request types,
-   queue health, and Cron. Decline and confirm reader events stop.
+   queue health, and Cron. Turn analytics off in the footer preferences and confirm reader events stop.
 
 ## Local use
 
-Set `ANALYTICS_ENABLED=true` in `backend/.env` and in the Node frontend process
-environment. Local browser events go directly to the backend; country is `XX`
+Set `ANALYTICS_ENABLED=true` in `backend/.env`, then restart the backend and run
+the frontend normally with `npm.cmd run dev`. The Node frontend automatically
+reads the public enabled flag from `/api/analytics/config` on its configured
+backend; it never reads or exposes backend secrets. An explicit frontend process
+`ANALYTICS_ENABLED=true` or `false` overrides discovery for tests. If the backend
+is stopped, analytics stays off until it is available and the page is refreshed.
+Local browser events go directly to the backend; country is `XX`
 (unknown), and local static requests are not counted. Keep local collection off
 when using production credentials to avoid contaminating reports. No credentials
 are ever exposed by `/runtime-config.js`.
@@ -47,8 +52,7 @@ are ever exposed by `/runtime-config.js`.
 - A visit is a random browser session, renewed after 30 minutes of inactivity.
   Visits started are sessions whose start is in the selection. Engaged sessions
   are sessions with events in the selection; averages use this denominator.
-- Page views and active time cover consenting browser visits only, not all
-  website users. Signed-in IDs are resolved by the backend, not accepted in payloads.
+- Page views and active time exclude opt-outs and browser privacy signals, so these metrics do not cover all website users. Signed-in IDs are resolved by the backend, not accepted in payloads.
 - A heartbeat credits at most 30 seconds, no more than server-observed elapsed
   session time. A visible page must have interaction within 60 seconds. Multiple
   tabs share the session and server-side row lock, limiting duplicate time.
@@ -104,4 +108,4 @@ To disable collection, set the flag false in both deployments; retain cleanup.
 Run `backend/.venv/Scripts/python.exe -m pytest -c tests/pytest.ini tests/unit/test_analytics.py`.
 Run `node tests/integration/analytics_database.mjs` after installing tests dependencies.
 Run `node --test tests/integration/analytics_worker.mjs` for Worker trust/proxy checks.
-Run the isolated analytics browser tests for dashboard and consent behavior.
+Run the isolated analytics browser tests for dashboard and preference behavior.
