@@ -38,7 +38,7 @@ function renderSiteFooter() {
       </div>
       <div class="site-footer-legal">
         <p>&copy; ${new Date().getFullYear()} Axiom. All rights reserved.</p>
-        <p><a href="/analytics-privacy.html">Analytics privacy</a> <button type="button" class="analytics-preferences" data-analytics-preferences hidden>Analytics preferences</button></p>
+        <p><button type="button" class="analytics-preferences" data-analytics-preferences hidden>Analytics preferences</button></p>
         <p>Copyright applies to Axiom&rsquo;s original content and design. Novels, cover art, and other third-party content belong to their respective owners.</p>
       </div>
     </footer>

@@ -26,6 +26,15 @@ def payload(**kwargs):
     return {"id": str(uuid4()), "session_id": str(uuid4()), "event": "page_view", "path": "/novel.html", **kwargs}
 
 
+def test_public_config_shares_only_collection_flag(client, monkeypatch):
+    response = client.get("/api/analytics/config")
+    assert response.status_code == 200
+    assert response.json() == {"enabled": True}
+    assert response.headers["cache-control"] == "no-store"
+    monkeypatch.setattr(service, "ENABLED", False)
+    assert client.get("/api/analytics/config").json() == {"enabled": False}
+
+
 def test_browser_cannot_choose_identity_or_location(client):
     for field in ("user_id", "country", "ip", "source"):
         assert client.post("/api/analytics/events", json=payload(**{field: "spoofed"})).status_code == 422
@@ -109,6 +118,7 @@ def test_api_count_uses_route_templates_and_ignores_forged_location(client, monk
 
 def test_path_sanitization_and_disabled_collection(monkeypatch):
     assert service.clean_path("/novel.html?token=secret#anything") == "/novel.html"
+    assert service.clean_path("/popular.html?page=2&seed=random") == "/popular.html"
     assert service.clean_path("/api/users/private-user-id") == "/api/other"
     assert service.clean_path("/api/novels/{novel_id}") == "/api/novels/{novel_id}"
     assert service.clean_path("/assets/private-cover.png") == "/assets/*"

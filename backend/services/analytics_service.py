@@ -21,7 +21,7 @@ _started = False
 _stats = {"accepted": 0, "dropped": 0, "write_failures": 0, "last_write": None}
 _limits = {}
 _last_prune = 0
-PAGE_NAMES = frozenset("activity admin analytics-privacy finder friends inbox index list lists login mission novel profile protagonist-profile-info readers search shared-list signup team under-construction upload user vote".split())
+PAGE_NAMES = frozenset("activity admin finder friends inbox index list lists login mission novel popular profile protagonist-profile-info readers search shared-list signup team under-construction upload user vote".split())
 
 
 def country(value):

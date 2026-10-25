@@ -92,23 +92,33 @@ def test_dashboard_filters_exports_tabs_and_mobile(page, analytics_frontend, ana
     expect(page.locator("#deletion-panel")).to_be_hidden()
 
 
-def test_consent_then_heartbeat_and_withdrawal(page, analytics_frontend, analytics_api):
+def test_default_tracking_then_heartbeat_and_opt_out(page, analytics_frontend, analytics_api):
     page.clock.install()
     page.goto(analytics_frontend+"/mission.html")
-    expect(page.locator("#analytics-consent")).to_be_visible()
-    assert analytics_api["events"] == []
-    page.get_by_role("button", name="Allow analytics").click()
+    expect(page.locator("#analytics-consent")).to_have_count(0)
     page.wait_for_function("localStorage.getItem('axiomAnalyticsVisit') !== null")
     page.clock.run_for(31000)
     page.wait_for_timeout(20)
     assert any(event["event"] == "page_view" for event in analytics_api["events"])
     assert any(event["event"] == "heartbeat" and 0 < event["active_seconds"] <= 30 for event in analytics_api["events"])
     page.get_by_role("button", name="Analytics preferences", exact=True).click()
-    page.get_by_role("button", name="Decline analytics").click()
+    page.get_by_role("button", name="Turn analytics off").click()
     count = len(analytics_api["events"])
     page.clock.run_for(60000)
     assert len(analytics_api["events"]) == count
     assert page.evaluate("localStorage.getItem('axiomAnalyticsVisit')") is None
+
+
+def test_existing_opt_out_preserved_and_can_be_reenabled(page, analytics_frontend, analytics_api):
+    page.add_init_script("localStorage.setItem('axiomAnalyticsConsent','declined')")
+    page.goto(analytics_frontend+"/mission.html")
+    expect(page.get_by_role("button", name="Analytics preferences", exact=True)).to_be_visible()
+    assert analytics_api["events"] == []
+    page.get_by_role("button", name="Analytics preferences", exact=True).click()
+    page.get_by_role("button", name="Turn analytics on").click()
+    page.wait_for_function("localStorage.getItem('axiomAnalyticsVisit') !== null")
+    page.wait_for_timeout(20)
+    assert any(event["event"] == "page_view" for event in analytics_api["events"])
 
 
 def test_report_failure_visible_and_retry_works(page, analytics_frontend, analytics_api):

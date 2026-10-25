@@ -66,6 +66,21 @@ function safePublicPath(requestUrl) {
   }
 }
 
+async function analyticsEnabled() {
+  // An explicit frontend override is useful for tests. Ordinary local startup
+  // follows the backend, which already loads its private .env file.
+  if (process.env.ANALYTICS_ENABLED !== undefined) {
+    return process.env.ANALYTICS_ENABLED.toLowerCase() === "true";
+  }
+  try {
+    const response = await fetch(`${API_BASE}/api/analytics/config`, { signal: AbortSignal.timeout(1500) });
+    return response.ok && (await response.json()).enabled === true;
+  } catch {
+    // A stopped/older backend must not stop the frontend from serving pages.
+    return false;
+  }
+}
+
 async function handleRequest(request, response) {
   const filePath = safePublicPath(request.url);
   if (!filePath) {
@@ -81,7 +96,7 @@ async function handleRequest(request, response) {
   }
   if (requestPath === "/runtime-config.js") {
     const apiBase = (process.env.API_BASE || "http://localhost:8000").replace(/\/+$/, "");
-    const enabled = process.env.ANALYTICS_ENABLED === "true";
+    const enabled = await analyticsEnabled();
     const body = `window.AXIOM_RUNTIME_CONFIG = Object.freeze({ apiBase: ${JSON.stringify(apiBase)}, analyticsEnabled: ${enabled}, analyticsEndpoint: ${JSON.stringify(`${apiBase}/api/analytics/events`)} });`;
     response.writeHead(200, {
       "Content-Type": "text/javascript; charset=utf-8",

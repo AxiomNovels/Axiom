@@ -1,4 +1,4 @@
-/* First-party, opt-in reader analytics. No token or IP is stored by this script. */
+/* First-party reader analytics with a persistent opt-out. No IP is stored here. */
 (() => {
   const config = window.AXIOM_RUNTIME_CONFIG || {};
   const preferenceKey = "axiomAnalyticsConsent";
@@ -52,7 +52,7 @@
 
   function applyPreference() {
     const before = enabled;
-    enabled = config.analyticsEnabled === true && preference() === "accepted" && !privacySignal();
+    enabled = config.analyticsEnabled === true && preference() !== "declined" && !privacySignal();
     if (enabled && !before) { lastInteraction = Date.now(); lastTick = performance.now(); void send("page_view"); }
     if (!enabled) { activeSeconds = 0; try { localStorage.removeItem(sessionKey); } catch {} }
     if (enabled && !started) {
@@ -69,11 +69,9 @@
     box.className = "analytics-consent";
     box.setAttribute("aria-label", "Analytics preferences");
     const text = document.createElement("p");
-    text.textContent = "Help improve Axiom? Optional analytics measure page visits, country, and active time. When signed in, activity can be linked to your account. Request counts are collected separately.";
-    const link = document.createElement("a");
-    link.href = "/analytics-privacy.html"; link.textContent = "How analytics works";
-    box.append(text, link);
-    for (const [label, value] of [["Allow analytics", "accepted"], ["Decline analytics", "declined"]]) {
+    text.textContent = "Reader analytics are enabled by default and measure page visits, country, and active time. When signed in, activity can be linked to your account. You can turn reader analytics off here. Request counts are collected separately.";
+    box.append(text);
+    for (const [label, value] of [["Turn analytics on", "accepted"], ["Turn analytics off", "declined"]]) {
       const button = document.createElement("button");
       button.type = "button"; button.textContent = label;
       button.addEventListener("click", () => {
@@ -101,5 +99,4 @@
   window.addEventListener("pageshow", event => { if (event.persisted) { lastTick = performance.now(); lastInteraction = Date.now(); void send("page_view"); } });
   window.addEventListener("storage", event => { if (event.key === preferenceKey) applyPreference(); });
   applyPreference();
-  if (config.analyticsEnabled && !preference() && !privacySignal()) showPreferences();
 })();
