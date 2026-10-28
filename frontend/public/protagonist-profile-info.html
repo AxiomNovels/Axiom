@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Protagonist Profile Guide | Understand character traits | Axiom</title>
-    <meta name="description" content="Learn how Axiom scores protagonist traits, reads evidence, and separates a character's score from confidence.">
+    <meta name="description" content="What protagonist profiles measure, how reader votes help, and what each trait means from 0 to 100.">
     <link rel="canonical" href="https://axiomnovels.com/protagonist-profile-info.html">
     <meta property="og:type" content="article"><meta property="og:title" content="Protagonist Profile Guide | Axiom"><meta property="og:description" content="Understand how Axiom's protagonist profiles measure character traits across webnovels."><meta property="og:url" content="https://axiomnovels.com/protagonist-profile-info.html"><meta property="og:image" content="https://axiomnovels.com/assets/axiom-logo.png">
     <link rel="stylesheet" href="/styles.css">
@@ -20,29 +20,108 @@
 
     <main class="profile-guide-page" data-admin-preview data-preview-title="Protagonist Profile Guide | Axiom" hidden>
       <section class="profile-guide-hero">
-        <p class="eyebrow">Axiom scoring guide</p>
-        <h1>Understanding protagonist profiles</h1>
-        <p class="profile-guide-intro">For many readers, the protagonist is the deciding factor. A subtle change in a character’s intelligence, integrity, relationships, desire, or pride can completely change whether a story feels worth reading.</p>
-        <p>A protagonist profile measures how strongly the current characteristics appear in a protagonist’s identity and decisions. Scores describe narrative evidence—not whether a trait is good or bad.</p>
+        <h1>Protagonist profiles</h1>
+        <p class="profile-guide-intro">A protagonist profile describes the main character's traits on a scale from 0 to 100. It looks at who they are, what they feel, and how they act throughout the novel.</p>
+        <p>Only the protagonist counts. Another character's love, hatred, loyalty, or desire toward them does not become their trait. A cast full of admirers does not make a protagonist romantic; the protagonist has to feel that attraction themselves.</p>
+        <p>The initial scores are generated using the Gemini API. It can miss context or misread a character, especially when the available information is limited. Readers can vote based on their understanding of the novel, and those votes update the profile's default scores. If you know the story, your reading can help correct the starting point.</p>
       </section>
-
       <section class="scoring-principles" aria-labelledby="scoring-title">
-        <h2 id="scoring-title">How to read the scale</h2>
-        <div class="principle-grid">
-          <article><strong>0 is the low pole</strong><p>For presence traits such as romantic attachment or erotic desire, 0 means the story specifically establishes that the trait is absent. Silence alone is not enough. Other traits use 0 as their stated low pole.</p></article>
-          <article><strong>20 can mean limited evidence</strong><p>The trait is outside the main storyline, barely discussed, or supported by too little evidence for a stronger conclusion.</p></article>
-          <article><strong>50 is substantial or balanced</strong><p>The trait appears repeatedly and clearly affects the protagonist, but does not consistently control their most important choices. On spectrum traits, 50 means both poles carry roughly equal weight.</p></article>
-          <article><strong>100 is defining</strong><p>The trait (or, on a spectrum, its high pole) is extreme, repeatedly demonstrated, and central to how the protagonist acts throughout the story.</p></article>
-        </div>
-        <p class="confidence-note"><strong>Score and confidence are different.</strong> A low score means evidence points toward a weak or absent trait. Low confidence means there is not enough reliable evidence to be certain.</p>
+        <h2 id="scoring-title">What the numbers mean</h2>
+        <p>Each trait has its own scale, explained below. The examples are made-up scenes to help place a character; they are not a checklist. Use the whole story and its recurring characterization, rather than letting one unusual moment decide everything.</p>
+        <p>A score of 0 needs evidence for that trait's lowest point. Silence in a synopsis is not enough. Scores between the milestones are welcome: a character can fit 35 better than either 25 or 50. A higher number is not a better character or a better novel.</p>
+        <p>100 is the upper end of the scale used on Axiom, within the site's content guidelines. It is not a request for the most extreme content imaginable. When voting, use scenes you know and leave room for uncertainty where you have not read enough.</p>
       </section>
-
       <section class="trait-guide-list" aria-labelledby="traits-title">
-        <div class="section-heading"><div><p class="eyebrow">Detailed anchors</p><h2 id="traits-title">Each characteristic</h2></div></div>
-        <div data-trait-guides></div>
+        <h2 id="traits-title">The traits, with examples</h2>
+        <div data-trait-guides>
+          <details class="trait-guide" open>
+            <summary><span><strong>Intelligence</strong><small>Definition and examples</small></span><i>0–100</i></summary>
+            <div class="trait-guide-body">
+              <p class="trait-guide-description">How well the protagonist reasons, learns, and solves problems.</p>
+              <p class="trait-guide-description">Judge what they actually work out. A narrator calling someone a genius means little if their plans only succeed because enemies make obvious mistakes. Knowledge from a past life is useful, but possessing information is different from using it well.</p>
+              <ol class="trait-scale-list" aria-label="Intelligence scale examples">
+                <li><strong>0</strong><p>They repeatedly fail to understand simple consequences, even after someone explains them. For example, they fall for the same obvious bait again and again without learning.</p></li>
+                <li><strong>25</strong><p>They can handle familiar tasks but struggle when circumstances change. They follow a workable plan supplied by a companion, then become lost when one step fails.</p></li>
+                <li><strong>50</strong><p>They reason competently and learn from mistakes. They notice a suspicious offer, check the terms, and make a sensible choice, though a skilled opponent can still outwit them.</p></li>
+                <li><strong>75</strong><p>They regularly solve difficult problems through their own insight. They spot conflicting witness accounts, test a theory, and prepare a backup before confronting the culprit.</p></li>
+                <li><strong>100</strong><p>Exceptional reasoning is a sustained part of their character. Against capable opponents, they repeatedly connect subtle clues, revise faulty assumptions, and build plans that survive unexpected setbacks.</p></li>
+              </ol>
+            </div>
+          </details>
+          <details class="trait-guide" open>
+            <summary><span><strong>Charisma</strong><small>Definition and examples</small></span><i>0–100</i></summary>
+            <div class="trait-guide-body">
+              <p class="trait-guide-description">How effectively the protagonist wins people over through their own social presence and communication.</p>
+              <p class="trait-guide-description">Count their ability to persuade, charm, or inspire. Being beautiful, famous, powerful, or adored by the cast does not by itself demonstrate charisma. Look at how the protagonist handles people.</p>
+              <ol class="trait-scale-list" aria-label="Charisma scale examples">
+                <li><strong>0</strong><p>They consistently struggle to connect or persuade. Even a reasonable request becomes an argument because they cannot explain themselves or read the room.</p></li>
+                <li><strong>25</strong><p>They sometimes connect with familiar people but rarely win over strangers. A tense negotiation stalls until a companion takes over.</p></li>
+                <li><strong>50</strong><p>They can make a convincing case and build rapport in ordinary situations. They settle a small disagreement, but a hostile audience remains difficult.</p></li>
+                <li><strong>75</strong><p>They often win over skeptical people. They listen to rival concerns and persuade both sides to accept a costly compromise without relying on threats.</p></li>
+                <li><strong>100</strong><p>Their social ability repeatedly changes major events. They earn trust across hostile groups and inspire difficult commitments through how they speak and act, even when they have no rank or reward to offer.</p></li>
+              </ol>
+            </div>
+          </details>
+          <details class="trait-guide" open>
+            <summary><span><strong>Moral Integrity</strong><small>Definition and examples</small></span><i>0–100</i></summary>
+            <div class="trait-guide-body">
+              <p class="trait-guide-description">How consistently the protagonist follows ethical principles when doing so costs them something.</p>
+              <p class="trait-guide-description">Look for concern about harm, fairness, and responsibility. A personal code that permits routine cruelty does not earn a high score simply because the protagonist follows it consistently. A friendly manner alone does not earn one either.</p>
+              <ol class="trait-scale-list" aria-label="Moral Integrity scale examples">
+                <li><strong>0</strong><p>They routinely exploit or harm others for convenience without moral restraint. They frame an innocent person to avoid a minor inconvenience and feel no need to reconsider.</p></li>
+                <li><strong>25</strong><p>They show occasional restraint, but abandon it when there is a useful reward. They condemn cheating until cheating benefits them.</p></li>
+                <li><strong>50</strong><p>They have real principles with significant exceptions. They protect innocent people in one situation but excuse similar harm when their own faction benefits.</p></li>
+                <li><strong>75</strong><p>They usually uphold their principles under pressure. They refuse a profitable betrayal and accept the resulting danger, though fear or loyalty can still cause lapses.</p></li>
+                <li><strong>100</strong><p>Their ethical commitments hold through repeated, severe tests. They give up victory rather than knowingly sacrifice innocent people, and take responsibility when their own actions cause harm.</p></li>
+              </ol>
+            </div>
+          </details>
+          <details class="trait-guide" open>
+            <summary><span><strong>Kinship and Friendship</strong><small>Definition and examples</small></span><i>0–100</i></summary>
+            <div class="trait-guide-body">
+              <p class="trait-guide-description">How much the protagonist cares about family, friends, and people they treat as family.</p>
+              <p class="trait-guide-description">Count the protagonist&#x27;s affection, loyalty, and emotional investment. A devoted companion does not raise this score unless the protagonist returns that care. Cooperation for mutual profit is not automatically friendship.</p>
+              <ol class="trait-scale-list" aria-label="Kinship and Friendship scale examples">
+                <li><strong>0</strong><p>The story repeatedly establishes that personal bonds mean nothing to them. They discard a longtime companion as readily as a stranger once that person stops being useful, without grief or hesitation.</p></li>
+                <li><strong>25</strong><p>They have limited attachments that rarely compete with their goals. They enjoy a companion&#x27;s company and offer easy help, but leave when staying would require a serious sacrifice.</p></li>
+                <li><strong>50</strong><p>They form meaningful bonds alongside other priorities. They interrupt a journey to help a friend, yet can still pursue an independent life and disagree with loved ones.</p></li>
+                <li><strong>75</strong><p>Their bonds often redirect major choices. They abandon a valuable opportunity to rescue a sibling, or take substantial risks to keep a promise to a friend.</p></li>
+                <li><strong>100</strong><p>Care for these people is a defining motivation throughout the story. They repeatedly reshape their future around protecting or supporting loved ones, accepting lasting personal costs.</p></li>
+              </ol>
+            </div>
+          </details>
+          <details class="trait-guide" open>
+            <summary><span><strong>Romantic Attachment</strong><small>Definition and examples</small></span><i>0–100</i></summary>
+            <div class="trait-guide-body">
+              <p class="trait-guide-description">How much romantic or sexual attraction the protagonist feels toward other characters.</p>
+              <p class="trait-guide-description">This includes love, crushes, lust, sexual urges, and the desire for a partner, whether directed toward one person or several. Someone else falling in love with the protagonist does not count. Neither does a staged relationship unless the protagonist feels something themselves. The scenes below are illustrative, not claims about particular novels.</p>
+              <ol class="trait-scale-list" aria-label="Romantic Attachment scale examples">
+                <li><strong>0</strong><p>Complete absence, established repeatedly in the story: no romantic love, no lust, no sexual urges, and no wavering when someone tries to attract them. Beauty can register as a fact, but produces no attraction. For example, a confession or intimate invitation leaves them as personally unmoved as an ordinary business offer. Being cold, ruthless, or single is not enough to establish this score.</p></li>
+                <li><strong>10</strong><p>Attraction is rare and faint, but it exists. A brief, unmistakable flutter or sexual impulse appears once in a long stretch of otherwise detached behavior. They let it pass without pursuing it. That moment already puts them above 0.</p></li>
+                <li><strong>25</strong><p>A useful reference point for stories readers often describe as having little or no romance. The protagonist may notice someone with desire, have occasional sex, or show a passing attachment while spending almost all their time on other goals. A sparse synopsis or comment section may also leave this area unclear: that uncertainty does not establish 0. Missing evidence is not proof of hidden attraction, either; use scenes from the novel when voting.</p></li>
+                <li><strong>50</strong><p>Attraction or attachment recurs and matters to the protagonist. They seek time with someone, miss them, pursue intimacy, or make room for a relationship, while other ambitions remain equally important.</p></li>
+                <li><strong>75</strong><p>Love or desire frequently changes their priorities. They postpone a major ambition to stay with a partner, repeatedly take risks for the relationship, or struggle to set attraction aside when making decisions.</p></li>
+                <li><strong>100</strong><p>The upper end of this site&#x27;s scale, within Axiom&#x27;s content guidelines. Romantic or sexual attachment is a sustained, central motivation: building or preserving a relationship repeatedly determines their biggest choices. This does not require graphic scenes, an extreme number of partners, or the most extreme desire imaginable.</p></li>
+              </ol>
+            </div>
+          </details>
+          <details class="trait-guide" open>
+            <summary><span><strong>Arrogance &amp; Conceit</strong><small>Definition and examples</small></span><i>0–100</i></summary>
+            <div class="trait-guide-body">
+              <p class="trait-guide-description">How strongly the protagonist sees themselves as superior and expects others to recognize it.</p>
+              <p class="trait-guide-description">Distinguish confidence from entitlement. Knowing they can win a fight is not automatically arrogance; treating everyone else as beneath consideration is. Look at their response to criticism, failure, and people with less status.</p>
+              <ol class="trait-scale-list" aria-label="Arrogance &amp; Conceit scale examples">
+                <li><strong>0</strong><p>Humility is consistently demonstrated. They accept correction from a beginner, admit a costly mistake openly, and do not expect special treatment even after a major success.</p></li>
+                <li><strong>25</strong><p>They are mostly modest, with occasional vanity. Praise pleases them and criticism briefly stings, but they can apologize and give others credit.</p></li>
+                <li><strong>50</strong><p>Confidence and ego both show. They sometimes dismiss advice or enjoy proving superiority, yet meaningful failure can make them reconsider.</p></li>
+                <li><strong>75</strong><p>A strong sense of superiority repeatedly shapes their behavior. They belittle weaker people, take criticism as an insult, or reject a sound warning because accepting it would hurt their pride.</p></li>
+                <li><strong>100</strong><p>Conceit is persistent and defining. They demand deference, cannot tolerate being outshone, and repeatedly choose humiliation or retaliation over admitting another person was right, even at serious cost.</p></li>
+              </ol>
+            </div>
+          </details>
+        </div>
       </section>
     </main>
     <script src="/runtime-config.js"></script><script src="/script.js"></script><script src="/admin-preview.js"></script>
-    <script src="/protagonist-profile-info.js"></script>
   </body>
 </html>
