@@ -64,6 +64,14 @@ def test_invalid_events_rejected(client, event):
     assert client.post("/api/analytics/events", json=event).status_code == 422
 
 
+def test_quiz_page_path_preserves_only_the_public_page(client, monkeypatch):
+    monkeypatch.setattr(service, "submit", lambda record: True)
+    assert client.post("/api/analytics/events", json=payload(path="/quiz/")).status_code == 202
+    for path in ("/quiz", "/quiz/", "/quiz/index.html?answer=private"):
+        assert service.clean_path(path) == "/quiz/"
+    assert service.clean_path("/quiz/private-result") == "/other"
+
+
 def test_body_size_and_cross_site_protection(client):
     assert client.post("/api/analytics/events", content=b"x"*5000).status_code == 413
     assert client.post("/api/analytics/events", json=payload(), headers={"Origin": "https://attacker.invalid"}).status_code == 403

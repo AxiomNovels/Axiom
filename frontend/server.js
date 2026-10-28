@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, "public");
 const SITE_ORIGIN = "https://axiomnovels.com";
 const API_BASE = (process.env.API_BASE || "http://localhost:8000").replace(/\/+$/, "");
-const SITEMAP_PATHS = ["/", "/finder.html", "/readers.html"];
+const SITEMAP_PATHS = ["/", "/finder.html", "/readers.html", "/quiz/"];
 const NOINDEX_PATHS = new Set([
   "/activity.html", "/admin.html", "/friends.html", "/inbox.html", "/list.html",
   "/lists.html", "/login.html", "/profile.html", "/search.html", "/shared-list.html",
@@ -51,7 +51,8 @@ async function sitemapXml() {
 function safePublicPath(requestUrl) {
   try {
   const url = new URL(requestUrl, `http://localhost:${PORT}`);
-  const pathname = url.pathname === "/" ? "/index.html" : url.pathname;
+  const pathname = url.pathname === "/" ? "/index.html"
+    : ["/quiz", "/quiz/"].includes(url.pathname) ? "/quiz/index.html" : url.pathname;
   const decodedPath = decodeURIComponent(pathname);
   const filePath = path.normalize(path.join(PUBLIC_DIR, decodedPath));
 

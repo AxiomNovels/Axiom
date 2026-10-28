@@ -27,6 +27,7 @@ function renderSiteFooter() {
         <nav class="site-footer-nav" aria-label="Footer navigation">
           <h2>Explore Axiom</h2>
           <a href="/finder.html">Series finder</a>
+          <a href="/quiz/">Protagonist quiz</a>
           <a href="/mission.html">Our mission</a>
           <a href="/team.html">Meet the team</a>
         </nav>
@@ -124,6 +125,8 @@ function removeBackendWakeOverlay() {
 }
 
 async function monitorBackendWake() {
+  // Standalone experiences can run while the catalog backend is unavailable.
+  if (document.body.hasAttribute("data-backend-optional")) return;
   // The local backend starts alongside the local frontend, so this UI is only
   // useful for a deployed API that can sleep between visits (such as Render).
   if (API_BASE === LOCAL_API_BASE) return;

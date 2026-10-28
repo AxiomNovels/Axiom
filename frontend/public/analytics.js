@@ -25,7 +25,7 @@
     if (!enabled || privacySignal()) return;
     const session = visit();
     if (!session) return;
-    const path = location.pathname;
+    const path = ["/quiz", "/quiz/index.html"].includes(location.pathname) ? "/quiz/" : location.pathname;
     if (!/^\/(?:[a-zA-Z0-9_-]+(?:\.html)?\/?)?$/.test(path)) return;
     try {
       await authFetch(config.analyticsEndpoint || `${API_BASE}/api/analytics/events`, {

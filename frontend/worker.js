@@ -56,7 +56,7 @@ const worker = {
   async serve(request, env) {
     const url = new URL(request.url);
     const siteOrigin = "https://axiomnovels.com";
-    const sitemapPaths = ["/", "/finder.html", "/readers.html"];
+    const sitemapPaths = ["/", "/finder.html", "/readers.html", "/quiz/"];
     const noindexPaths = new Set([
       "/activity.html", "/admin.html", "/friends.html", "/inbox.html", "/list.html", "/lists.html",
       "/login.html", "/profile.html", "/search.html", "/shared-list.html", "/signup.html",

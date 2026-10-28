@@ -16,6 +16,8 @@ def test_malformed_urls_and_sibling_traversal_do_not_crash_or_escape(tmp_path):
     shutil.copyfile(root / 'frontend/server.js', tmp_path / 'server.js')
     (tmp_path / 'public').mkdir()
     (tmp_path / 'public/index.html').write_text('healthy')
+    (tmp_path / 'public/quiz').mkdir()
+    (tmp_path / 'public/quiz/index.html').write_text('quiz healthy')
     (tmp_path / 'public-private').mkdir()
     (tmp_path / 'public-private/sentinel.txt').write_text('must stay private')
     with socket.socket() as sock:
@@ -27,7 +29,7 @@ def test_malformed_urls_and_sibling_traversal_do_not_crash_or_escape(tmp_path):
             try:
                 with socket.create_connection(('127.0.0.1', port), timeout=.1): break
             except OSError: time.sleep(.1)
-        for path, expected in [('/%',400),('/%2e%2e%2fpublic-private/sentinel.txt',400),('/%00',400),('/',200)]:
+        for path, expected in [('/%',400),('/%2e%2e%2fpublic-private/sentinel.txt',400),('/%00',400),('/',200),('/quiz',200),('/quiz/',200),('/quiz/index.html',200)]:
             connection = http.client.HTTPConnection('127.0.0.1', port, timeout=5)
             connection.request('GET', path)
             response = connection.getresponse()
@@ -35,6 +37,8 @@ def test_malformed_urls_and_sibling_traversal_do_not_crash_or_escape(tmp_path):
             connection.close()
             assert response.status == expected, path
             assert b'must stay private' not in body
+            if path.startswith('/quiz'):
+                assert body == b'quiz healthy'
         assert process.poll() is None
     finally:
         process.terminate()

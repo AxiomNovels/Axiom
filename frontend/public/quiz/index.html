@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#100a19">
+    <title>Discover your protagonist archetype | Axiom Quiz</title>
+    <meta name="description" content="Every story needs a protagonist. Discover your archetype, explore your seven character traits, and find webnovel protagonists who resemble you.">
+    <link rel="canonical" href="https://axiomnovels.com/quiz/">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="What kind of protagonist are you? | Axiom">
+    <meta property="og:description" content="18 choices. 8 archetypes. A story only you could lead. Discover your protagonist identity and your closest fictional matches.">
+    <meta property="og:url" content="https://axiomnovels.com/quiz/">
+    <meta property="og:image" content="https://axiomnovels.com/assets/axiom-logo.png">
+    <meta name="twitter:card" content="summary">
+    <link rel="icon" href="/assets/axiom-mark.png">
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/quiz/quiz.css">
+  </head>
+  <body class="quiz-page" data-backend-optional>
+    <a class="quiz-skip" href="#quiz-main">Skip to quiz</a>
+    <header class="quiz-header">
+      <a class="brand" href="/" aria-label="Axiom home"><img src="/assets/axiom-mark.png" alt="" class="brand-logo" width="48" height="48"><img src="/assets/axiom-wordmark.png" alt="" class="brand-wordmark" width="128"></a>
+      <nav aria-label="Primary navigation"><a href="/finder.html">Finder</a><a href="/popular.html">Popular novels</a><a href="/quiz/" aria-current="page">The quiz</a></nav>
+    </header>
+    <main id="quiz-main" class="quiz-main">
+      <section id="intro" aria-labelledby="intro-title">
+        <div class="quiz-hero">
+          <div class="hero-copy">
+            <p class="quiz-eyebrow"><span aria-hidden="true">✦</span> Axiom · The protagonist quiz</p>
+            <h1 id="intro-title">Every story needs<br>a protagonist.<br><em>Who are you?</em></h1>
+            <p class="hero-description">The strategist. The protector. The beautifully unpredictable. Step into a story, make your choices, and discover the archetype at the heart of yours.</p>
+            <p class="quiz-meta"><span>18 questions</span><span>8 archetypes</span><span>About 3 minutes</span></p>
+            <button id="start-quiz" class="quiz-button primary" type="button" disabled>Start my story <span aria-hidden="true">↗</span></button>
+            <p class="quiz-note">No account needed. Your answers stay in this tab.</p>
+          </div>
+          <figure class="hero-art"><img src="/quiz/art/threshold.svg" alt="A lone traveler stands before a glowing doorway rising from an open book, beneath seven stars." width="600" height="700"><figcaption>Somewhere, a story starts with you.</figcaption></figure>
+        </div>
+        <div class="quiz-intro-bottom"><p><span class="quiz-eyebrow">Beyond the archetype</span>Discover seven shades of your character — then meet the protagonists who share them.</p><p>A little imagination, a little self-reflection.<br>A fictional identity, not a psychological assessment.</p></div>
+        <noscript><p class="quiz-notice">This interactive quiz needs JavaScript. You can still <a href="/finder.html">explore the Finder</a> or <a href="/popular.html">browse popular novels</a>.</p></noscript>
+      </section>
+
+      <section id="questions" class="question-screen" aria-labelledby="question-title" hidden>
+        <div class="question-topline"><p class="quiz-eyebrow" id="chapter"></p><p id="progress-text" aria-live="polite"></p></div>
+        <progress id="quiz-progress" value="0" max="18" aria-label="Questions answered"></progress>
+        <form id="question-form">
+          <fieldset><legend id="question-title" tabindex="-1"></legend><p class="question-hint" id="question-hint">Imagine yourself in the story. Choose the answer that feels closest.</p><div id="answers" aria-describedby="question-hint"></div></fieldset>
+          <div class="question-controls"><button id="back" class="quiz-button quiet" type="button">← Back</button><span class="quiz-note">Your choice writes the next line.</span><button id="next" class="quiz-button primary" type="submit" disabled>Next →</button></div>
+        </form>
+      </section>
+
+      <section id="result" aria-labelledby="result-title" hidden>
+        <div class="result-hero"><div class="result-copy"><p class="quiz-eyebrow">Your protagonist archetype</p><h1 id="result-title" tabindex="-1"></h1><p id="result-quote"></p><p id="result-description"></p><p id="secondary" class="secondary-influence" hidden></p><details class="result-details"><summary>Turn the page: your strengths & blind spot</summary><h2>Your strength</h2><p id="result-strength"></p><h2>The tension in your story</h2><p id="result-tension"></p></details></div><figure class="result-art"><img id="result-art" width="420" height="500" alt=""></figure></div>
+        <section class="trait-section" aria-labelledby="traits-title"><div><p class="quiz-eyebrow">The character beneath the title</p><h2 id="traits-title">Your seven-trait profile</h2><p>Each percentage is a separate score out of 100. Higher means more of a trait, not a better person.</p><p>A low Romantic Attachment score does not imply less care for friends. High Arrogance & Conceit describes entitlement, not a virtue.</p></div><div id="trait-scores"></div></section>
+        <details class="scoring-details"><summary>How your result and matches work</summary><p>Each answer contributes to an independent dimension, normalized from 0 to 100. Archetypes use different weighted combinations. Independence and unconventional thinking are measured directly for the Lone Wolf and Wildcard; they are decision patterns, not additional Axiom traits.</p><p>The highest eligible archetype wins. A second result within three points appears as an influence. Exact ties follow this fixed order: Mastermind, Natural Leader, Idealist, Guardian, Romantic, Conqueror, Lone Wolf, Wildcard. These weights and the three-point threshold are creative starting points, not scientifically validated cutoffs.</p><p>Protagonists are ranked by normalized Euclidean distance: D = √(Σ(your score − protagonist score)² / number of compared traits). Similarity = 100 − D. All candidates use the same dimensions; profiles missing any compared score are excluded. Similarity describes trait overlap, not a probability or a prediction that you will enjoy a novel.</p></details>
+        <section class="discovery-links" aria-label="Discover more novels"><a href="/finder.html"><span class="quiz-eyebrow">Follow your own criteria ↗</span><h2>Explore the Finder</h2><p>Choose the traits, genres, and tags you want in your next read.</p></a><a href="/popular.html"><span class="quiz-eyebrow">See what readers rate highly ↗</span><h2>Browse Popular Novels</h2><p>Explore novels ranked by average Axiom review rating.</p></a></section>
+        <section class="match-section" aria-labelledby="matches-title"><p class="quiz-eyebrow">Familiar spirits. Unfamiliar worlds.</p><h2 id="matches-title">Meet your protagonist matches</h2><p id="match-basis"></p><p id="match-status" role="status"></p><button id="retry-matches" class="quiz-button quiet" type="button" hidden>Try loading matches again</button><ol id="match-list" class="match-list" aria-label="Closest protagonist matches" aria-busy="false"></ol></section>
+        <div class="result-actions"><p>Another choice. Another version of you.</p><button id="retake" class="quiz-button quiet" type="button">Retake the quiz ↺</button><button id="review-answers" class="quiz-button quiet" type="button">Review my answers</button></div>
+      </section>
+    </main>
+    <script src="/runtime-config.js"></script>
+    <script src="/script.js"></script>
+    <script src="/quiz/config.js"></script>
+    <script src="/quiz/content.js"></script>
+    <script src="/quiz/engine.js"></script>
+    <script src="/quiz/ui.js"></script>
+  </body>
+</html>

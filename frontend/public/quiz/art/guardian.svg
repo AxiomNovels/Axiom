@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 500" fill="none">
+<defs><radialGradient id="glow"><stop stop-color="#704981" stop-opacity=".75"/><stop offset="1" stop-color="#21142d"/></radialGradient><linearGradient id="gold" x2="0.8" y2="1"><stop stop-color="#f4dcaf"/><stop offset="1" stop-color="#a27faa"/></linearGradient></defs>
+<rect x="32" y="18" width="356" height="464" rx="170" fill="url(#glow)"/>
+<path d="M49 440V193a161 161 0 0 1 322 0v247Z" stroke="#b895b8" stroke-opacity=".6"/>
+<path d="M61 428V193a149 149 0 0 1 298 0v235Z" stroke="#b895b8" stroke-opacity=".25"/>
+<circle cx="210" cy="231" r="123" stroke="#bca0c6" stroke-opacity=".2"/>
+<circle cx="210" cy="231" r="137" stroke="#bca0c6" stroke-opacity=".3" stroke-dasharray="1 10"/>
+<g stroke="url(#gold)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"><path d="M210 139q-34 29-80 29v80q0 65 80 106 80-41 80-106v-80q-46 0-80-29Z"/><path d="M210 159q-29 23-64 24v63q0 55 64 91 64-36 64-91v-63q-35-1-64-24Z" opacity=".5"/><path d="M210 286s-49-32-49-60c0-30 38-34 49-8 11-26 49-22 49 8 0 28-49 60-49 60Z"/><path d="M210 98v23m-81 16-15-15m177 15 15-15"/></g>
+<g fill="#d8bb94"><path d="m86 225 3 8 8 3-8 3-3 8-3-8-8-3 8-3Zm248 0 3 8 8 3-8 3-3 8-3-8-8-3 8-3Z"/><circle cx="113" cy="129" r="2"/><circle cx="307" cy="129" r="2"/><circle cx="131" cy="367" r="2"/><circle cx="289" cy="367" r="2"/></g>
+<path d="m62 416 43-28 34 21 32-30 39 25 39-25 32 30 34-21 43 28" stroke="#aa88b1" stroke-opacity=".35"/>
+<text x="210" y="79" fill="#d6b9a0" font-family="Georgia,serif" font-size="14" text-anchor="middle" letter-spacing="4">IV</text>
+<path d="M170 455h24m32 0h24m-40-6 6 6-6 6-6-6Z" stroke="#c9a66b"/>
+</svg>

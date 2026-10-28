@@ -35,6 +35,8 @@ def clean_path(value):
         return "/other"
     if path.startswith("/api/"):
         return path if "{" in path else "/api/other"
+    if path in ("/quiz", "/quiz/", "/quiz/index.html"):
+        return "/quiz/"
     page = path.strip("/").removesuffix(".html")
     if path == "/" or page in PAGE_NAMES:
         return path
