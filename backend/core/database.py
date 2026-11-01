@@ -1,11 +1,51 @@
+import atexit
 import os
+from urllib.request import getproxies, proxy_bypass
 
-from supabase import create_client
+import httpx
+from supabase import create_client, ClientOptions
 
 from core.config import SUPABASE_KEY, SUPABASE_URL
 
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Only the transport (TLS context and connection pool) is shared. Headers,
+# cookies, auth storage and sessions belong to each individual client.
+_transport = httpx.HTTPTransport(http2=True)
+atexit.register(_transport.close)
+# Preserve outbound HTTP(S)_PROXY / ALL_PROXY and NO_PROXY configuration.
+_proxy_transports = {
+    scheme: httpx.HTTPTransport(proxy=url, http2=True)
+    for scheme, url in getproxies().items()
+    if scheme in {"http", "https", "all"}
+}
+for _proxy_transport in _proxy_transports.values():
+    atexit.register(_proxy_transport.close)
+
+
+class _BorrowedTransport(httpx.BaseTransport):
+    def handle_request(self, request):
+        transport = _transport
+        if _proxy_transports and not proxy_bypass(request.url.host):
+            transport = _proxy_transports.get(
+                request.url.scheme, _proxy_transports.get("all", _transport)
+            )
+        return transport.handle_request(request)
+
+    def close(self):
+        # Closing a short-lived SDK client must not close other users' pool.
+        pass
+
+
+def _create_client(key):
+    http_client = httpx.Client(
+        transport=_BorrowedTransport(), follow_redirects=True, timeout=120,
+    )
+    return create_client(SUPABASE_URL, key, options=ClientOptions(
+        httpx_client=http_client, auto_refresh_token=False,
+    ))
+
+
+supabase = _create_client(SUPABASE_KEY)
 
 
 def create_public_client():
@@ -14,12 +54,12 @@ def create_public_client():
     Auth refreshes update the client's in-memory session, so they must never
     share the application-wide client across concurrent users.
     """
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
+    return _create_client(SUPABASE_KEY)
 
 
 def create_authenticated_client(access_token: str):
     """Create an isolated PostgREST client whose requests satisfy user RLS."""
-    client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    client = _create_client(SUPABASE_KEY)
     client.options.headers["Authorization"] = f"Bearer {access_token}"
     return client
 
@@ -35,4 +75,4 @@ def create_service_client():
     secret_key = os.getenv("SUPABASE_SECRET_KEY")
     if not secret_key:
         raise RuntimeError("Missing SUPABASE_SECRET_KEY in backend/.env")
-    return create_client(SUPABASE_URL, secret_key)
+    return _create_client(secret_key)

@@ -147,6 +147,11 @@ Audit deployment notes and manual regression checks are in
 the profile/list/reply/admin migrations and `database/rebuild_atomic_creation.sql`
 after `database/protagonist_rebuild_jobs.sql`, before deploying the updated backend.
 
+For batched reader-directory badges, apply `database/reader_special_badges.sql`
+after `database/admin_hub.sql` and before deploying the backend. This service-only
+RPC reads current server-owned flags without one Auth request per reader. Until
+the RPC is installed, the backend retains the existing badge lookup fallback.
+
 Run `database/admin_hub.sql` once in the Supabase SQL editor. It grants SPECIAL
 access to the existing **wafflehunter** account, locks catalog profile writes to
 the backend, and blocks banned accounts through existing public-table RLS policies.

@@ -235,6 +235,17 @@ assert.deepEqual((await removeNovel(2)).rows[0].result, {deleted:true,notified_r
 await db.exec('reset role');
 assert.equal((await db.query('select count(*)::int n from public.notifications')).rows[0].n, 1104);
 assert.equal((await db.query('select count(*)::int n from public.profiles where cardinality(novels_uploaded)>0')).rows[0].n, 0);
+await apply('reader_special_badges.sql');
+await apply('reader_special_badges.sql');
+await db.query("update auth.users set raw_app_meta_data = '{\"axiom_special\":true}' where id=$1", [owner]);
+await db.query("update auth.users set raw_app_meta_data = '{\"axiom_special\":true,\"axiom_banned\":true}' where id=$1", [reader]);
+await db.exec('set role service_role');
+assert.deepEqual((await db.query('select * from public.reader_special_badges($1::uuid[])', [[owner, reader]])).rows, [{id:owner}]);
+await db.exec('reset role; set role authenticated');
+await assert.rejects(db.query('select * from public.reader_special_badges($1::uuid[])', [[owner]]), /permission denied/);
+await db.exec('reset role; set role anon');
+await assert.rejects(db.query('select * from public.reader_special_badges($1::uuid[])', [[owner]]), /permission denied/);
+await db.exec('reset role');
 assert.deepEqual([...applied].sort(), readdirSync(directory).filter(name => name.endsWith(".sql")).sort());
 await db.close();
 console.log(`All ${applied.size} SQL files executed successfully: ordered installation, repeatable migrations, constraints, triggers, RLS, bans, and preservation checks.`);

@@ -80,14 +80,14 @@ def test_directory_only_enriches_returned_accounts(monkeypatch, sort, expected):
     })
     calls = []
 
-    def special(_client, identity):
-        calls.append(identity)
-        return identity == "b"
+    def special(_client, identities):
+        calls.append(identities)
+        return {"b"}
 
-    monkeypatch.setattr(users, "_is_special_account", special)
+    monkeypatch.setattr(users, "_special_account_ids", special)
     result = users.list_public_users(sort=sort, limit=2)
     assert [row["id"] for row in result["users"]] == expected
-    assert calls == expected
+    assert calls == [expected]
     assert {row["id"]: row["special"] for row in result["users"]} == {"a": False, "b": True}
     assert all("_public_presence" not in row and "online_status_visibility" not in row
                for row in result["users"])

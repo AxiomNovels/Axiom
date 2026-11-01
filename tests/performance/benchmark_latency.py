@@ -107,9 +107,18 @@ def main():
                  "online_status_visibility": "public"} for i in range(100)]
     query = SimpleNamespace()
     query.select = query.order = query.limit = lambda *_: query
+    query.range = lambda *_: query
     query.execute = lambda: SimpleNamespace(data=deepcopy(profiles))
     client = SimpleNamespace(table=lambda _: query)
     calls = [0, 0]
+    batch_calls = []
+
+    def badges(_name, parameters):
+        batch_calls.append(parameters)
+        time.sleep(0.002)
+        return SimpleNamespace(execute=lambda: SimpleNamespace(data=[{"id": "0"}]))
+
+    client.rpc = badges
     for slot, module in enumerate((old_users, users)):
         module.create_service_client = lambda: client
         module._online_user_ids = lambda *_: set()
@@ -127,6 +136,7 @@ def main():
                            args.repeats))
     results[-1]["auth_calls_per_request_before"] = calls[0] // (args.repeats + 2)
     results[-1]["auth_calls_per_request_after"] = calls[1] // (args.repeats + 2)
+    results[-1]["badge_batches_per_request_after"] = len(batch_calls) // (args.repeats + 2)
     print(json.dumps({"baseline": args.baseline, "python": sys.version,
                       "repeats": args.repeats, "results": results}, indent=2))
 

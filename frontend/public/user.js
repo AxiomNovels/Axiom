@@ -402,6 +402,10 @@ async function loadPublicProfile() {
   const activityLink = document.querySelector("[data-user-activity-link]");
   if (activityLink) activityLink.href = `/activity.html?id=${encodeURIComponent(userId)}`;
 
+  // The lists endpoint supplies its own owner name and enforces visibility.
+  // Start it immediately instead of waiting for the profile round trip.
+  loadUserReadingLists(userId);
+
   try {
     // authFetch (not plain fetch) so a logged-in viewer's identity is
     // sent along -- the backend uses it to decide whether this viewer
@@ -433,7 +437,6 @@ async function loadPublicProfile() {
 
     renderUserTags(profile.tag_preferences);
     renderSocialLinks(profile.social_links);
-    loadUserReadingLists(userId, profile.username);
     loadFriendAction(userId);
 
     if (aboutEl) {

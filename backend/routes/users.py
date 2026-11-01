@@ -115,6 +115,20 @@ def _is_special_account(client, user_id: str) -> bool:
         return False
 
 
+def _special_account_ids(client, user_ids: list[str]) -> set[str]:
+    if not user_ids:
+        return set()
+    try:
+        rows = client.rpc("reader_special_badges", {"user_ids": user_ids}).execute().data
+        return {str(row["id"]) for row in (rows or [])}
+    except Exception as error:
+        # Rolling deployments remain compatible until the migration is applied.
+        # Other failures hide decorative badges, never grant privileges.
+        if getattr(error, "code", None) == "PGRST202":
+            return {uid for uid in user_ids if _is_special_account(client, uid)}
+        return set()
+
+
 def _online_user_ids(client, user_ids: list[str]) -> set[str]:
     if not user_ids:
         return set()
@@ -248,11 +262,12 @@ def list_public_users(
         )
         users.sort(key=lambda user: not user["_public_presence"])
         users = users[:safe_limit]
+    special_ids = _special_account_ids(client, [str(user["id"]) for user in users])
     for user in users:
         user.pop("_public_presence", None)
         # Badges do not affect ordering. Only look up accounts that will
         # actually be returned, after the activity sort and result limit.
-        user["special"] = _is_special_account(client, user["id"])
+        user["special"] = str(user["id"]) in special_ids
     return {
         "users": users,
         "query": query,
