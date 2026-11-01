@@ -1,6 +1,6 @@
 import re
 
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_]{3,20}$")
@@ -30,3 +30,12 @@ class LoginRequest(BaseModel):
 
 class RefreshSessionRequest(BaseModel):
     refresh_token: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    password: str = Field(min_length=8, max_length=128)
+    refresh_token: str = Field(min_length=1)

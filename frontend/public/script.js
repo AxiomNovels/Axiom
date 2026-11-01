@@ -703,7 +703,7 @@ function clearAuthError(form) {
   errorEl.classList.add("is-hidden");
 }
 
-document.querySelectorAll(".auth-form").forEach((form) => {
+document.querySelectorAll(".auth-form:not([data-password-form])").forEach((form) => {
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     clearAuthError(form);

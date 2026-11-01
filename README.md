@@ -34,6 +34,23 @@ On first setup, replace the placeholder Supabase values in `backend/.env`.
 Verify the backend with `http://localhost:8000/api/health`, then verify finder
 metadata with `http://localhost:8000/api/search/options`.
 
+## Password recovery
+
+The login page links to `/forgot-password.html`. The backend sends a Supabase
+recovery email; its link opens `/reset-password.html` to choose a new password.
+Recovery credentials stay in page memory and are removed from the URL before
+shared scripts load. Reloading that page requires reopening the email link or
+requesting a new one.
+
+In Supabase **Authentication → URL Configuration**, allow
+`https://axiomnovels.com/reset-password.html` and, for local development,
+`http://localhost:3000/reset-password.html`. Add the equivalent URL for any
+other deployed frontend. Set backend `FRONTEND_ORIGIN` to the allowed frontend
+origin(s), comma-separated; the backend only sends callbacks to these origins.
+Keep the recovery email template's standard `{{ .ConfirmationURL }}` link,
+and configure Supabase SMTP for production email delivery. No SQL migration
+or service-role key is needed for recovery.
+
 ## Popular novels
 
 The Popular navigation tab opens `/popular.html`, with up to 20 novels per page.

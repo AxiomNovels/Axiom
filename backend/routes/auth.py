@@ -1,11 +1,58 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
+from core.auth import get_current_user
+from core.config import FRONTEND_ORIGINS
 from core.database import create_public_client, create_service_client, supabase
 from core.notifications import send_welcome_notification
-from models.auth import LoginRequest, RefreshSessionRequest, SignupRequest
+from models.auth import ForgotPasswordRequest, LoginRequest, RefreshSessionRequest, ResetPasswordRequest, SignupRequest
 
 
 router = APIRouter(prefix="/api", tags=["authentication"])
+
+
+@router.post("/password/forgot")
+def forgot_password(payload: ForgotPasswordRequest, request: Request):
+    # Never accept an arbitrary callback URL supplied by the browser.
+    origin = request.headers.get("origin", "").rstrip("/")
+    if origin not in FRONTEND_ORIGINS:
+        origin = FRONTEND_ORIGINS[0] if FRONTEND_ORIGINS else "http://localhost:3000"
+    try:
+        create_public_client().auth.reset_password_for_email(
+            str(payload.email), {"redirect_to": f"{origin}/reset-password.html"}
+        )
+    except Exception as error:
+        status = getattr(error, "status", None) or getattr(error, "status_code", None)
+        code = getattr(error, "code", None)
+        if status == 429:
+            raise HTTPException(status_code=429, detail="Please wait before requesting another reset email.") from error
+        # Keep the response identical for existing and nonexistent accounts.
+        if code not in ("user_not_found", "email_not_found"):
+            raise HTTPException(status_code=503, detail="Couldn't send the reset email. Please try again later.") from error
+    return {"message": "If an account exists with that email, you’ll receive a password reset link. Check your spam folder too."}
+
+
+@router.post("/password/reset")
+def reset_password(
+    payload: ResetPasswordRequest,
+    current_user=Depends(get_current_user),
+    authorization: str = Header(...),
+):
+    # The shared dependency validates the access token and rejects banned users.
+    client = create_public_client()
+    try:
+        response = client.auth.set_session(authorization.split(" ", 1)[1].strip(), payload.refresh_token)
+        user = getattr(response, "user", None)
+        if not user or user.id != current_user[0]:
+            raise HTTPException(status_code=401, detail="This reset link is invalid or expired. Please request a new one.")
+        client.auth.update_user({"password": payload.password})
+    except HTTPException:
+        raise
+    except Exception as error:
+        code = getattr(error, "code", None)
+        if code in ("same_password", "weak_password"):
+            raise HTTPException(status_code=400, detail="Choose a stronger password that differs from your current password.") from error
+        raise HTTPException(status_code=400, detail="Couldn't reset your password. Your link may have expired; please request a new one.") from error
+    return {"message": "Your password has been updated. You can now log in with your new password."}
 
 
 def humanize_auth_error(message: str) -> str:
