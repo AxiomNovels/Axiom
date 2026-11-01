@@ -1,11 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 500" fill="none">
+<title>Leader</title>
+<desc>An arcane leader raises a radiant staff while offering an open hand.</desc>
 <defs><radialGradient id="glow"><stop stop-color="#704981" stop-opacity=".75"/><stop offset="1" stop-color="#21142d"/></radialGradient><linearGradient id="gold" x2="0.8" y2="1"><stop stop-color="#f4dcaf"/><stop offset="1" stop-color="#a27faa"/></linearGradient></defs>
 <rect x="32" y="18" width="356" height="464" rx="170" fill="url(#glow)"/>
 <path d="M49 440V193a161 161 0 0 1 322 0v247Z" stroke="#b895b8" stroke-opacity=".6"/>
 <path d="M61 428V193a149 149 0 0 1 298 0v235Z" stroke="#b895b8" stroke-opacity=".25"/>
 <circle cx="210" cy="231" r="123" stroke="#bca0c6" stroke-opacity=".2"/>
 <circle cx="210" cy="231" r="137" stroke="#bca0c6" stroke-opacity=".3" stroke-dasharray="1 10"/>
-<g stroke="url(#gold)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"><path d="M210 153v113m-44-100 44-31 44 31m-75 10 31-22 31 22"/><circle cx="210" cy="210" r="70" stroke-dasharray="2 9"/><path d="M141 300q0-29 28-29t28 29m26 0q0-29 28-29t28 29M173 340q0-42 37-42t37 42"/><circle cx="169" cy="252" r="14"/><circle cx="251" cy="252" r="14"/><circle cx="210" cy="275" r="18"/><path d="m137 191 8 18m138-18-8 18M210 101v16m-56 11 10 12m102-12-10 12"/></g>
+<g stroke="url(#gold)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M160 153a51 51 0 0 1 102 0"/><path d="m210 91 0 15m-43-4 7 13m79-13-7 13"/><g transform="translate(210 161)"><path d="M-10 22v17l10 8 10-8V22" fill="#634458"/><path d="M-24-12Q-25 16-14 25L0 32 14 25Q25 16 24-12Q0-35-24-12Z" fill="#8b6278"/><path d="M-25-3Q-31-35 0-34Q31-35 25 2L17-14Q-4-8-15-20L-25-3Z" fill="#30213e"/><path d="M-16 3h7m18 0h7M0 5l-3 10 5 1m-9 7q7 3 14 0" stroke="#e9cbb6" stroke-width="1.5"/><path d="M-25 0q-8-6-5 8l7 6m48-14q8-6 5 8l-7 6"/></g><path d="m192 195-38 16-25 147 52-13 29 20 29-20 52 13-25-147-38-16-18 20Z" fill="#32253f"/><path d="m164 213 18 131m74-131-18 131m-28-129v134m-28-81h56"/><path d="m166 214-32 29-22-19-11 12 33 36 45-30m72-29 25 19 13-49 15 4-9 72-20 4-35-27" fill="#60415b"/><path d="m111 225-10-15-12-5 2 11-13-2 12 18 12 3m186-50 1-17 8-8 7 4 1 24" fill="#8b6278"/><path d="M298 135v226"/><path d="m298 100 15 20-15 20-15-20Z" fill="#bda0bc"/><circle cx="298" cy="120" r="28" opacity=".45"/><path d="m191 226 19 18 19-18m-38 66 19 12 19-12" opacity=".6"/><path d="m161 360 8 15h25m65-15-8 15h-25"/></g>
 <g fill="#d8bb94"><path d="m86 225 3 8 8 3-8 3-3 8-3-8-8-3 8-3Zm248 0 3 8 8 3-8 3-3 8-3-8-8-3 8-3Z"/><circle cx="113" cy="129" r="2"/><circle cx="307" cy="129" r="2"/><circle cx="131" cy="367" r="2"/><circle cx="289" cy="367" r="2"/></g>
 <path d="m62 416 43-28 34 21 32-30 39 25 39-25 32 30 34-21 43 28" stroke="#aa88b1" stroke-opacity=".35"/>
 <text x="210" y="79" fill="#d6b9a0" font-family="Georgia,serif" font-size="14" text-anchor="middle" letter-spacing="4">II</text>

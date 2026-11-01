@@ -1,11 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 500" fill="none">
+<title>Idealist</title>
+<desc>A principled figure holds an upright sword beneath balanced celestial scales.</desc>
 <defs><radialGradient id="glow"><stop stop-color="#704981" stop-opacity=".75"/><stop offset="1" stop-color="#21142d"/></radialGradient><linearGradient id="gold" x2="0.8" y2="1"><stop stop-color="#f4dcaf"/><stop offset="1" stop-color="#a27faa"/></linearGradient></defs>
 <rect x="32" y="18" width="356" height="464" rx="170" fill="url(#glow)"/>
 <path d="M49 440V193a161 161 0 0 1 322 0v247Z" stroke="#b895b8" stroke-opacity=".6"/>
 <path d="M61 428V193a149 149 0 0 1 298 0v235Z" stroke="#b895b8" stroke-opacity=".25"/>
 <circle cx="210" cy="231" r="123" stroke="#bca0c6" stroke-opacity=".2"/>
 <circle cx="210" cy="231" r="137" stroke="#bca0c6" stroke-opacity=".3" stroke-dasharray="1 10"/>
-<g stroke="url(#gold)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"><path d="M210 132v213m-70-166h140m-70-47 10 17-10 17-10-17Zm-46 213h92m-77-11h62M145 184l-33 74h66Zm130 0-33 74h66Z"/><path d="M112 258q33 39 66 0m64 0q33 39 66 0"/><circle cx="210" cy="209" r="99" stroke-dasharray="1 10"/><path d="M187 369h46"/></g>
+<g stroke="url(#gold)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M154 133a63 63 0 0 1 112 0M164 108h92m-76 0-17 29h34Zm60 0-17 29h34Z" opacity=".7"/><g transform="translate(210 161)"><path d="M-10 22v17l10 8 10-8V22" fill="#634458"/><path d="M-24-12Q-25 16-14 25L0 32 14 25Q25 16 24-12Q0-35-24-12Z" fill="#8b6278"/><path d="M-25-3Q-31-35 0-34Q31-35 25 2L17-14Q-4-8-15-20L-25-3Z" fill="#30213e"/><path d="M-16 3h7m18 0h7M0 5l-3 10 5 1m-9 7q7 3 14 0" stroke="#e9cbb6" stroke-width="1.5"/><path d="M-25 0q-8-6-5 8l7 6m48-14q8-6 5 8l-7 6"/></g><path d="m191 197-37 18-15 145h142l-15-145-37-18-19 22Z" fill="#3b2a46"/><path d="m165 215 17 50-20 89m93-139-17 50 20 89m-76-89h56"/><path d="m163 220 17 54 30-3 2-15-17-2-10-38m72 4-17 54-30-3-2-15 17-2 10-38" fill="#60415b"/><path d="M210 206v138m-24-97h48m-24-41-8 17v95l8 26 8-26v-95Z" fill="#c2a7c7"/><path d="m190 257 14-6 6 5v12l-20 5m40-16-14-6-6 5v12l20 5" fill="#8b6278"/><path d="m160 360 14 14h21m65-14-14 14h-21"/><path d="M120 264v44m-8-32h16m180-12v44m-8-32h16" opacity=".5"/></g>
 <g fill="#d8bb94"><path d="m86 225 3 8 8 3-8 3-3 8-3-8-8-3 8-3Zm248 0 3 8 8 3-8 3-3 8-3-8-8-3 8-3Z"/><circle cx="113" cy="129" r="2"/><circle cx="307" cy="129" r="2"/><circle cx="131" cy="367" r="2"/><circle cx="289" cy="367" r="2"/></g>
 <path d="m62 416 43-28 34 21 32-30 39 25 39-25 32 30 34-21 43 28" stroke="#aa88b1" stroke-opacity=".35"/>
 <text x="210" y="79" fill="#d6b9a0" font-family="Georgia,serif" font-size="14" text-anchor="middle" letter-spacing="4">III</text>
