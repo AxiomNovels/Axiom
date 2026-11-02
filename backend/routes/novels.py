@@ -210,8 +210,21 @@ def _record_upload(client, user_id: str, novel_id: int) -> None:
 
 
 @router.get("/featured")
-def get_featured_novels():
+def get_featured_novels(refresh: bool = False, exclude: str = Query("", max_length=1000)):
     try:
+        if refresh:
+            excluded = set(exclude.split(","))
+            ids = [row["id"] for row in all_rows(supabase.table("novels").select("id").order("id"))]
+            available = [novel_id for novel_id in ids if str(novel_id) not in excluded]
+            previous = [novel_id for novel_id in ids if str(novel_id) in excluded]
+            rng = secrets.SystemRandom()
+            chosen = rng.sample(available, min(10, len(available)))
+            chosen += rng.sample(previous, min(10 - len(chosen), len(previous)))
+            if not chosen:
+                return []
+            rows = supabase.table("novels").select(NOVEL_LIST_COLUMNS).in_("id", chosen).execute().data or []
+            by_id = {row["id"]: row for row in rows}
+            return [by_id[novel_id] for novel_id in chosen if novel_id in by_id]
         response = (
             supabase.rpc(
                 "get_featured_novels",

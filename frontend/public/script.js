@@ -1077,28 +1077,50 @@ async function loadHomeFeature() {
   }
 }
 
-async function loadFeaturedNovels() {
+let featuredNovelIds = [];
+
+async function loadFeaturedNovels(refresh = false) {
   const grid = document.querySelector("[data-novel-grid]");
+  const button = document.querySelector("[data-featured-refresh]");
+  const status = document.querySelector("[data-featured-status]");
   if (!grid) {
     return;
   }
 
+  if (button) button.disabled = true;
+  if (status) status.textContent = refresh ? "Refreshing novels…" : "";
   try {
-    const response = await fetch(`${API_BASE}/api/novels/featured`);
+    const params = new URLSearchParams();
+    if (refresh) {
+      params.set("refresh", "true");
+      params.set("exclude", featuredNovelIds.join(","));
+    }
+    const response = await fetch(`${API_BASE}/api/novels/featured${params.size ? `?${params}` : ""}`, { cache: "no-store" });
     if (!response.ok) {
       throw new Error("Failed to load featured novels");
     }
     const novels = await response.json();
 
+    featuredNovelIds = novels.map((novel) => String(novel.id));
     grid.innerHTML = "";
     novels.forEach((novel, index) => {
       grid.appendChild(createNovelCard(novel, index));
     });
+    if (status) status.textContent = novels.length ? "" : "No novels available yet.";
   } catch (error) {
-    grid.innerHTML = "<p>Couldn't load novels. Please try again shortly.</p>";
+    if (status) status.textContent = refresh ? "Couldn't refresh novels. Please try again." : "";
+    if (!refresh || !featuredNovelIds.length) {
+      grid.innerHTML = "<p>Couldn't load novels. Please try again shortly.</p>";
+    }
+  } finally {
+    if (button) button.disabled = false;
   }
 }
 
+document.querySelector("[data-featured-refresh]")?.addEventListener("click", (event) => {
+  event.preventDefault();
+  if (!event.currentTarget.disabled) loadFeaturedNovels(true);
+});
 loadFeaturedNovels();
 loadHomeFeature();
 
