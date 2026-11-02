@@ -29,7 +29,8 @@ function resultCard(novel, index) {
   const cover = document.createElement("div"); cover.className = `result-cover ${COVER_CLASSES[index % COVER_CLASSES.length]}`;
   if (novel.cover_image_url) { const image = document.createElement("img"); image.referrerPolicy = "no-referrer"; image.src = novel.cover_image_url; image.alt = `${novel.title} cover`; image.addEventListener("error", () => { image.remove(); cover.textContent = novel.title || "Axiom"; }, { once: true }); cover.appendChild(image); }
   else cover.textContent = novel.title;
-  const copy = document.createElement("div");
+  const copy = document.createElement("div"); copy.className = "result-details";
+  const body = document.createElement("div"); body.className = "result-body";
   const tagList = novel.tags || [];
   const tags = tagList.slice(0, 6).map((tag) => {
     const chip = document.createElement("span");
@@ -37,9 +38,10 @@ function resultCard(novel, index) {
     return chip.outerHTML;
   }).join("");
   const remainingTags = tagList.length > 6 ? `<span class="more-tags">+${tagList.length - 6}</span>` : "";
-  copy.innerHTML = `<div class="result-title-row"><div><h3></h3><p class="result-author"></p></div><span class="result-status"></span></div><div class="result-rating"></div><div class="result-stats"></div><p class="result-synopsis"></p><div class="result-tags">${tags}${remainingTags}</div>`;
+  copy.innerHTML = '<div class="result-title-row"><h3></h3><span class="result-status"></span></div><p class="result-author"></p><div class="result-rating"></div><div class="result-stats"></div>';
+  body.innerHTML = `<p class="result-synopsis"></p><div class="result-tags">${tags}${remainingTags}</div>`;
   copy.querySelector("h3").textContent = novel.title; copy.querySelector(".result-author").textContent = `by ${novel.author || "Unknown"}`;
-  copy.querySelector(".result-status").textContent = novel.status || "Unknown"; copy.querySelector(".result-synopsis").textContent = novel.synopsis || "No synopsis available.";
+  copy.querySelector(".result-status").textContent = novel.status || "Unknown"; body.querySelector(".result-synopsis").textContent = novel.synopsis || "No synopsis available.";
   const rating = copy.querySelector(".result-rating");
   rating.textContent = novel.average_rating == null ? "Not yet rated" : `★ ${Number(novel.average_rating).toFixed(1)} · ${novel.review_count} ${novel.review_count === 1 ? "review" : "reviews"}`;
   // Chapter count is optional per novel -- only shown when it actually
@@ -50,7 +52,8 @@ function resultCard(novel, index) {
   const statsEl = copy.querySelector(".result-stats");
   statsEl.textContent = statParts.join(" · ");
   if (!statParts.length) statsEl.remove();
-  link.append(cover, copy); return link;
+  if (!tagList.length) body.querySelector(".result-tags").remove();
+  link.append(cover, copy, body); return link;
 }
 
 async function loadSearchResults() {
