@@ -1,117 +1,67 @@
-/* Each vignette measures one dimension independently. Pattern questions are not extra Axiom traits. */
+/* Nine dilemmas; four defensible choices each. See frontend/QUIZ.md for the audit.
+ * Every trait has 16 achievable points across six answer opportunities.
+ * 30 answers award one trait; six also award a smaller secondary trait.
+ * Independence and unconventionality are separate archetype signals, not traits.
+ */
 (function (root) {
-  const question = (id, dimension, chapter, title, answers) => ({
+  const question = (id, chapter, title, answers) => ({
     id, chapter, title,
-    answers: answers.map(([text, points]) => ({ text, points: { [dimension]: points } })),
+    answers: answers.map(([text, points]) => ({ text, points })),
   });
   const questions = [
-    question("sealed-door", "intelligence", "An unfamiliar world", "A sealed door has three clues. Your first attempt fails. What happens next?", [
-      ["I compare the clues, test an explanation, and use the failure to revise it.", 100],
-      ["I work out a simpler explanation and try the most likely solution.", 67],
-      ["I follow an example, but struggle if the clues work differently.", 33],
-      ["I keep repeating my first attempt, even after it clearly fails.", 0],
+    question("last-ferry", "The city beyond the rain", "The last ferry leaves at dusk. Across the flooded city wait a sealed archive, people counting on your arrival, and someone whose last letter you keep rereading. There is time for one detour.", [
+      ["Enter the unstable bell tower to compare its flood marks with the map. A reliable crossing could buy everyone more time.", { intelligence: 2, courage: 1 }],
+      ["Visit the rival boat crews. If each agrees to carry the other's stranded passengers, neither has to sail half-empty.", { charisma: 3 }],
+      ["Return a mistakenly issued travel seal. Keeping it would get you across, but leave its rightful holder behind.", { moral_integrity: 3 }],
+      ["Follow the address on the letter. Even a brief meeting matters more than reaching the far bank tonight.", { romantic_attachment: 3 }],
     ]),
-    question("divided-table", "charisma", "An unfamiliar world", "Two groups at the inn refuse to cooperate. How does your attempt to bring them together go?", [
-      ["I connect with a few people, but cannot shift the room.", 33],
-      ["I understand their concerns and persuade both sides to try a shared plan.", 100],
-      ["My explanation makes the disagreement worse; I cannot find a way through.", 0],
-      ["I make a convincing case, though the most skeptical people remain unsure.", 67],
+    question("glass-bridge", "The city beyond the rain", "A glass bridge can bear only four people at a time. The queue is growing, cracks are spreading, and the engineer cannot promise another safe crossing. Your traveling companions are scattered through the crowd.", [
+      ["Ask the rival group leaders to announce the same boarding order. People may accept a delay if someone they trust explains it.", { charisma: 3 }],
+      ["Take the first uncertain crossing with the inspection rope, then surrender your place on the waiting coach so the agreed queue stays fair.", { courage: 3, moral_integrity: 1 }],
+      ["Gather your companions and cross in a later group together. You would rather share their uncertainty than leave anyone facing it alone.", { kinship_friendship: 3 }],
+      ["Ask for the dispatcher's sash. You judge your decisions better than the committee's and want the final word before the cracks spread.", { arrogance_pride: 3 }],
     ]),
-    question("bridge", "courage", "An unfamiliar world", "Crossing a guarded bridge matters to your quest. You are afraid, even with a sensible plan. You…", [
-      ["Turn back as soon as the fear arrives.", 0],
-      ["Wait for someone to remove almost all the risk.", 33],
-      ["Take precautions and cross, accepting that the fear may stay.", 100],
-      ["Make an attempt after reassurance, but might retreat if the pressure rises.", 67],
+    question("borrowed-summer", "The city beyond the rain", "A winterbound village can borrow one evening of summer. The orchard would thaw, but the spell needs a memory you will never recall again. The villagers leave the choice to you.", [
+      ["Offer a memory and enter the spell circle yourself. The loss frightens you, but someone must accept the uncertainty for the thaw to begin.", { courage: 3 }],
+      ["Explain the permanent cost to every volunteer before proceeding. An informed refusal is worth the risk of losing tonight's chance.", { moral_integrity: 3 }],
+      ["Give up the memory of a first kiss rather than the family reunion beside it. You would visit that person afterward to begin a new memory together.", { romantic_attachment: 3, kinship_friendship: 1 }],
+      ["Test whether several small recollections can power a miniature thaw. The old rule may describe one working method rather than the only one.", { intelligence: 3, unconventionality: 2 }],
     ]),
-    question("reward", "moral_integrity", "The price of a choice", "You can claim a reward by blaming someone innocent. Nobody would discover the lie. You…", [
-      ["Refuse and make sure the innocent person is safe, even if it costs the reward.", 100],
-      ["Usually refuse, but might make an exception if the reward mattered enough.", 67],
-      ["Feel uneasy, then take the reward if it solves my problems.", 33],
-      ["Take it. Their fate is not a reason to give up an advantage.", 0],
+    question("masked-auction", "What the city asks", "At a masked auction, one bid buys a stolen atlas, a friend's passage out of debt, or a private audience. You have enough silver for one, and the doors close at midnight.", [
+      ["Buy the atlas and return it to the surveyors who made it. They should not have to pay for someone else's theft.", { moral_integrity: 3 }],
+      ["Buy your friend's passage. Whatever opportunities the atlas holds, you came here knowing what their freedom would mean.", { kinship_friendship: 3 }],
+      ["Bid for the audience, on the condition that you are received as an equal. You can offer useful news, but will not queue behind inherited titles.", { arrogance_pride: 3 }],
+      ["Persuade the host to accept a performance instead of silver, and invite the guest you are drawn to as your partner. An improvised duet might buy you both an audience.", { charisma: 3, romantic_attachment: 1, unconventionality: 2 }],
     ]),
-    question("letter", "kinship_friendship", "The price of a choice", "A close friend writes that they need you. Helping would interrupt a long-awaited opportunity. You…", [
-      ["Offer what is easy, but keep my plans if helping becomes costly.", 33],
-      ["Make meaningful time to help while trying to preserve some of my plans.", 67],
-      ["Feel no personal pull to help; the bond does not affect my choice.", 0],
-      ["Change my plans substantially. Their wellbeing matters deeply to me.", 100],
+    question("rooms-at-the-inn", "What the city asks", "The only inn above the flood has one quiet room and a crowded attic. Your exhausted companions need rest; someone you are falling for asks whether you might stay up together. A warning bell keeps sounding outside.", [
+      ["Give your companions the room and insist the innkeeper waive the usual allocation rule for your party. You believe your people deserve that exception.", { kinship_friendship: 3, arrogance_pride: 1 }],
+      ["Take two chairs by the kitchen fire with the person who asked. You would trade a good night's sleep for time alone together.", { romantic_attachment: 3 }],
+      ["Compare the bell intervals with the water marks before settling in. Knowing whether the warning is worsening will determine where everyone sleeps.", { intelligence: 3 }],
+      ["Take a lantern and check the nearby embankment yourself. You prefer choosing your own watch to waiting for the inn's reassuring reports.", { courage: 3, independence: 2 }],
     ]),
-    question("connection", "romantic_attachment", "The price of a choice", "On this imagined journey, what place do romantic or sexual feelings have in your life?", [
-      ["They are a recurring, meaningful part of life alongside other ambitions.", 67],
-      ["I do not experience those feelings; I can still care deeply in other ways.", 0],
-      ["They are a central pull, often reshaping what I want and choose.", 100],
-      ["They appear rarely or faintly, and seldom influence my priorities.", 33],
+    question("the-second-name", "What the city asks", "A renowned mapmaker offers to publish your discovery under their name. Their reputation would put it into every rescue boat by morning; negotiating could delay distribution. The person you love sails at dawn.", [
+      ["Hand over your notes and spend the remaining hours at the harbor. You do not want this last evening together to become another negotiation.", { romantic_attachment: 3 }],
+      ["Require your name above theirs and offer to spend the night briefing their crews. You will help earn the endorsement, but equal billing would still understate your contribution.", { arrogance_pride: 3 }],
+      ["Find the wording that lets the mapmaker endorse the work without claiming it. You want both their cooperation and a public record you can accept.", { charisma: 3 }],
+      ["Release the notes yourself, crediting every contributor and accepting the smaller reach. You would rather own that decision than sign someone else's account.", { moral_integrity: 3, independence: 2 }],
     ]),
-    question("correction", "arrogance_pride", "The price of a choice", "A newcomer correctly points out a flaw in your plan in front of everyone. Your reaction?", [
-      ["I thank them and change the plan. Their status does not matter.", 0],
-      ["I bristle briefly, then accept the correction and give them credit.", 33],
-      ["I resist admitting it and look for a way to preserve my superiority.", 67],
-      ["I see it as an insult. Someone beneath me should not challenge me.", 100],
+    question("the-sleeping-machine", "Beneath the lanterns", "An ancient machine could drain the lower streets, but nobody agrees on its controls. You have one hour before the tide turns. Each approach has a credible advocate.", [
+      ["Accept advice, but reserve the final decision for yourself. You trust your reading of the situation more than theirs and will put your name to the outcome.", { arrogance_pride: 3 }],
+      ["Trace the channels, then test the pump in reverse on a small scale. Holding back new water might work better than trying to drain what is already inside.", { intelligence: 3, unconventionality: 2 }],
+      ["Climb onto the exposed platform for a controlled trial, explaining each step to the frightened crew so they will stay at their posts.", { courage: 3, charisma: 1 }],
+      ["Use the hour to bring your companions' households upstairs. You cannot settle the machine's mysteries, but you can make sure your people face the tide together.", { kinship_friendship: 3 }],
     ]),
-    question("own-route", "independence", "Choose your own path", "Trusted companions offer a safe, workable route. You could also plan your own. What do you prefer?", [
-      ["Their route. I want others to set the direction for me.", 0],
-      ["My own route and responsibility, even though their help is available.", 100],
-      ["A shared route with a little room for my own decisions.", 33],
-      ["My own direction, with advice and occasional company along the way.", 67],
+    question("unwritten-road", "Beneath the lanterns", "At a crossroads, the guidebook describes two reliable routes. A third, unmarked road might save a day. You have promised to carry testimony to a hearing, while an unexpected invitation could change where you go afterward.", [
+      ["Compare the abandoned milestones with the river's bends and chart your own route. You would rather navigate from your findings than place the choice in a guide's hands.", { intelligence: 2, independence: 2 }],
+      ["Convince the two passing caravans to exchange scouts. Each can share what the other lacks, even if agreeing on terms costs the morning.", { charisma: 3 }],
+      ["Keep to the dependable causeway to deliver the testimony on time. The witness relied on your promise, even if honoring it means passing up the other destinations.", { moral_integrity: 3 }],
+      ["Choose the longer route past the invitation's address. You want to discover whether the connection you felt deserves more than a letter.", { romantic_attachment: 3 }],
     ]),
-    question("old-method", "unconventionality", "Choose your own path", "The guild has used the same method for years. It works, but the situation has changed. You…", [
-      ["Try a small variation while keeping most of the familiar method.", 33],
-      ["Keep the old method exactly; a different approach feels wrong by itself.", 0],
-      ["Test a radically different approach on a small scale and adapt to what I learn.", 100],
-      ["Question the assumptions and combine familiar tools in a new way.", 67],
-    ]),
-    question("contradiction", "intelligence", "When the plot turns", "New evidence contradicts your explanation of a mystery. How do you make sense of it?", [
-      ["I miss the contradiction and stick with the explanation despite repeated failures.", 0],
-      ["I weigh competing explanations and identify a test that distinguishes them.", 100],
-      ["I recognize the problem, but need someone to explain what follows from it.", 33],
-      ["I revise my explanation using the clearest evidence and learn from the mistake.", 67],
-    ]),
-    question("rally", "charisma", "When the plot turns", "Your group is discouraged. You try to restore their confidence. What is most like you?", [
-      ["I help several people feel understood and willing to try again.", 67],
-      ["I struggle to express myself and leave people more disconnected.", 0],
-      ["I reach one familiar friend, but have little influence on the group.", 33],
-      ["I find words that connect with different people and inspire real commitment.", 100],
-    ]),
-    question("opposition", "courage", "When the plot turns", "A powerful rival opposes something important to you. There is a real risk of failure. You…", [
-      ["Act despite fear, preparing carefully for consequences I cannot remove.", 100],
-      ["Give up the moment opposition appears, even when action is possible.", 0],
-      ["Try if I have support, though sustained pressure may stop me.", 67],
-      ["Only act if someone else takes on most of the danger.", 33],
-    ]),
-    question("own-harm", "moral_integrity", "What remains", "You discover that your successful plan unfairly harmed strangers. Repairing it would cost you. You…", [
-      ["Hide it. Winning matters more than the harm.", 0],
-      ["Take responsibility and make meaningful repairs even at a serious cost.", 100],
-      ["Make repairs unless doing so would threaten something I badly want.", 67],
-      ["Express regret, but do little if fixing it becomes inconvenient.", 33],
-    ]),
-    question("bonds", "kinship_friendship", "What remains", "Beyond a dramatic rescue, how do your closest bonds shape an ordinary chapter of life?", [
-      ["I value them and make regular space for them among other priorities.", 67],
-      ["They rarely matter beyond convenient company.", 33],
-      ["Caring for these people is a defining motivation that repeatedly shapes my future.", 100],
-      ["I feel no personal investment in maintaining them.", 0],
-    ]),
-    question("attachment", "romantic_attachment", "What remains", "When you imagine attraction or a romantic relationship, how much does your own desire influence your choices?", [
-      ["It does not: I do not feel that attraction or desire for a romantic bond.", 0],
-      ["It often redirects major choices; pursuing or preserving that connection is central.", 100],
-      ["It has a small, occasional place that rarely changes my plans.", 33],
-      ["It matters enough to make room for connection, alongside other goals.", 67],
-    ]),
-    question("recognition", "arrogance_pride", "What remains", "Someone less experienced receives recognition you hoped to earn. What runs through your mind?", [
-      ["I deserve deference. I cannot tolerate being outshone by someone beneath me.", 100],
-      ["I feel a little jealous, but can appreciate their work and learn from it.", 33],
-      ["Their success is welcome; it does not make me worth less.", 0],
-      ["I dismiss their achievement and assume I deserve more recognition.", 67],
-    ]),
-    question("autonomy", "independence", "The next chapter", "You are offered a place in a welcoming group, with support but little control over your direction. You…", [
-      ["Prefer to set my own course and take responsibility, even if it is harder.", 100],
-      ["Gladly let the group choose my goals and next steps.", 0],
-      ["Want substantial autonomy, while staying open to useful collaboration.", 67],
-      ["Prefer the shared structure, with occasional choices of my own.", 33],
-    ]),
-    question("improvise", "unconventionality", "The next chapter", "Your carefully prepared approach stops working. Another route would break with convention. You…", [
-      ["Adjust a small detail, but strongly prefer the familiar approach.", 33],
-      ["Try a new combination of tools and change course as feedback arrives.", 67],
-      ["Reframe the problem, test an unexpected option, and freely revise my tactics.", 100],
-      ["Keep following the original approach because it is the accepted way.", 0],
+    question("the-last-page", "What you carry onward", "A patron offers to fund your next journey, provided their council chooses the destination. You could also travel with old companions, try an untested vessel, or pursue a smaller expedition on your own terms.", [
+      ["Win the patron over, but make funding conditional on your having the final say. You believe your judgment deserves precedence over the council's, even if they withdraw.", { arrogance_pride: 3, independence: 2 }],
+      ["Compare the supply records, seasonal winds, and likely returns before selecting a route. You would accept a smaller beginning for a sounder plan.", { intelligence: 3 }],
+      ["Trial the new vessel on a short, demanding crossing with an escape boat nearby. Its unfamiliar design might open routes the established ships cannot reach.", { courage: 3, unconventionality: 2 }],
+      ["Ask your old companions where they need to go, then build the journey around staying together. You care more about the company than the destination on the charter.", { kinship_friendship: 3 }],
     ]),
   ];
   if (typeof module !== "undefined" && module.exports) module.exports = questions;

@@ -56,8 +56,8 @@ def quiz_api(page, quiz_frontend):
 
 
 def complete(page):
-    for index in range(18):
-        expect(page.locator("#progress-text")).to_have_text(f"Question {index + 1} of 18")
+    for index in range(9):
+        expect(page.locator("#progress-text")).to_have_text(f"Question {index + 1} of 9")
         page.get_by_role("radio").nth(0).check()
         page.locator("#next").click()
     expect(page.locator("#result")).to_be_visible()

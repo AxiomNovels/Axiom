@@ -22,8 +22,10 @@ step, database writes, or new external services are required.
 ## Files and flow
 
 - `index.html`: title, questions, and results screens; metadata and shared scripts.
-- `content.js`: 18 scenario questions, four answers each; two per trait plus two
-  each for independence and unconventional thinking.
+- `content.js`: 9 dilemmas with four defensible choices each; most choices award
+  one trait, and a sixth award a smaller amount to a second trait.
+- `QUIZ_QUESTIONS.md` (in `frontend/`): a readable editorial snapshot of the
+  questions, answer weights, and balance audit. `content.js` is authoritative.
 - `config.js`: seven trait definitions, archetype descriptions, weights,
   eligibility thresholds, near-tie threshold, and fixed tie priority.
 - `engine.js`: pure normalization, archetype selection, and catalog distance
@@ -49,10 +51,47 @@ and maximum attainable sums across that dimension's questions:
 
 `score = 100 × (selected sum − possible minimum) / (possible maximum − possible minimum)`.
 
-Current question scores are 0, 33, 67, and 100. Questions measure their assigned
-dimension independently; low romance never reduces friendship. All 18 questions
-are mandatory. Calculations retain precision; the interface rounds trait scores
-to whole percentages and similarity to one decimal place.
+There are 36 choices across nine dilemmas. Thirty award one trait; six award a
+main trait and 1 point to a second trait. Main awards are normally 3 points; two
+Intelligence answers award 2 points instead. Every secondary award is smaller
+than its answer's main award.
+
+Every trait has **16 available points across six answer opportunities**:
+
+| Trait | Main awards | Secondary awards | Available / achievable maximum |
+| --- | --- | --- | --- |
+| Intelligence | Four at 3, two at 2 | None | 16 |
+| Charisma | Five at 3 | One at 1 | 16 |
+| Courage | Five at 3 | One at 1 | 16 |
+| Moral Integrity | Five at 3 | One at 1 | 16 |
+| Kinship & Friendship | Five at 3 | One at 1 | 16 |
+| Romantic Attachment | Five at 3 | One at 1 | 16 |
+| Arrogance & Conceit | Five at 3 | One at 1 | 16 |
+
+A trait never appears in competing answers within the same question, so every
+one of its available points can actually be earned. Each trait also has an
+achievable minimum of zero. With 36 main awards, an identical count for seven
+traits is impossible; the two smaller Intelligence awards preserve both equal
+point budgets and six opportunities per trait. Main awards for each trait occur
+once or twice in every answer position, rather than clustering in a single slot.
+The engine already accepts multiple dimensions per answer; no scoring-engine
+rewrite is needed. All nine questions are mandatory.
+
+Independence and unconventionality each have four direct 2-point opportunities,
+for a maximum of 8. These signals accompany choices that explicitly express
+self-direction or experimentation, and are normalized separately. They do not
+count toward the seven traits' budgets or appear as extra character traits.
+
+Scores are calculated separately, but choices compete: this format measures the
+priorities emphasized across dilemmas, not seven independent ability tests. A
+trait not selected receives no points; that is not evidence of its absence in a
+person. Choosing uniformly at random averages 25% for each trait. Equal trait
+budgets do not imply equal archetype frequencies, and the Conqueror still requires
+both high arrogance and courage. No archetype weights or eligibility thresholds
+were changed. Catalog similarity remains an illustrative comparison, not a
+validated personality-to-character mapping. Calculations retain precision; the
+interface rounds trait scores to whole percentages and similarity to one decimal
+place.
 
 Archetype scores are weighted sums of normalized inputs:
 
@@ -145,7 +184,9 @@ revision, restart, valid/broken covers, untrusted title text, retries, empty
 matches, and analytics opt-out. Local screenshots are generated under ignored
 `test-results/`. Scoring tests cover all eight archetypes, endpoints, exact and
 near ties, mandatory answers, invalid profiles, missing dimensions, deduplication,
-and ranking before taking the top ten. No live Supabase or Gemini calls are made.
+and ranking before taking the top ten. The content audit checks exactly nine
+questions, 36 answers, six dual-credit answers, six opportunities per trait, equal
+trait totals and achievable maxima, balanced main-answer positions, and all eight reachable outcomes. No live Supabase or Gemini calls are made.
 
 For local use, run `npm.cmd run dev` from `frontend/`, then open
 `http://localhost:3000/quiz/index.html`. The quiz itself works without the backend;

@@ -6,52 +6,98 @@ const { scoreAnswers, matchProtagonists } = require("../../frontend/public/quiz/
 const keys = config.traits.map(t => t.key);
 const definition = { traits: config.traits };
 const scores = n => Object.fromEntries(keys.map(key => [key, n]));
-const selections = values => questions.map(q => {
-  const key = Object.keys(q.answers[0].points)[0];
-  const target = values[key] ?? 33;
-  return q.answers.reduce((best, a, i) => Math.abs(a.points[key] - target) < Math.abs(q.answers[best].points[key] - target) ? i : best, 0);
-});
+const chooseFor = (key, maximize = true) => questions.map(q => q.answers.reduce((best, answer, i) => {
+  const value = answer.points[key] ?? 0;
+  const previous = q.answers[best].points[key] ?? 0;
+  return (maximize ? value > previous : value < previous) ? i : best;
+}, 0));
 const novel = (id, value, extra = {}) => ({ id, title: `Novel ${id}`, protagonist_profiles: [{ protagonist_name: `Hero ${id}`, ...scores(value), ...extra }] });
 
-test("exactly the requested seven independent traits, each with two measurable questions", () => {
+test("9 four-choice dilemmas give every trait the same total, attainable maximum, and six answer opportunities", () => {
   assert.deepEqual(keys, ["intelligence", "charisma", "courage", "moral_integrity", "kinship_friendship", "romantic_attachment", "arrogance_pride"]);
-  for (const key of [...keys, ...config.patterns]) assert.equal(questions.filter(q => key in q.answers[0].points).length, 2);
+  assert.equal(questions.length, 9);
+  assert.equal(new Set(questions.map(q => q.id)).size, 9);
+  let dualAwards = 0;
+  for (const question of questions) {
+    assert.equal(question.answers.length, 4);
+    for (const answer of question.answers) {
+      const awards = keys.filter(key => key in answer.points).map(key => answer.points[key]).sort();
+      assert.ok(JSON.stringify(awards) === '[2]' || JSON.stringify(awards) === '[1,2]' || JSON.stringify(awards) === '[3]' || JSON.stringify(awards) === '[1,3]');
+      if (awards.length === 2) dualAwards++;
+      assert.ok(Object.keys(answer.points).every(key => [...keys, ...config.patterns].includes(key)));
+    }
+  }
+  assert.equal(dualAwards, 6);
+  for (const key of keys) {
+    const awards = questions.flatMap(q => q.answers.map(a => a.points[key] ?? 0));
+    assert.equal(awards.filter(value => value > 0).length, 6, key);
+    assert.equal(awards.filter(value => value === 3).length, key === "intelligence" ? 4 : 5, key);
+    assert.equal(awards.filter(value => value === 2).length, key === "intelligence" ? 2 : 0, key);
+    assert.equal(awards.filter(value => value === 1).length, key === "intelligence" ? 0 : 1, key);
+    assert.equal(awards.reduce((sum, value) => sum + value, 0), 16, key);
+    assert.equal(questions.reduce((sum, q) => sum + Math.max(...q.answers.map(a => a.points[key] ?? 0)), 0), 16, key);
+    for (let position = 0; position < 4; position++) {
+      // 36 main awards cannot divide evenly across seven traits and four positions.
+      // Each trait must still occur as a main award once or twice per position.
+      const count = questions.filter(q => (q.answers[position].points[key] ?? 0) >= 2).length;
+      assert.ok(count >= 1 && count <= 2, `${key} at ${position}`);
+    }
+  }
+  for (const pattern of config.patterns) {
+    const awards = questions.flatMap(q => q.answers.map(a => a.points[pattern] ?? 0));
+    assert.equal(awards.filter(value => value === 2).length, 4);
+    assert.equal(awards.reduce((sum, value) => sum + value, 0), 8);
+  }
   for (const archetype of config.archetypes) assert.ok(Math.abs(Object.values(archetype.weights).reduce((a, b) => a + b) - 1) < 1e-9);
 });
 
-test("normalizes attainable bounds and does not conflate romance with friendship", () => {
-  const low = Object.fromEntries([...keys, ...config.patterns].map(key => [key, 0]));
-  const high = Object.fromEntries([...keys, ...config.patterns].map(key => [key, 100]));
-  assert.deepEqual(scoreAnswers(questions, selections(low), config).traits, scores(0));
-  assert.deepEqual(scoreAnswers(questions, selections(high), config).traits, scores(100));
-  assert.equal(scoreAnswers(questions, selections(high), config).primary.id, "mastermind");
-  const result = scoreAnswers(questions, selections({ ...low, kinship_friendship: 100 }), config);
-  assert.equal(result.traits.romantic_attachment, 0);
-  assert.equal(result.traits.kinship_friendship, 100);
+test("each dimension can independently reach both normalized endpoints", () => {
+  for (const key of [...keys, ...config.patterns]) {
+    const high = scoreAnswers(questions, chooseFor(key), config);
+    const low = scoreAnswers(questions, chooseFor(key, false), config);
+    const section = keys.includes(key) ? "traits" : "patterns";
+    assert.equal(high[section][key], 100, key);
+    assert.equal(low[section][key], 0, key);
+  }
+});
+
+test("a dual-credit choice adds only its specified primary and secondary traits", () => {
+  const answers = Array(9).fill(0);
+  const first = scoreAnswers(questions, answers, config);
+  // In the ferry dilemma, change Intelligence + Courage to Romantic Attachment.
+  answers[0] = 3;
+  const second = scoreAnswers(questions, answers, config);
+  const difference = { intelligence: -2, courage: -1, romantic_attachment: 3 };
+  for (const key of keys) {
+    assert.ok(Math.abs(second.traits[key] - first.traits[key] - (difference[key] ?? 0) * 100 / 16) < 1e-9, key);
+  }
+  assert.deepEqual(first.patterns, second.patterns);
+  assert.equal(first.traits.kinship_friendship, second.traits.kinship_friendship);
 });
 
 test("all mandatory questions must be valid, including sparse arrays", () => {
-  for (const answers of [[], Array(18), Array(18).fill(null), Array(18).fill(-1), Array(18).fill(4), Array(18).fill("0")]) {
+  for (const answers of [[], Array(9), Array(9).fill(null), Array(9).fill(-1), Array(9).fill(4), Array(9).fill("0"), Array(14).fill(0)]) {
     assert.throws(() => scoreAnswers(questions, answers, config), /Answer every question/);
   }
 });
 
-test("each archetype is reachable through a representative answer pattern", () => {
-  const patterns = {
-    mastermind: { intelligence: 100, charisma: 67 },
-    leader: { charisma: 100, kinship_friendship: 67, courage: 67 },
-    idealist: { moral_integrity: 100, courage: 67 },
-    guardian: { kinship_friendship: 100, courage: 67 },
-    romantic: { romantic_attachment: 100 },
-    conqueror: { arrogance_pride: 100, courage: 100 },
-    "lone-wolf": { independence: 100, kinship_friendship: 0, courage: 67, intelligence: 67 },
-    wildcard: { unconventionality: 100, intelligence: 67, courage: 67 },
-  };
-  for (const [expected, values] of Object.entries(patterns)) assert.equal(scoreAnswers(questions, selections(values), config).primary.id, expected);
+test("all eight archetypes remain reachable with the revised dilemmas", () => {
+  const targets = { mastermind: "intelligence", leader: "charisma", idealist: "moral_integrity", guardian: "kinship_friendship", romantic: "romantic_attachment", "lone-wolf": "independence", wildcard: "unconventionality" };
+  for (const [expected, key] of Object.entries(targets)) {
+    assert.equal(scoreAnswers(questions, chooseFor(key), config).primary.id, expected);
+  }
+  // Prioritize personal authority, while accepting danger at the tower, spell,
+  // embankment, and vessel trial; pride alone is still insufficient.
+  const conqueror = [0, 3, 0, 2, 3, 1, 0, 0, 2];
+  const result = scoreAnswers(questions, conqueror, config);
+  assert.equal(result.primary.id, "conqueror");
+  assert.ok(result.traits.arrogance_pride >= 60 && result.traits.courage >= 50);
 });
 
 test("low friendship, balanced scores, and timid conceit alone do not grant special archetypes", () => {
-  const result = scoreAnswers(questions, selections({ kinship_friendship: 0, arrogance_pride: 100, courage: 0, independence: 0, unconventionality: 0 }), config);
+  const points = { ...scores(50), kinship_friendship: 0, arrogance_pride: 100, courage: 0, independence: 0, unconventionality: 0 };
+  const fixture = [{ answers: [{ points: { ...scores(0), independence: 0, unconventionality: 0 } }, { points: { ...scores(100), independence: 100, unconventionality: 100 } }, { points }] }];
+  const result = scoreAnswers(fixture, [2], config);
   assert.ok(result.ranked.every(r => !["lone-wolf", "wildcard", "conqueror"].includes(r.archetype.id)));
 });
 

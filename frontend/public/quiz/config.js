@@ -1,7 +1,7 @@
 /* Campaign configuration. Array order is the fixed exact-tie priority. */
 (function (root) {
   const config = {
-    version: 1,
+    version: 3,
     nearTieThreshold: 3,
     // Only these seven dimensions are displayed or compared with protagonists.
     traits: [
