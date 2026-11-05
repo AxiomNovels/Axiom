@@ -1,4 +1,5 @@
-/* Nine dilemmas; four defensible choices each. See frontend/QUIZ.md for the audit.
+/*
+ * Nine dilemmas; four defensible choices each.
  * Every trait has 16 achievable points across six answer opportunities.
  * 30 answers award one trait; six also award a smaller secondary trait.
  * Independence and unconventionality are separate archetype signals, not traits.
@@ -8,62 +9,72 @@
     id, chapter, title,
     answers: answers.map(([text, points]) => ({ text, points })),
   });
+
   const questions = [
-    question("last-ferry", "The city beyond the rain", "The last ferry leaves at dusk. Across the flooded city wait a sealed archive, people counting on your arrival, and someone whose last letter you keep rereading. There is time for one detour.", [
-      ["Enter the unstable bell tower to compare its flood marks with the map. A reliable crossing could buy everyone more time.", { intelligence: 2, courage: 1 }],
-      ["Visit the rival boat crews. If each agrees to carry the other's stranded passengers, neither has to sail half-empty.", { charisma: 3 }],
-      ["Return a mistakenly issued travel seal. Keeping it would get you across, but leave its rightful holder behind.", { moral_integrity: 3 }],
-      ["Follow the address on the letter. Even a brief meeting matters more than reaching the far bank tonight.", { romantic_attachment: 3 }],
+    question("last-ferry", "The world according to you", "The last ferry leaves in one hour. Across the river, a town is waiting for supplies. You also have a letter from someone you have not seen in years. There is time to do only one thing before the ferry leaves.", [
+      ["Climb the old tower and check how high the water has risen. A better estimate could help everyone cross safely.", { intelligence: 2, courage: 1 }],
+      ["Bring the two arguing ferry crews together. If they work as one team, more people can make the crossing.", { charisma: 3 }],
+      ["Return a ticket you found in your coat. It could get someone else onto the ferry, but you would lose your only chance.", { moral_integrity: 3 }],
+      ["Go to the address on the letter. You may miss the ferry, but you cannot ignore the chance to see that person again.", { romantic_attachment: 3 }],
     ]),
-    question("glass-bridge", "The city beyond the rain", "A glass bridge can bear only four people at a time. The queue is growing, cracks are spreading, and the engineer cannot promise another safe crossing. Your traveling companions are scattered through the crowd.", [
-      ["Ask the rival group leaders to announce the same boarding order. People may accept a delay if someone they trust explains it.", { charisma: 3 }],
-      ["Take the first uncertain crossing with the inspection rope, then surrender your place on the waiting coach so the agreed queue stays fair.", { courage: 3, moral_integrity: 1 }],
-      ["Gather your companions and cross in a later group together. You would rather share their uncertainty than leave anyone facing it alone.", { kinship_friendship: 3 }],
-      ["Ask for the dispatcher's sash. You judge your decisions better than the committee's and want the final word before the cracks spread.", { arrogance_pride: 3 }],
+
+    question("glass-bridge", "The world according to you", "A glass bridge connects two parts of the city. It can only carry four people at a time, and cracks are starting to spread. Your friends are somewhere in the growing crowd. Everyone wants to cross but is also afraid.", [
+      ["Talk to the group leaders and agree on a fair order. People may be willing to wait if someone they trust explains the plan.", { charisma: 3 }],
+      ["Cross first with a safety rope and help test the bridge.", { courage: 3, moral_integrity: 1 }],
+      ["Find your friends and wait for a crossing together. Getting everyone across matters more than getting there first.", { kinship_friendship: 3 }],
+      ["Take charge of the crossing yourself. Too many people are arguing, and you think you can make better decisions.", { arrogance_pride: 3 }],
     ]),
-    question("borrowed-summer", "The city beyond the rain", "A winterbound village can borrow one evening of summer. The orchard would thaw, but the spell needs a memory you will never recall again. The villagers leave the choice to you.", [
-      ["Offer a memory and enter the spell circle yourself. The loss frightens you, but someone must accept the uncertainty for the thaw to begin.", { courage: 3 }],
-      ["Explain the permanent cost to every volunteer before proceeding. An informed refusal is worth the risk of losing tonight's chance.", { moral_integrity: 3 }],
-      ["Give up the memory of a first kiss rather than the family reunion beside it. You would visit that person afterward to begin a new memory together.", { romantic_attachment: 3, kinship_friendship: 1 }],
-      ["Test whether several small recollections can power a miniature thaw. The old rule may describe one working method rather than the only one.", { intelligence: 3, unconventionality: 2 }],
+
+    question("borrowed-summer", "The world according to you", "A village has been trapped in winter for years. A spell could bring back summer for one evening, but someone must give up a precious memory forever. The villagers have asked you to decide what happens.", [
+      ["Give up one of your own memories. It is frightening, but you are willing to take the risk yourself.", { courage: 3 }],
+      ["Tell everyone exactly what the spell will cost. Nobody should have to make this choice without knowing the truth.", { moral_integrity: 3 }],
+      ["Give up the memory of your first love. You can make new memories with that person, but you cannot ask someone else to pay.", { romantic_attachment: 3, kinship_friendship: 1 }],
+      ["Look for another way to power the spell. Perhaps several small memories could work instead of one precious one.", { intelligence: 3, unconventionality: 2 }],
     ]),
-    question("masked-auction", "What the city asks", "At a masked auction, one bid buys a stolen atlas, a friend's passage out of debt, or a private audience. You have enough silver for one, and the doors close at midnight.", [
-      ["Buy the atlas and return it to the surveyors who made it. They should not have to pay for someone else's theft.", { moral_integrity: 3 }],
-      ["Buy your friend's passage. Whatever opportunities the atlas holds, you came here knowing what their freedom would mean.", { kinship_friendship: 3 }],
-      ["Bid for the audience, on the condition that you are received as an equal. You can offer useful news, but will not queue behind inherited titles.", { arrogance_pride: 3 }],
-      ["Persuade the host to accept a performance instead of silver, and invite the guest you are drawn to as your partner. An improvised duet might buy you both an audience.", { charisma: 3, romantic_attachment: 1, unconventionality: 2 }],
+
+    question("masked-auction", "Pride and friendship", "At a secret auction, you have enough money for one prize. An old map could reveal a lost city. Your closest friend needs money to escape a dangerous debt. Or you could meet someone who may have answers about your past. The auction ends at midnight.", [
+      ["Buy the map and return it to the people it was stolen from. They should not have to pay for someone else's theft.", { moral_integrity: 3 }],
+      ["Pay your friend's debt. You can search for lost cities another day, but your friend needs help now.", { kinship_friendship: 3 }],
+      ["Buy the private meeting, but insist on being treated as an equal. You have something to offer, and you will not beg for someone's attention.", { arrogance_pride: 3 }],
+      ["Offer to perform at the auction instead of paying. Invite the person you want to meet to join you. A good performance might win you both a chance to talk.", { charisma: 3, romantic_attachment: 1, unconventionality: 2 }],
     ]),
-    question("rooms-at-the-inn", "What the city asks", "The only inn above the flood has one quiet room and a crowded attic. Your exhausted companions need rest; someone you are falling for asks whether you might stay up together. A warning bell keeps sounding outside.", [
-      ["Give your companions the room and insist the innkeeper waive the usual allocation rule for your party. You believe your people deserve that exception.", { kinship_friendship: 3, arrogance_pride: 1 }],
-      ["Take two chairs by the kitchen fire with the person who asked. You would trade a good night's sleep for time alone together.", { romantic_attachment: 3 }],
-      ["Compare the bell intervals with the water marks before settling in. Knowing whether the warning is worsening will determine where everyone sleeps.", { intelligence: 3 }],
-      ["Take a lantern and check the nearby embankment yourself. You prefer choosing your own watch to waiting for the inn's reassuring reports.", { courage: 3, independence: 2 }],
+
+    question("rooms-at-the-inn", "Pride and friendship", "A storm has forced you and your companions into a small inn. There is only one proper room left. Your friends are exhausted, someone you have feelings for asks you to stay by the fire, and a warning bell keeps ringing outside.", [
+      ["Give the room to your friends. Then ask the innkeeper to make an exception and find space for everyone else.", { kinship_friendship: 3, arrogance_pride: 1 }],
+      ["Stay by the fire with the person who asked. You may be tired tomorrow, but tonight feels worth it.", { romantic_attachment: 3 }],
+      ["Check the warning bell and compare it with the rising water. You want to know how serious the danger really is before choosing where everyone sleeps.", { intelligence: 3 }],
+      ["Take a lantern and inspect the nearby road yourself. You would rather face the danger than wait for someone else to tell you what is happening.", { courage: 3, independence: 2 }],
     ]),
-    question("the-second-name", "What the city asks", "A renowned mapmaker offers to publish your discovery under their name. Their reputation would put it into every rescue boat by morning; negotiating could delay distribution. The person you love sails at dawn.", [
-      ["Hand over your notes and spend the remaining hours at the harbor. You do not want this last evening together to become another negotiation.", { romantic_attachment: 3 }],
-      ["Require your name above theirs and offer to spend the night briefing their crews. You will help earn the endorsement, but equal billing would still understate your contribution.", { arrogance_pride: 3 }],
-      ["Find the wording that lets the mapmaker endorse the work without claiming it. You want both their cooperation and a public record you can accept.", { charisma: 3 }],
-      ["Release the notes yourself, crediting every contributor and accepting the smaller reach. You would rather own that decision than sign someone else's account.", { moral_integrity: 3, independence: 2 }],
+
+    question("the-second-name", "Pride and friendship", "You have discovered a new route that could save hundreds of lives. A famous explorer offers to publish it under their name. Their reputation could spread the news by morning, but you would get no credit. Someone you love is leaving at dawn.", [
+      ["Let them publish it. Spend your remaining time with the person you love. There are things more important than recognition.", { romantic_attachment: 3 }],
+      ["Demand that your name comes first. You made the discovery, and you will not pretend otherwise just to please someone famous.", { arrogance_pride: 3 }],
+      ["Find a way to share the credit. They have the influence to spread the news, and you have the work to back it up.", { charisma: 3 }],
+      ["Publish the discovery yourself and name everyone who helped. It may reach fewer people, but the decision will be yours.", { moral_integrity: 3, independence: 2 }],
     ]),
-    question("the-sleeping-machine", "Beneath the lanterns", "An ancient machine could drain the lower streets, but nobody agrees on its controls. You have one hour before the tide turns. Each approach has a credible advocate.", [
-      ["Accept advice, but reserve the final decision for yourself. You trust your reading of the situation more than theirs and will put your name to the outcome.", { arrogance_pride: 3 }],
-      ["Trace the channels, then test the pump in reverse on a small scale. Holding back new water might work better than trying to drain what is already inside.", { intelligence: 3, unconventionality: 2 }],
-      ["Climb onto the exposed platform for a controlled trial, explaining each step to the frightened crew so they will stay at their posts.", { courage: 3, charisma: 1 }],
-      ["Use the hour to bring your companions' households upstairs. You cannot settle the machine's mysteries, but you can make sure your people face the tide together.", { kinship_friendship: 3 }],
+
+    question("the-sleeping-machine", "The great decision", "An old machine beneath the city could stop a flood. Nobody knows exactly how it works, and the water will reach the streets in one hour. Some people want to turn it on right away. Others say it could make things worse.", [
+      ["Listen to the advice, but make the final decision yourself. You trust your intelligence and are ready to take responsibility.", { arrogance_pride: 3 }],
+      ["Study the pipes and test one small part first. There may be a safer way to stop the water than simply turning the machine on.", { intelligence: 3, unconventionality: 2 }],
+      ["Go down to the machine and try to start it. Explain your plan to the others and ask them to help.", { courage: 3, charisma: 1 }],
+      ["Move your friends and their families to higher ground. You cannot save the whole city alone, but you can protect the people close to you.", { kinship_friendship: 3 }],
     ]),
-    question("unwritten-road", "Beneath the lanterns", "At a crossroads, the guidebook describes two reliable routes. A third, unmarked road might save a day. You have promised to carry testimony to a hearing, while an unexpected invitation could change where you go afterward.", [
-      ["Compare the abandoned milestones with the river's bends and chart your own route. You would rather navigate from your findings than place the choice in a guide's hands.", { intelligence: 2, independence: 2 }],
-      ["Convince the two passing caravans to exchange scouts. Each can share what the other lacks, even if agreeing on terms costs the morning.", { charisma: 3 }],
-      ["Keep to the dependable causeway to deliver the testimony on time. The witness relied on your promise, even if honoring it means passing up the other destinations.", { moral_integrity: 3 }],
-      ["Choose the longer route past the invitation's address. You want to discover whether the connection you felt deserves more than a letter.", { romantic_attachment: 3 }],
+
+    question("unwritten-road", "The great decision", "You are carrying an important message to a distant town. The map shows two safe roads, but a stranger tells you about a third road that could save a whole day. Along the way, you receive an invitation from someone you would like to meet.", [
+      ["Study the land and try to find the third road yourself. You trust what you can discover more than what someone tells you.", { intelligence: 2, independence: 2 }],
+      ["Ask two passing travelers to share what they know. Together, you might find a better route than any of you could find alone.", { charisma: 3 }],
+      ["Take the safe road and deliver the message on time. Someone is counting on you, and you will not break your promise.", { moral_integrity: 3 }],
+      ["Take the longer road past the invitation's address. You want to meet this person, even if it means arriving a day late.", { romantic_attachment: 3 }],
     ]),
-    question("the-last-page", "What you carry onward", "A patron offers to fund your next journey, provided their council chooses the destination. You could also travel with old companions, try an untested vessel, or pursue a smaller expedition on your own terms.", [
-      ["Win the patron over, but make funding conditional on your having the final say. You believe your judgment deserves precedence over the council's, even if they withdraw.", { arrogance_pride: 3, independence: 2 }],
-      ["Compare the supply records, seasonal winds, and likely returns before selecting a route. You would accept a smaller beginning for a sounder plan.", { intelligence: 3 }],
-      ["Trial the new vessel on a short, demanding crossing with an escape boat nearby. Its unfamiliar design might open routes the established ships cannot reach.", { courage: 3, unconventionality: 2 }],
-      ["Ask your old companions where they need to go, then build the journey around staying together. You care more about the company than the destination on the charter.", { kinship_friendship: 3 }],
+
+    question("the-last-page", "The great decision", "Your journey is almost over. A wealthy patron offers to pay for your next adventure, but only if they choose where you go. Your old friends want to travel with you, and a strange new ship has just arrived at the harbor. You must decide what comes next.", [
+      ["Tell the patron you will accept the money, but only if you can choose the destination yourself. There is a chance they may say no.", { arrogance_pride: 3, independence: 2 }],
+      ["Study the routes, costs, and weather yourself before making a choice. A good plan is worth more than an exciting promise.", { intelligence: 3 }],
+      ["Take your friends with you on the new ship on a short test journey. It may be risky, but you would rather discover what is possible than keep doing what is familiar.", { courage: 3, unconventionality: 2 }],
+      ["Ask your friends where they want to go and plan the journey together. The people beside you matter more than the place you reach.", { kinship_friendship: 3 }],
     ]),
   ];
+
   if (typeof module !== "undefined" && module.exports) module.exports = questions;
   else root.AxiomQuizQuestions = questions;
 })(typeof globalThis !== "undefined" ? globalThis : this);
