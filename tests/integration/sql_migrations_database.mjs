@@ -32,6 +32,26 @@ await db.exec(`create role anon; create role authenticated; create role service_
   insert into auth.users(id) values ('${owner}'),('${reader}');
   insert into public.novels values (1,'Reverend Insanity'),(2,'Another novel');`);
 
+await db.exec(`alter table public.novels add column genres text[] not null default '{}';
+  update public.novels set genres = array['Fantasy','Nonfiction','Non Fiction','Non-Fiction','Science Fiction'] where id=1;
+  update public.novels set genres = array['Fantasy','Fantasy','Science Fiction'] where id=2;`);
+for (let run = 0; run < 2; run++) {
+  await apply('normalize_nonfiction_genre.sql');
+  assert.deepEqual((await db.query('select genres from public.novels order by id')).rows, [
+    {genres: ['Fantasy', 'Non-Fiction', 'Science Fiction']},
+    {genres: ['Fantasy', 'Fantasy', 'Science Fiction']},
+  ]);
+}
+assert.equal((await db.query('select public.canonicalize_novel_genres(null) g')).rows[0].g, null);
+assert.deepEqual((await db.query("select public.canonicalize_novel_genres('{}'::text[]) g")).rows[0].g, []);
+// Ordinary table writers also get canonical genres; no elevated trigger rights.
+await db.exec('set role authenticated');
+await db.query("insert into public.novels(id,title,genres) values (3,'Genre test',$1)", [[' NONFICTION ', 'Mystery', 'non fiction', null]]);
+assert.deepEqual((await db.query('select genres from public.novels where id=3')).rows[0].genres, ['Non-Fiction', 'Mystery', null]);
+await db.query('update public.novels set genres=$1 where id=3', [['Poetry', '\tNON FICTION\n', 'Non-Fiction']]);
+assert.deepEqual((await db.query('select genres from public.novels where id=3')).rows[0].genres, ['Poetry', 'Non-Fiction']);
+await db.exec('delete from public.novels where id=3; reset role');
+
 await apply("profiles.sql"); // A one-time base migration; not intended for reapplication.
 await db.exec(`alter table public.profiles add column country text;
   insert into public.profiles(id,username,country) values

@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from routes.novels import NOVEL_LIST_COLUMNS
 from core.database import supabase
 from core.pagination import all_rows
+from core.genres import canonicalize_genre
 from services.search_service import filter_novels, sort_novels
 from services.protagonist_definition_service import load_definition, measures_for
 
@@ -60,7 +61,7 @@ def search_options():
     return {
         "protagonist_definition": definition,
         "tags": sorted({tag for novel in novels for tag in (novel.get("tags") or [])}, key=str.lower),
-        "genres": sorted({genre for novel in novels for genre in (novel.get("genres") or [])}, key=str.lower),
+        "genres": sorted({canonicalize_genre(genre) for novel in novels for genre in (novel.get("genres") or [])}, key=str.lower),
         "statuses": sorted({novel.get("status") for novel in novels if novel.get("status")}, key=str.lower),
         "profile_measures": list(measures_for(definition)),
     }

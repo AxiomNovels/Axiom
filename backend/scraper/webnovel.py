@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from curl_cffi import requests as browser_requests
 
 from .genres import IN_HOUSE_GENRES
+from core.genres import canonicalize_genre
 from core.source_http import source_get, source_url
 
 
@@ -1225,7 +1226,7 @@ def classify_genres_and_tags(
         if not value:
             continue
 
-        key = value.casefold()
+        key = canonicalize_genre(value).casefold()
 
         if key in in_house_lookup:
             value = in_house_lookup[key]

@@ -3,6 +3,11 @@
 A novel discovery app with reader profiles, reviews, reading lists, social features,
 and protagonist traits. Recommendations use tags and protagonist profiles.
 
+Genre spelling is normalized across imports and searches. Apply
+[`database/normalize_nonfiction_genre.sql`](database/normalize_nonfiction_genre.sql)
+to consolidate existing nonfiction variants and normalize future database writes.
+See [genre migration details](database/GENRE_NORMALIZATION.md) for ordering and verification.
+
 ## Features
 
 * Content-based filtering

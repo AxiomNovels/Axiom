@@ -6,6 +6,7 @@ import httpx
 from selectolax.parser import HTMLParser
 
 from .genres import IN_HOUSE_GENRES
+from core.genres import canonicalize_genre
 from core.source_http import source_get, source_url
 
 
@@ -1135,7 +1136,7 @@ def classify_genres_and_tags(
         if not value:
             continue
 
-        genre = genre_lookup.get(value.casefold())
+        genre = genre_lookup.get(canonicalize_genre(value).casefold())
 
         if genre is not None:
             if genre not in classified_genres:

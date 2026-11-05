@@ -30,8 +30,6 @@ IN_HOUSE_GENRES = [
   "Cultivation",
   "Progression Fantasy",
   "Fanfiction",
-  "Nonfiction",
-  "Non Fiction",
   "Non-Fiction",
   "Poetry",
   "Short Stories"

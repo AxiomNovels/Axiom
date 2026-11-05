@@ -1,5 +1,7 @@
 from typing import Any
 
+from core.genres import canonicalize_genres
+
 
 ALLOWED_STATUSES = {
     "ongoing",
@@ -75,11 +77,8 @@ def normalize_string_list(values: Any) -> list[str]:
     """
     Clean and dedupe a list of strings, preserving order.
 
-    Used for both of a scraper's list fields: the canonical genre
-    classification (payload["genres"], e.g. "Fantasy", "Romance") and the
-    free-form community tags (payload["tags"], e.g. "Reincarnation",
-    "System") -- the cleaning rules are identical for both, only the
-    source field differs.
+    Shared cleaning for genres and free-form community tags. Genre-specific
+    spelling normalization is applied separately by normalize_genres.
     """
 
     if not values:
@@ -104,11 +103,9 @@ def normalize_string_list(values: Any) -> list[str]:
     return cleaned
 
 
-# Kept as an alias: earlier versions of this module only had a
-# `normalize_genres` name, and it was (incorrectly) fed each scraper's
-# `tags` field. The cleaning logic hasn't changed, only which raw field
-# each list is built from -- see transform_royalroad/_wattpad/_webnovel.
-normalize_genres = normalize_string_list
+def normalize_genres(values: Any) -> list[str]:
+    """Normalize old staged payloads as well as freshly scraped genres."""
+    return canonicalize_genres(normalize_string_list(values))
 
 
 def normalize_reading_links(
@@ -178,7 +175,7 @@ def transform_royalroad(payload: dict) -> dict:
     # This scraper returns two distinct lists: "genres" (canonical
     # classification, e.g. "Fantasy") and "tags" (free-form community
     # tags, e.g. "Reincarnation") -- each maps to its own column.
-    genres = normalize_string_list(
+    genres = normalize_genres(
         payload.get("genres")
     )
 
@@ -246,7 +243,7 @@ def transform_wattpad(payload: dict) -> dict:
     # This scraper returns two distinct lists: "genres" (canonical
     # classification, e.g. "Fantasy") and "tags" (free-form community
     # tags, e.g. "Reincarnation") -- each maps to its own column.
-    genres = normalize_string_list(
+    genres = normalize_genres(
         payload.get("genres")
     )
 
@@ -314,7 +311,7 @@ def transform_webnovel(payload: dict) -> dict:
     # This scraper returns two distinct lists: "genres" (canonical
     # classification, e.g. "Fantasy") and "tags" (free-form community
     # tags, e.g. "Reincarnation") -- each maps to its own column.
-    genres = normalize_string_list(
+    genres = normalize_genres(
         payload.get("genres")
     )
 

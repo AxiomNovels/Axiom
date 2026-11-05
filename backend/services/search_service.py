@@ -1,5 +1,7 @@
 import re
 
+from core.genres import canonicalize_genre
+
 # Offline compatibility for callers/tests that use the original seed. HTTP paths
 # read the active definition instead of this constant.
 from profiler.prompt import MEASURES as PROFILE_MEASURES
@@ -7,7 +9,8 @@ from profiler.prompt import MEASURES as PROFILE_MEASURES
 
 def searchable_text(value):
     """Return lowercase words suitable for small-catalogue relevance scoring."""
-    return re.findall(r"[a-z0-9]+", str(value or "").lower())
+    text = re.sub(r"\bnonfiction\b", "non fiction", str(value or "").lower())
+    return re.findall(r"[a-z0-9]+", text)
 
 
 def novel_relevance(novel, query):
@@ -113,14 +116,14 @@ def filter_novels(novels, include_tags=None, exclude_tags=None, status=None, pro
     """Apply finder criteria to a catalogue already fetched from Supabase."""
     included = {tag.strip().lower() for tag in (include_tags or []) if tag.strip()}
     excluded = {tag.strip().lower() for tag in (exclude_tags or []) if tag.strip()}
-    included_genres = {genre.strip().casefold() for genre in (include_genres or []) if genre.strip()}
-    excluded_genres = {genre.strip().casefold() for genre in (exclude_genres or []) if genre.strip()}
+    included_genres = {canonicalize_genre(genre).strip().casefold() for genre in (include_genres or []) if genre.strip()}
+    excluded_genres = {canonicalize_genre(genre).strip().casefold() for genre in (exclude_genres or []) if genre.strip()}
     wanted_status = (status or "").strip().lower()
     ranges = profile_ranges or {}
     matches = []
 
     for novel in novels:
-        genres = {str(genre).strip().casefold() for genre in (novel.get("genres") or [])}
+        genres = {canonicalize_genre(str(genre)).strip().casefold() for genre in (novel.get("genres") or [])}
         if included_genres and genre_mode == "or" and not included_genres.intersection(genres):
             continue
         if included_genres and genre_mode != "or" and not included_genres.issubset(genres):
