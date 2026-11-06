@@ -13,6 +13,7 @@ const SEO_ORIGIN = "https://axiomnovels.com";
 
 function renderSiteFooter() {
   if (document.querySelector(".site-footer")) return;
+  const isHomePage = ["/", "/index.html"].includes(window.location.pathname);
 
   document.body.insertAdjacentHTML("beforeend", `
     <footer class="site-footer">
@@ -27,7 +28,7 @@ function renderSiteFooter() {
         <nav class="site-footer-nav" aria-label="Footer navigation">
           <h2>Explore Axiom</h2>
           <a href="/finder.html">Series finder</a>
-          <a href="/quiz/">Protagonist quiz</a>
+          ${isHomePage ? "" : '<a href="/quiz/">Protagonist quiz</a>'}
           <a href="/mission.html">Our mission</a>
           <a href="/team.html">Meet the team</a>
         </nav>
