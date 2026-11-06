@@ -35,6 +35,15 @@ step, database writes, or new external services are required.
   answers; reloading the page starts fresh.
 - `quiz.css` and `art/`: responsive interface and original vector artwork.
 
+The quiz uses compact arcane panels, an etched border treatment, a subtle
+starfield, and an eight-portrait gallery on the introduction. Questions use two
+answer columns on wide screens and one on phones. Results use seven equally sized rows in one vertical trait stack, with names
+and scores beside the bars on desktop and above them on phones. This avoids an
+unpaired final card and gives every trait the same visual treatment. Each trait description contains an explicit `\n` between the
+definition and its clarification; the UI renders them as separate block spans.
+Text can wrap naturally on smaller screens. The shared footer receives tighter
+spacing only within the quiz page.
+
 Scripts load in this order: `/runtime-config.js`, `/script.js`, quiz configuration,
 content, engine, and interface. Public matching requests use the shared `API_BASE`.
 There are no authenticated quiz operations.

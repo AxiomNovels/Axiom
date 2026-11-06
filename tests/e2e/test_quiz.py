@@ -69,6 +69,7 @@ def test_full_journey_accessibility_results_matches_and_review(page, quiz_fronte
     expect(page.get_by_role("button", name="Start my story")).to_be_enabled()
     artifacts = ROOT / "test-results"
     artifacts.mkdir(exist_ok=True)
+    expect(page.locator("#archetype-gallery figure")).to_have_count(8)
     page.screenshot(path=str(artifacts / "quiz-desktop.png"), full_page=True)
     page.get_by_role("button", name="Start my story").click()
     expect(page.locator("#next")).to_be_disabled()
@@ -85,6 +86,14 @@ def test_full_journey_accessibility_results_matches_and_review(page, quiz_fronte
     complete(page)
     expect(page.locator("#result-title")).to_be_focused()
     expect(page.locator("#trait-scores output")).to_have_count(7)
+    for row in page.locator(".trait-row").all():
+        row.locator("summary").click()
+        lines = row.locator(".trait-description-line")
+        expect(lines).to_have_count(2)
+        assert lines.nth(1).inner_text().startswith("Not ")
+        first, second = lines.nth(0).bounding_box(), lines.nth(1).bounding_box()
+        assert second["y"] >= first["y"] + first["height"]
+        row.locator("summary").click()
     expect(page.locator(".match-card")).to_have_count(10)
     expect(page.locator("#match-basis")).to_contain_text("all seven traits")
     expect(page.locator(".match-card h3").first).to_have_text("<img src=x onerror=alert(1)>")
@@ -95,11 +104,12 @@ def test_full_journey_accessibility_results_matches_and_review(page, quiz_fronte
     expect(page.locator(".match-card").first).to_contain_text("Protagonist: Hero 1")
     expect(page.locator(".match-card").first).to_contain_text("Strongest overlap:")
     expect(page.locator("#result-strength")).to_be_hidden()
-    page.get_by_text("Turn the page: your strengths & blind spot").click()
+    page.get_by_text("Your strengths & blind spot", exact=True).click()
     expect(page.locator("#result-strength")).to_be_visible()
     expect(page.get_by_role("link", name="Explore the Finder", exact=False)).to_have_attribute("href", "/finder.html")
     expect(page.get_by_role("link", name="Browse Popular Novels", exact=False)).to_have_attribute("href", "/popular.html")
     assert page.locator("#result-art").evaluate("img => img.complete && img.naturalWidth > 0")
+    page.locator(".trait-row").last.locator("summary").click()
     page.screenshot(path=str(artifacts / "quiz-result.png"), full_page=True)
     page.get_by_role("button", name="Review my answers").click()
     expect(page.get_by_role("radio").first).to_be_checked()
@@ -133,6 +143,14 @@ def test_mobile_failure_retry_empty_and_no_overflow(page, quiz_frontend, quiz_ap
     expect(page.locator("[data-backend-wake-overlay]")).to_have_count(0)
     assert not any(path == "/health" for _, path, _ in quiz_api["requests"])
     expect(page.locator("#trait-scores output")).to_have_count(7)
+    for row in page.locator(".trait-row").all():
+        row.locator("summary").click()
+        lines = row.locator(".trait-description-line")
+        expect(lines).to_have_count(2)
+        assert lines.nth(1).inner_text().startswith("Not ")
+        first, second = lines.nth(0).bounding_box(), lines.nth(1).bounding_box()
+        assert second["y"] >= first["y"] + first["height"]
+        row.locator("summary").click()
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
     quiz_api["fail"] = False
     quiz_api["empty"] = width == 320

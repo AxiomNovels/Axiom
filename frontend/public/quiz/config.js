@@ -10,37 +10,37 @@
       {
         key: "intelligence",
         name: "Intelligence",
-        description: "How you think, learn, and solve problems. Not how much you know or how well educated you are."
+        description: "How you think, learn, and solve problems.\nNot how much you know or how well educated you are."
       },
       {
         key: "charisma",
         name: "Charisma",
-        description: "How you connect with, inspire, and persuade others. Not your looks, fame, or popularity."
+        description: "How you connect with, inspire, and persuade others.\nNot your looks, fame, or popularity."
       },
       {
         key: "courage",
         name: "Courage",
-        description: "How you face fear, danger, and the unknown. Not acting without thinking or never feeling afraid."
+        description: "How you face fear, danger, and the unknown.\nNot acting without thinking or never feeling afraid."
       },
       {
         key: "moral_integrity",
         name: "Moral Integrity",
-        description: "How well you stick to your values under pressure. Not simply following rules."
+        description: "How well you stick to your values under pressure.\nNot simply following rules."
       },
       {
         key: "kinship_friendship",
         name: "Kinship & Friendship",
-        description: "How much you value your friends, family, and chosen family. Not how much they value you."
+        description: "How much you value your friends, family, and chosen family.\nNot how much they value you."
       },
       {
         key: "romantic_attachment",
         name: "Romantic Attachment",
-        description: "How much you value romance, attraction, and close romantic bonds. Not how attractive others find you."
+        description: "How much you value romance, attraction, and close romantic bonds.\nNot how attractive others find you."
       },
       {
         key: "arrogance_pride",
         name: "Arrogance & Pride",
-        description: "How much you see yourself as better than others, expect special treatment, or refuse to admit you're wrong. Not confidence or skill alone."
+        description: "How much you see yourself as better than others, expect special treatment, or refuse to admit you're wrong.\nNot confidence or skill alone."
       },
     ],
 

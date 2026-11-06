@@ -10,6 +10,17 @@
   let requestController = null;
   const start = byId("start-quiz");
   start.disabled = false;
+  const gallery = byId("archetype-gallery");
+  config.archetypes.forEach(archetype => {
+    const figure = document.createElement("figure");
+    const image = document.createElement("img");
+    image.src = `/quiz/art/${archetype.id}.svg`;
+    image.alt = ""; image.width = 84; image.height = 100;
+    const caption = document.createElement("figcaption");
+    caption.textContent = archetype.title;
+    figure.append(image, caption);
+    gallery.append(figure);
+  });
 
   function showScreen(name, focusId) {
     for (const id of ["intro", "questions", "result"]) byId(id).hidden = id !== name;
@@ -82,7 +93,14 @@
       const bar = document.createElement("span"); bar.style.width = `${score}%`; track.append(bar);
       const details = document.createElement("details");
       const summary = document.createElement("summary"); summary.textContent = `What ${trait.name} measures`;
-      const description = document.createElement("p"); description.textContent = trait.description;
+      const description = document.createElement("p");
+      description.className = "trait-description";
+      trait.description.split("\n").forEach(line => {
+        const part = document.createElement("span");
+        part.className = "trait-description-line";
+        part.textContent = line;
+        description.append(part);
+      });
       details.append(summary, description); row.append(label, track, details);
       byId("trait-scores").append(row);
     });
