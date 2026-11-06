@@ -3367,6 +3367,10 @@ button {
   content: "♧";
 }
 
+.home-header .reader-nav a[href^="/quiz"]::before {
+  content: "\2726";
+}
+
 .home-header .reader-nav a[href*="popular"]::before {
   content: "▤";
 }
