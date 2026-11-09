@@ -88,6 +88,17 @@ def test_health_endpoint():
     assert response.json() == {"status": "ok"}
 
 
+def test_backend_wake_returns_only_to_configured_frontend():
+    client = TestClient(app, follow_redirects=False)
+    response = client.get("/", params={"return_origin": "http://localhost:3000"})
+    assert response.status_code == 303
+    assert response.headers["location"] == "http://localhost:3000/?__axiom_woke=1"
+    assert response.headers["cache-control"] == "no-store"
+
+    assert client.get("/").status_code == 404
+    assert client.get("/", params={"return_origin": "http://localhost:3000@other.example"}).status_code == 404
+
+
 def test_local_numeric_frontend_origin_is_allowed():
     response = TestClient(app).get(
         "/api/health",

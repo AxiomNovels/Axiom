@@ -10,6 +10,23 @@ const NORMAL_SESSION_COOKIE = "axiomNormalSession";
 const BACKEND_WAKE_DELAY_MS = 1_200;
 const BACKEND_WAKE_WINDOW_MS = 90_000;
 const BACKEND_WAKE_RELOAD_KEY = "axiomBackendWakeReload";
+const BACKEND_WAKE_RETURN_KEY = "axiomBackendWakeReturn";
+
+function restoreBackendWakePage() {
+  const callback = new URL(window.location.href);
+  if (callback.searchParams.get("__axiom_woke") !== "1") return false;
+
+  const originalUrl = sessionStorage.getItem(BACKEND_WAKE_RETURN_KEY);
+  sessionStorage.removeItem(BACKEND_WAKE_RETURN_KEY);
+  sessionStorage.setItem(BACKEND_WAKE_RELOAD_KEY, String(Date.now()));
+  if (originalUrl?.startsWith(`${window.location.origin}/`)) {
+    window.location.replace(originalUrl);
+    return true;
+  }
+  callback.searchParams.delete("__axiom_woke");
+  window.history.replaceState(window.history.state, "", callback.href);
+  return false;
+}
 
 const SEO_ORIGIN = "https://axiomnovels.com";
 
@@ -128,6 +145,8 @@ function removeBackendWakeOverlay() {
 }
 
 async function monitorBackendWake() {
+  if (restoreBackendWakePage()) return;
+
   // Standalone experiences can run while the catalog backend is unavailable.
   if (document.body.hasAttribute("data-backend-optional")) return;
   // The local backend starts alongside the local frontend, so this UI is only
@@ -135,6 +154,7 @@ async function monitorBackendWake() {
   if (API_BASE === LOCAL_API_BASE) return;
 
   const backendWakeUrl = window.AXIOM_RUNTIME_CONFIG?.backendWakeUrl;
+  const canRecover = Date.now() - Number(sessionStorage.getItem(BACKEND_WAKE_RELOAD_KEY)) > BACKEND_WAKE_WINDOW_MS;
   const overlayTimer = window.setTimeout(renderBackendWakeOverlay, BACKEND_WAKE_DELAY_MS);
   let hadFailure = false;
 
@@ -147,7 +167,7 @@ async function monitorBackendWake() {
         removeBackendWakeOverlay();
         // Page requests may have failed before the backend woke. Limit recovery
         // to one reload per tab within the wake window.
-        if (hadFailure && Date.now() - Number(sessionStorage.getItem(BACKEND_WAKE_RELOAD_KEY)) > BACKEND_WAKE_WINDOW_MS) {
+        if (hadFailure && canRecover) {
           sessionStorage.setItem(BACKEND_WAKE_RELOAD_KEY, String(Date.now()));
           window.location.reload();
         }
@@ -158,15 +178,16 @@ async function monitorBackendWake() {
       // instance. Keep the loading screen visible and try again shortly.
     }
 
-    if (!hadFailure && backendWakeUrl) {
-      // Ask Render to wake from the visitor's browser. Startup pages may omit
-      // CORS headers, so use the Worker health check to verify readiness.
-      fetch(backendWakeUrl, {
-        mode: "no-cors",
-        credentials: "omit",
-        cache: "no-store",
-        signal: AbortSignal.timeout(30_000),
-      }).catch(() => {});
+    if (hadFailure && canRecover && backendWakeUrl && !document.querySelector("[data-password-form]")) {
+      // Keep the original URL in this tab, so private query and fragment
+      // values are never passed to Render as part of the handoff.
+      const startupUrl = new URL(backendWakeUrl);
+      startupUrl.searchParams.set("return_origin", window.location.origin);
+      sessionStorage.setItem(BACKEND_WAKE_RETURN_KEY, window.location.href);
+      sessionStorage.setItem(BACKEND_WAKE_RELOAD_KEY, String(Date.now()));
+      window.clearTimeout(overlayTimer);
+      window.location.replace(startupUrl.href);
+      return;
     }
     hadFailure = true;
     await new Promise((resolve) => window.setTimeout(resolve, 4_000));

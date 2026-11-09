@@ -1,9 +1,9 @@
 import hmac
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from routes.admin import router as admin_router
 from routes.analytics import router as analytics_router
@@ -131,6 +131,17 @@ app.include_router(team_router)
 app.include_router(friendships_router)
 app.include_router(review_likes_router)
 app.include_router(reading_list_reviews_router)
+
+
+@app.get("/", include_in_schema=False)
+def finish_backend_wake(return_origin: str = ""):
+    if return_origin not in FRONTEND_ORIGINS:
+        raise HTTPException(status_code=404)
+    return RedirectResponse(
+        f"{return_origin}/?__axiom_woke=1",
+        status_code=303,
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.get("/api/health")
