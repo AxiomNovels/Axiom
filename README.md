@@ -23,7 +23,7 @@ See [setup, migration order, and delivery behavior](docs/COMMENT_NOTIFICATIONS.m
 Apply [`database/notification_email.sql`](database/notification_email.sql) after
 the existing Inbox schema and `admin_hub.sql`. Apply `comment_notifications.sql` as well to enable
 comment notifications. Deploy the backend with `SUPABASE_SECRET_KEY` and the
-SMTP settings in [`backend/.env.example`](backend/.env.example). Set
+email settings in [`backend/.env.example`](backend/.env.example). Set
 `SMTP_FROM_ADDRESS` to an address authorized by your email provider and put
 your public site first in `FRONTEND_ORIGIN` for the email's inbox link.
 
@@ -31,14 +31,15 @@ If Supabase Auth already uses custom SMTP, use that provider and From address
 in Axiom to match verification emails. Supabase's built-in Auth sender is
 available only to Supabase Auth.
 
-For Resend, set `SMTP_HOST=smtp.resend.com` and save a Resend sending key in
-`SMTP_PASSWORD`. Axiom uses Resend's HTTPS API with those settings.
+For Resend, set `RESEND_API_KEY` to a Resend sending key. Axiom also accepts
+the legacy combination of `SMTP_HOST=smtp.resend.com` and a key in
+`SMTP_PASSWORD`. For other providers, configure the SMTP settings.
 
 Each new inbox entry queues a separate email to the current verified account
 address. Welcome emails wait for confirmation. Existing inbox entries are not
-backfilled. The backend processes the queue when `SMTP_HOST` is configured.
+backfilled. The backend processes the queue when an email provider is configured.
 Failed deliveries retry up to five total attempts, five minutes apart. Pending
-emails expire after seven days. SMTP delivery runs in the background, so a mail
+emails expire after seven days. Email delivery runs in the background, so a mail
 failure does not block a comment or other action.
 
 ## Local frontend

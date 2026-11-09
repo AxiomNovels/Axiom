@@ -18,6 +18,11 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 SMTP_FROM_ADDRESS = os.getenv("SMTP_FROM_ADDRESS") or "no-reply@axiom.app"
 SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", "Axiom")
 SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() != "false"
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
+USE_RESEND = bool(RESEND_API_KEY) or (SMTP_HOST or "").strip().lower() == "smtp.resend.com"
+if USE_RESEND and not RESEND_API_KEY:
+    # Preserve existing Resend deployments that use the SMTP settings.
+    RESEND_API_KEY = (SMTP_PASSWORD or "").strip()
 
 
 class EmailDeliveryError(Exception):
@@ -28,8 +33,7 @@ def send_email(to_address: str, subject: str, body: str, *, delivery_id: str) ->
     """Submit one message to the configured mail provider."""
     subject = " ".join(subject.splitlines())
     sender = f"{SMTP_FROM_NAME} <{SMTP_FROM_ADDRESS.strip()}>"
-    if SMTP_HOST and SMTP_HOST.strip().lower() == "smtp.resend.com":
-        # Existing Resend SMTP passwords are also API keys.
+    if USE_RESEND:
         _send_with_resend(sender, to_address, subject, body, delivery_id)
         return
 
@@ -52,13 +56,13 @@ def send_email(to_address: str, subject: str, body: str, *, delivery_id: str) ->
 
 
 def _send_with_resend(sender: str, recipient: str, subject: str, body: str, delivery_id: str) -> None:
-    if not SMTP_PASSWORD or not SMTP_PASSWORD.strip():
-        raise EmailDeliveryError("Resend API key missing from SMTP_PASSWORD")
+    if not RESEND_API_KEY:
+        raise EmailDeliveryError("Resend API key missing from RESEND_API_KEY and SMTP_PASSWORD")
 
     response = httpx.post(
         "https://api.resend.com/emails",
         headers={
-            "Authorization": f"Bearer {SMTP_PASSWORD.strip()}",
+            "Authorization": f"Bearer {RESEND_API_KEY}",
             "Idempotency-Key": f"inbox/{delivery_id}",
         },
         json={"from": sender, "to": [recipient], "subject": subject, "text": body},

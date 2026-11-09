@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from core.config import FRONTEND_ORIGINS
 from core.database import create_service_client
-from core.email import EmailDeliveryError, SMTP_HOST, send_email
+from core.email import EmailDeliveryError, RESEND_API_KEY, SMTP_HOST, USE_RESEND, send_email
 
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,10 @@ async def _deliver_emails(stopping: asyncio.Event) -> None:
 
 @asynccontextmanager
 async def notification_email_lifespan(_app):
-    if not SMTP_HOST:
+    if USE_RESEND and not RESEND_API_KEY:
+        logger.warning("Inbox email paused: set RESEND_API_KEY in the backend environment")
+
+    if not (RESEND_API_KEY if USE_RESEND else SMTP_HOST):
         yield
         return
 
