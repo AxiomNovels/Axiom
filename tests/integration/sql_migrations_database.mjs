@@ -4,6 +4,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 import { readFileSync, readdirSync } from "node:fs";
 import assert from "node:assert/strict";
+import { checkCommentNotifications } from './comment_notifications_database.mjs';
 
 const directory = new URL("../../database/", import.meta.url);
 const db = new PGlite({extensions: {pgcrypto}});
@@ -266,6 +267,12 @@ await assert.rejects(db.query('select * from public.reader_special_badges($1::uu
 await db.exec('reset role; set role anon');
 await assert.rejects(db.query('select * from public.reader_special_badges($1::uuid[])', [[owner]]), /permission denied/);
 await db.exec('reset role');
+// Comment tests need a novel/review after the deletion regression removed them.
+await db.exec(`delete from public.notifications;
+  insert into public.novels(id,title) values (2,'Another novel');
+  insert into public.reviews(id,novel_id,user_id,rating) values (2,2,'${owner}',4);
+  update auth.users set raw_app_meta_data = raw_app_meta_data - 'axiom_banned';`);
+await checkCommentNotifications(db, apply, owner, reader);
 assert.deepEqual([...applied].sort(), readdirSync(directory).filter(name => name.endsWith(".sql")).sort());
 await db.close();
 console.log(`All ${applied.size} SQL files executed successfully: ordered installation, repeatable migrations, constraints, triggers, RLS, bans, and preservation checks.`);

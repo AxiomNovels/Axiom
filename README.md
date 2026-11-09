@@ -14,6 +14,10 @@ See [genre migration details](database/GENRE_NORMALIZATION.md) for ordering and 
 * Protagonist profiling and trait voting
 * Reader reviews, reading lists, and social features
 
+Comment reply and reading-list owner inbox notifications require
+[`database/comment_notifications.sql`](database/comment_notifications.sql).
+See [setup, migration order, and delivery behavior](docs/COMMENT_NOTIFICATIONS.md).
+
 ## Local frontend
 
 The basic login page lives in `frontend/`.

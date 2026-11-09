@@ -18,6 +18,8 @@ def create_notification(
     users, since notifications only ever come from the system, never
     from other users. Atomic novel deletion writes its notices inside
     database/delete_novel.sql so delivery and cleanup commit together.
+    Comment activity uses the triggers in database/comment_notifications.sql
+    to distinguish new comments from upsert edits atomically.
 
     `notif_type` / `data` let the frontend render richer, interactive
     notifications (e.g. "friend_request", carrying the friendship id and

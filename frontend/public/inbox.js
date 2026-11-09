@@ -165,6 +165,22 @@ function createNotificationCard(notification) {
     body.appendChild(extras);
   }
 
+  if (["comment_reply", "reading_list_comment"].includes(notification.type)) {
+    const data = notification.data || {};
+    let destination;
+    if (data.reading_list_id && data.owner_id) {
+      destination = `/shared-list.html?user=${encodeURIComponent(data.owner_id)}&id=${encodeURIComponent(data.reading_list_id)}`;
+    } else if (data.novel_id) {
+      destination = `/novel.html?id=${encodeURIComponent(data.novel_id)}`;
+    }
+    if (destination) {
+      const link = document.createElement("a");
+      link.href = `${destination}#reviews-heading`;
+      link.textContent = "View discussion";
+      body.appendChild(link);
+    }
+  }
+
   const actions = document.createElement("div");
   actions.className = "inbox-message-actions";
 
