@@ -8,6 +8,8 @@ let sessionRefreshTimer = null;
 const AUTH_MODE_KEY = "axiomAuthMode";
 const NORMAL_SESSION_COOKIE = "axiomNormalSession";
 const BACKEND_WAKE_DELAY_MS = 1_200;
+const BACKEND_WAKE_WINDOW_MS = 90_000;
+const BACKEND_WAKE_RELOAD_KEY = "axiomBackendWakeReload";
 
 const SEO_ORIGIN = "https://axiomnovels.com";
 
@@ -132,15 +134,23 @@ async function monitorBackendWake() {
   // useful for a deployed API that can sleep between visits (such as Render).
   if (API_BASE === LOCAL_API_BASE) return;
 
-  let overlayTimer = window.setTimeout(renderBackendWakeOverlay, BACKEND_WAKE_DELAY_MS);
+  const backendWakeUrl = window.AXIOM_RUNTIME_CONFIG?.backendWakeUrl;
+  const overlayTimer = window.setTimeout(renderBackendWakeOverlay, BACKEND_WAKE_DELAY_MS);
+  let hadFailure = false;
 
-  const deadline = Date.now() + 90_000;
+  const deadline = Date.now() + BACKEND_WAKE_WINDOW_MS;
   while (Date.now() < deadline) {
     try {
       const response = await fetch(`${API_BASE}/api/health`, { cache: "no-store", signal: AbortSignal.timeout(10_000) });
-      if (response.ok) {
+      if (response.ok && (await response.json())?.status === "ok") {
         window.clearTimeout(overlayTimer);
         removeBackendWakeOverlay();
+        // Page requests may have failed before the backend woke. Limit recovery
+        // to one reload per tab within the wake window.
+        if (hadFailure && Date.now() - Number(sessionStorage.getItem(BACKEND_WAKE_RELOAD_KEY)) > BACKEND_WAKE_WINDOW_MS) {
+          sessionStorage.setItem(BACKEND_WAKE_RELOAD_KEY, String(Date.now()));
+          window.location.reload();
+        }
         return;
       }
     } catch {
@@ -148,7 +158,18 @@ async function monitorBackendWake() {
       // instance. Keep the loading screen visible and try again shortly.
     }
 
-    await new Promise((resolve) => window.setTimeout(resolve, 2_000));
+    if (!hadFailure && backendWakeUrl) {
+      // Ask Render to wake from the visitor's browser. Startup pages may omit
+      // CORS headers, so use the Worker health check to verify readiness.
+      fetch(backendWakeUrl, {
+        mode: "no-cors",
+        credentials: "omit",
+        cache: "no-store",
+        signal: AbortSignal.timeout(30_000),
+      }).catch(() => {});
+    }
+    hadFailure = true;
+    await new Promise((resolve) => window.setTimeout(resolve, 4_000));
   }
   window.clearTimeout(overlayTimer);
   removeBackendWakeOverlay();

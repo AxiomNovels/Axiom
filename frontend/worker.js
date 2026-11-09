@@ -85,8 +85,10 @@ const worker = {
 
     if (url.pathname === "/runtime-config.js") {
       const enabled = analyticsOn(env);
-      const apiBase = enabled ? `${url.origin}/__axiom/backend` : (env.API_BASE || "").replace(/\/+$/, "");
-      const body = `window.AXIOM_RUNTIME_CONFIG = Object.freeze({ apiBase: ${JSON.stringify(apiBase)}, analyticsEnabled: ${enabled}, analyticsEndpoint: "/__axiom/events" });`;
+      const backendBase = (env.API_BASE || "").replace(/\/+$/, "");
+      const apiBase = enabled ? `${url.origin}/__axiom/backend` : backendBase;
+      const backendWakeUrl = enabled && backendBase ? `${backendBase}/` : null;
+      const body = `window.AXIOM_RUNTIME_CONFIG = Object.freeze({ apiBase: ${JSON.stringify(apiBase)}, backendWakeUrl: ${JSON.stringify(backendWakeUrl)}, analyticsEnabled: ${enabled}, analyticsEndpoint: "/__axiom/events" });`;
 
       return new Response(body, {
         headers: {

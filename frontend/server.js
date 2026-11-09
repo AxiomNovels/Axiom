@@ -98,7 +98,7 @@ async function handleRequest(request, response) {
   if (requestPath === "/runtime-config.js") {
     const apiBase = (process.env.API_BASE || "http://localhost:8000").replace(/\/+$/, "");
     const enabled = await analyticsEnabled();
-    const body = `window.AXIOM_RUNTIME_CONFIG = Object.freeze({ apiBase: ${JSON.stringify(apiBase)}, analyticsEnabled: ${enabled}, analyticsEndpoint: ${JSON.stringify(`${apiBase}/api/analytics/events`)} });`;
+    const body = `window.AXIOM_RUNTIME_CONFIG = Object.freeze({ apiBase: ${JSON.stringify(apiBase)}, backendWakeUrl: null, analyticsEnabled: ${enabled}, analyticsEndpoint: ${JSON.stringify(`${apiBase}/api/analytics/events`)} });`;
     response.writeHead(200, {
       "Content-Type": "text/javascript; charset=utf-8",
       "Cache-Control": "no-store"

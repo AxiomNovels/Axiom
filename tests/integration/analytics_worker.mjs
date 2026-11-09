@@ -10,11 +10,13 @@ test("runtime config exposes only public settings",async()=>{
   const response=await worker.fetch(new Request("https://axiom.test/runtime-config.js"),base,{waitUntil(){}});
   const text=await response.text();
   assert(text.includes("/__axiom/backend"));assert(text.includes("analyticsEnabled: true"));assert(!text.includes(base.ANALYTICS_EDGE_SECRET));
+  assert(text.includes('backendWakeUrl: "https://backend.test/"'));
 });
 test("disabled deployment keeps original API base and performs no collection",async()=>{
   const env={...base,ANALYTICS_ENABLED:"false"};let calls=0;
   const response=await worker.fetch(new Request("https://axiom.test/runtime-config.js"),env,{waitUntil(){calls++;}});
-  assert((await response.text()).includes("https://backend.test"));assert.equal(calls,0);
+  const text=await response.text();
+  assert(text.includes("https://backend.test"));assert(text.includes("backendWakeUrl: null"));assert.equal(calls,0);
 });
 test("asset counts are background work and use trusted country/IP",async()=>{
   const original=globalThis.fetch;const calls=[];const pending=[];
