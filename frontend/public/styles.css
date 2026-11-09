@@ -786,6 +786,21 @@ button:hover {
   gap: 12px;
 }
 
+[data-signup-confirmation],
+.is-awaiting-confirmation .auth-form,
+.is-awaiting-confirmation [data-signup-login-prompt] {
+  display: none;
+}
+
+.is-awaiting-confirmation .auth-header h2 {
+  margin-bottom: 10px;
+}
+
+.is-awaiting-confirmation [data-signup-confirmation] {
+  display: block;
+  margin: 0;
+}
+
 .auth-form label {
   color: var(--ink);
 

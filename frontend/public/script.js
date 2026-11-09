@@ -758,13 +758,11 @@ document.querySelectorAll(".auth-form:not([data-password-form])").forEach((form)
         return;
       }
 
-      const confirmation = form.parentElement.querySelector("[data-signup-confirmation]");
-      if (isSignup && result.user && !result.session && confirmation) {
-        const title = form.parentElement.querySelector("#signup-title");
+      if (isSignup && result.user && !result.session) {
+        const panel = form.parentElement;
+        const title = panel.querySelector("#signup-title");
         form.reset();
-        form.classList.add("is-hidden");
-        form.parentElement.querySelector("[data-signup-login-prompt]").classList.add("is-hidden");
-        confirmation.classList.remove("is-hidden");
+        panel.classList.add("is-awaiting-confirmation");
         title.textContent = "Check your email";
         title.focus();
         return;
