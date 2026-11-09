@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from core.config import FRONTEND_ORIGINS
 from core.database import create_service_client
-from core.email import SMTP_HOST, send_email
+from core.email import EmailDeliveryError, SMTP_HOST, send_email
 
 
 logger = logging.getLogger(__name__)
@@ -22,11 +22,12 @@ def deliver_next_email() -> bool:
         body += f"\n\nOpen your Axiom inbox: {FRONTEND_ORIGINS[0]}/inbox.html"
 
     try:
-        send_email(job["email"], job["subject"], body)
+        send_email(job["email"], job["subject"], body, delivery_id=job["id"])
     except Exception as error:
-        # SMTP exceptions can include recipient addresses or server credentials.
+        # Raw provider exceptions can include addresses or credentials.
+        reason = str(error) if isinstance(error, EmailDeliveryError) else type(error).__name__
         logger.warning(
-            "Inbox email %s attempt %s failed (%s)", job["id"], job["attempt"], type(error).__name__,
+            "Inbox email %s attempt %s failed (%s)", job["id"], job["attempt"], reason,
         )
     else:
         client.rpc("complete_notification_email", {"p_id": job["id"], "p_attempt": job["attempt"]}).execute()

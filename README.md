@@ -31,6 +31,9 @@ If Supabase Auth already uses custom SMTP, use that provider and From address
 in Axiom to match verification emails. Supabase's built-in Auth sender is
 available only to Supabase Auth.
 
+For Resend, set `SMTP_HOST=smtp.resend.com` and save a Resend sending key in
+`SMTP_PASSWORD`. Axiom uses Resend's HTTPS API with those settings.
+
 Each new inbox entry queues a separate email to the current verified account
 address. Welcome emails wait for confirmation. Existing inbox entries are not
 backfilled. The backend processes the queue when `SMTP_HOST` is configured.
