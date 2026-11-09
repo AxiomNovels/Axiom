@@ -758,6 +758,18 @@ document.querySelectorAll(".auth-form:not([data-password-form])").forEach((form)
         return;
       }
 
+      const confirmation = form.parentElement.querySelector("[data-signup-confirmation]");
+      if (isSignup && result.user && !result.session && confirmation) {
+        const title = form.parentElement.querySelector("#signup-title");
+        form.reset();
+        form.classList.add("is-hidden");
+        form.parentElement.querySelector("[data-signup-login-prompt]").classList.add("is-hidden");
+        confirmation.classList.remove("is-hidden");
+        title.textContent = "Check your email";
+        title.focus();
+        return;
+      }
+
       const rememberCheckbox = form.querySelector("input[name='remember']");
       // Sign-up has no checkbox and keeps the app's prior persistent-session
       // behavior. On the login form, the reader explicitly chooses whether

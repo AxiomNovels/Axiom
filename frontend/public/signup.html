@@ -32,7 +32,10 @@
       <section class="auth-panel" aria-labelledby="signup-title">
         <div class="auth-header">
           <p class="eyebrow">Create account</p>
-          <h2 id="signup-title">Sign up for Axiom</h2>
+          <h2 id="signup-title" tabindex="-1">Sign up for Axiom</h2>
+          <p class="is-hidden" data-signup-confirmation>
+            We sent a verification link to your email. Click the link in the email to confirm your address before signing in.
+          </p>
         </div>
 
         <form class="auth-form" action="#" method="post" data-demo-message="Local demo only: signup is not connected yet.">
@@ -86,7 +89,7 @@
         </form>
 
         <p class="auth-switch">
-          Already have an account? <a href="/login.html">Log in</a>
+          <span data-signup-login-prompt>Already have an account?</span> <a href="/login.html">Log in</a>
         </p>
       </section>
     </main>
