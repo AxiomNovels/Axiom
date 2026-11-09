@@ -9,6 +9,7 @@ from routes.admin import router as admin_router
 from routes.analytics import router as analytics_router
 from services import analytics_service
 from core.analytics_body_limit import AnalyticsBodyLimit
+from core.notification_email import notification_email_lifespan
 from routes.protagonist_votes import router as protagonist_votes_router
 from routes.auth import router as auth_router
 from routes.friendships import router as friendships_router
@@ -28,7 +29,7 @@ from routes.reading_list_reviews import router as reading_list_reviews_router
 from core.config import FRONTEND_ORIGINS
 
 
-app = FastAPI(title="Axiom Backend")
+app = FastAPI(title="Axiom Backend", lifespan=notification_email_lifespan)
 
 
 @app.middleware("http")

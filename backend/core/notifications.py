@@ -1,17 +1,14 @@
 from core.database import create_service_client
-from core.email import send_email
 
 
 def create_notification(
     user_id: str,
     subject: str,
     body: str,
-    email: str | None = None,
     notif_type: str = "system",
     data: dict | None = None,
 ) -> dict | None:
-    """Write an inbox notification and, if an email address is supplied,
-    mirror it to the user's email.
+    """Write an inbox notification. The database queues its email copy.
 
     Notifications are always written with the service-role client: the
     `notifications` table intentionally has no INSERT policy for regular
@@ -23,10 +20,8 @@ def create_notification(
 
     `notif_type` / `data` let the frontend render richer, interactive
     notifications (e.g. "friend_request", carrying the friendship id and
-    sender info) instead of only plain text. Both the DB write and the
-    email send are best-effort -- a failure here should never break the
-    system event (e.g. signup, sending a friend request) that triggered
-    it.
+    sender info) instead of only plain text. A failed notification write
+    should never break the event that triggered it.
 
     Returns the inserted notification row, or None if the write failed,
     so callers that need to reference the new row (e.g. to store its id
@@ -53,15 +48,11 @@ def create_notification(
     except Exception as error:
         print(f"[notifications] failed to create notification for user {user_id}: {error}")
 
-    if email:
-        send_email(email, subject, body)
-
     return inserted
 
 
-def send_welcome_notification(user_id: str, username: str, email: str) -> None:
-    """The one automatic system notification sent today: once, right
-    after a new account is created."""
+def send_welcome_notification(user_id: str, username: str) -> None:
+    """Create a welcome notification when a new account is registered."""
     subject = "Welcome to Axiom!"
     body = (
         f"Hi {username},\n\n"
@@ -81,4 +72,4 @@ def send_welcome_notification(user_id: str, username: str, email: str) -> None:
         "Happy reading,\n"
         "The Axiom Team"
     )
-    create_notification(user_id, subject, body, email)
+    create_notification(user_id, subject, body)

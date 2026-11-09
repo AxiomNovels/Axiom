@@ -22,15 +22,17 @@ Deploy the updated `frontend/public/inbox.js` to enable discussion links.
   The destination page independently checks current access when opened.
 - Notices contain the sender name and novel/list title, without copying comment
   text. They use the existing inbox unread count, read/unread, and delete actions.
-  No emails are sent. Existing notices remain if a discussion is later deleted
-  or its visibility changes, and its destination uses existing unavailable UI.
+  With [inbox email configured](../README.md#inbox-email), each notice also
+  queues an email. Reading-list emails link to the inbox and keep list titles
+  inside Axiom. Existing notices remain if a discussion is later deleted or its
+  visibility changes, and its destination uses existing unavailable UI.
 
 Database triggers distinguish inserts from updates even for concurrent upserts.
 Notices commit with the comment and roll back if its transaction rolls back.
-Delivery is best-effort, matching `core.notifications`: a failed notice emits a
-database warning and does not block saving the comment. There is no delivery
-retry queue. The trigger function has a fixed search path and no client execute
-grants; recipient IDs come from stored relationships, never a notification API.
+Delivery is best-effort, matching `core.notifications`. A failed notice emits a
+database warning and does not block saving the comment. The trigger function
+has a fixed search path and no client execute grants. Recipient IDs come from
+stored relationships.
 
 Run `npm.cmd run test:sql --prefix tests` for isolated PostgreSQL regression
 coverage, including comment notifications, existing migrations, RLS, and bans.

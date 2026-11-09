@@ -272,7 +272,67 @@ await db.exec(`delete from public.notifications;
   insert into public.novels(id,title) values (2,'Another novel');
   insert into public.reviews(id,novel_id,user_id,rating) values (2,2,'${owner}',4);
   update auth.users set raw_app_meta_data = raw_app_meta_data - 'axiom_banned';`);
+await db.exec('alter table auth.users add column email text, add column email_confirmed_at timestamptz');
+await apply('notification_email.sql');
+await apply('notification_email.sql');
 await checkCommentNotifications(db, apply, owner, reader);
+const queued = async () => (await db.query('select * from public.notification_email_queue')).rows;
+assert.ok((await queued()).some(row => row.user_id === owner && /replied.*Another novel/.test(row.body)));
+assert.ok((await queued()).some(row => row.body === 'You have new activity on a reading list.'));
+await db.exec('delete from public.notification_email_queue');
+
+const enqueue = subject => db.query(
+  'insert into public.notifications(user_id,subject,body) values ($1,$2,$3)',
+  [owner, subject, 'Inbox message'],
+);
+const claim = async () => (await db.query('select * from public.claim_notification_email()')).rows[0];
+const complete = (job, attempt = job.attempt) => db.query(
+  'select public.complete_notification_email($1,$2)', [job.id, attempt],
+);
+await db.exec('begin');
+await enqueue('Rolled back');
+await db.exec('rollback');
+assert.equal((await queued()).length, 0);
+
+await enqueue('Welcome');
+await db.query('update auth.users set email=$2 where id=$1', [owner, 'old@example.test']);
+await db.exec('set role authenticated');
+await assert.rejects(claim(), /permission denied/);
+await assert.rejects(queued(), /permission denied/);
+await db.exec('reset role; set role service_role');
+assert.equal(await claim(), undefined, 'unverified address waits');
+await db.exec('reset role');
+await db.query("update auth.users set email=$2, email_confirmed_at=now(), raw_app_meta_data='{}' where id=$1",
+  [owner, 'new@example.test']);
+await db.exec('set role service_role');
+const first = await claim();
+assert.deepEqual(first, {
+  id: first.id, attempt: 1, email: 'new@example.test', subject: 'Welcome', body: 'Inbox message',
+});
+assert.equal(await claim(), undefined, 'leased email cannot be claimed by another worker');
+await db.exec("reset role; update public.notification_email_queue set available_at=now(); set role service_role");
+const retry = await claim();
+assert.equal(retry.id, first.id);
+assert.equal(retry.attempt, 2);
+await complete(first);
+await db.exec('reset role');
+assert.equal((await queued()).length, 1, 'old lease cannot complete the new attempt');
+await db.exec('set role service_role');
+await complete(retry);
+await db.exec('reset role');
+assert.equal((await queued()).length, 0);
+
+await enqueue('System message');
+await db.query("update auth.users set raw_app_meta_data='{\"axiom_banned\":true}' where id=$1", [owner]);
+assert.equal(await claim(), undefined, 'banned account does not receive mail');
+await db.exec("update public.notification_email_queue set created_at=now() - interval '8 days'");
+assert.equal(await claim(), undefined);
+assert.equal((await queued()).length, 0, 'expired email is removed');
+
+await db.exec('alter table public.notification_email_queue add constraint fail_email_queue check (false)');
+await enqueue('Inbox still works');
+assert.equal((await db.query("select count(*)::int n from public.notifications where subject='Inbox still works'")).rows[0].n, 1);
+assert.equal((await queued()).length, 0);
 assert.deepEqual([...applied].sort(), readdirSync(directory).filter(name => name.endsWith(".sql")).sort());
 await db.close();
 console.log(`All ${applied.size} SQL files executed successfully: ordered installation, repeatable migrations, constraints, triggers, RLS, bans, and preservation checks.`);

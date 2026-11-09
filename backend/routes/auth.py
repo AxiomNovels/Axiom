@@ -151,12 +151,9 @@ def signup(payload: SignupRequest):
                 if duplicate else "Couldn't finish setting up your profile. Please retry signup.",
             ) from error
 
-        # Send the one-time welcome notification (inbox row + email copy).
-        # This is best-effort: send_welcome_notification already swallows
-        # its own DB/email failures, but the account itself must never be
-        # rolled back just because a notification couldn't be delivered.
+        # A failed welcome notification must not roll back the new account.
         try:
-            send_welcome_notification(user.id, payload.username, payload.email)
+            send_welcome_notification(user.id, payload.username)
         except Exception as error:
             print(f"[auth] failed to send welcome notification for {user.id}: {error}")
 
