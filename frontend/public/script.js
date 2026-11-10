@@ -9,6 +9,7 @@ const AUTH_MODE_KEY = "axiomAuthMode";
 const NORMAL_SESSION_COOKIE = "axiomNormalSession";
 const BACKEND_WAKE_DELAY_MS = 1_200;
 const BACKEND_WAKE_WINDOW_MS = 90_000;
+const BACKEND_WAKE_POLL_MS = 4_000;
 const BACKEND_WAKE_RELOAD_KEY = "axiomBackendWakeReload";
 const BACKEND_WAKE_RETURN_KEY = "axiomBackendWakeReturn";
 
@@ -20,6 +21,12 @@ function restoreBackendWakePage() {
   sessionStorage.removeItem(BACKEND_WAKE_RETURN_KEY);
   sessionStorage.setItem(BACKEND_WAKE_RELOAD_KEY, String(Date.now()));
   if (originalUrl?.startsWith(`${window.location.origin}/`)) {
+    // Render returns to the homepage. If it is already the requested page,
+    // restore its URL and initialize this document without a second navigation.
+    if (new URL(originalUrl).pathname === callback.pathname) {
+      window.history.replaceState(window.history.state, "", originalUrl);
+      return false;
+    }
     window.location.replace(originalUrl);
     return true;
   }
@@ -163,9 +170,9 @@ async function monitorBackendWake() {
       if (response.ok && (await response.json())?.status === "ok") {
         window.clearTimeout(overlayTimer);
         removeBackendWakeOverlay();
-        // Page requests may have failed before the backend woke. Limit recovery
-        // to one reload per tab within the wake window.
-        if (hadFailure && canRecover) {
+        // The homepage retries its own reads. Other pages may need a reload
+        // if their initial requests failed while the backend was starting.
+        if (hadFailure && canRecover && !document.querySelector("[data-novel-grid]")) {
           sessionStorage.setItem(BACKEND_WAKE_RELOAD_KEY, String(Date.now()));
           window.location.reload();
         }
@@ -188,7 +195,7 @@ async function monitorBackendWake() {
       return;
     }
     hadFailure = true;
-    await new Promise((resolve) => window.setTimeout(resolve, 4_000));
+    await new Promise((resolve) => window.setTimeout(resolve, BACKEND_WAKE_POLL_MS));
   }
   window.clearTimeout(overlayTimer);
   removeBackendWakeOverlay();
@@ -1073,20 +1080,28 @@ function createNovelCard(novel, index) {
   return link;
 }
 
-async function fetchHomeData(path, retryOnWake = true) {
-  const lastWake = Number(sessionStorage.getItem(BACKEND_WAKE_RELOAD_KEY));
-  const delays = retryOnWake && Date.now() - lastWake < BACKEND_WAKE_WINDOW_MS
-    ? [1000, 2000, 4000, 8000]
-    : [];
+async function fetchHomeData(path, retry = true) {
+  const canRetry = retry && API_BASE !== LOCAL_API_BASE;
+  const deadline = Date.now() + BACKEND_WAKE_WINDOW_MS;
 
-  // The Render handoff can finish before catalogue requests succeed through
-  // Cloudflare. Retry these reads in place while the home sections are loading.
-  for (const delay of delays) {
-    const response = await fetch(`${API_BASE}${path}`, { cache: "no-store" }).catch(() => null);
-    if (response && response.status < 500) return response;
-    await new Promise((resolve) => window.setTimeout(resolve, delay));
+  // The health check only confirms that FastAPI is running. Wait for each
+  // catalogue request to return JSON, even if startup skipped the handoff.
+  while (true) {
+    try {
+      const remaining = deadline - Date.now();
+      const response = await fetch(`${API_BASE}${path}`, {
+        cache: "no-store",
+        signal: canRetry ? AbortSignal.timeout(Math.max(1, Math.min(10_000, remaining))) : undefined,
+      });
+      if (response.ok) return await response.json();
+      if (response.status < 500 && response.status !== 429) return null;
+    } catch (error) {
+      if (!canRetry || Date.now() >= deadline) throw error;
+    }
+    const remaining = deadline - Date.now();
+    if (!canRetry || remaining <= 0) return null;
+    await new Promise((resolve) => window.setTimeout(resolve, Math.min(BACKEND_WAKE_POLL_MS, remaining)));
   }
-  return fetch(`${API_BASE}${path}`, { cache: "no-store" });
 }
 
 async function loadHomeFeature() {
@@ -1111,9 +1126,8 @@ async function loadHomeFeature() {
   };
 
   try {
-    const response = await fetchHomeData("/api/home-feature");
-    const feature = await response.json().catch(() => null);
-    if (!response.ok || !feature?.novel) {
+    const feature = await fetchHomeData("/api/home-feature");
+    if (!feature?.novel) {
       showUnavailable("There is no featured recommendation to show yet.");
       return;
     }
@@ -1163,11 +1177,15 @@ async function loadFeaturedNovels(refresh = false) {
       params.set("refresh", "true");
       params.set("exclude", featuredNovelIds.join(","));
     }
-    const response = await fetchHomeData(`/api/novels/featured${params.size ? `?${params}` : ""}`, !refresh);
-    if (!response.ok) {
+    let novels = await fetchHomeData(`/api/novels/featured${params.size ? `?${params}` : ""}`, !refresh);
+    if (!refresh && Array.isArray(novels) && !novels.length) {
+      // The initial recommendation query can return no rows. Try the same
+      // catalogue selection used by Refresh list before showing an empty state.
+      novels = await fetchHomeData("/api/novels/featured?refresh=true");
+    }
+    if (!Array.isArray(novels)) {
       throw new Error("Failed to load featured novels");
     }
-    const novels = await response.json();
 
     featuredNovelIds = novels.map((novel) => String(novel.id));
     grid.innerHTML = "";
