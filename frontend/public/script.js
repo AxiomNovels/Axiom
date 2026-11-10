@@ -145,8 +145,6 @@ function removeBackendWakeOverlay() {
 }
 
 async function monitorBackendWake() {
-  if (restoreBackendWakePage()) return;
-
   // Standalone experiences can run while the catalog backend is unavailable.
   if (document.body.hasAttribute("data-backend-optional")) return;
   // The local backend starts alongside the local frontend, so this UI is only
@@ -196,7 +194,8 @@ async function monitorBackendWake() {
   removeBackendWakeOverlay();
 }
 
-monitorBackendWake();
+const restoringBackendWakePage = restoreBackendWakePage();
+if (!restoringBackendWakePage) monitorBackendWake();
 
 // Shared by the novel page, upload preview, and search results to show
 // chapter counts compactly (e.g. 123456 -> "123.4K").
@@ -1074,6 +1073,22 @@ function createNovelCard(novel, index) {
   return link;
 }
 
+async function fetchHomeData(path, retryOnWake = true) {
+  const lastWake = Number(sessionStorage.getItem(BACKEND_WAKE_RELOAD_KEY));
+  const delays = retryOnWake && Date.now() - lastWake < BACKEND_WAKE_WINDOW_MS
+    ? [1000, 2000, 4000, 8000]
+    : [];
+
+  // The Render handoff can finish before catalogue requests succeed through
+  // Cloudflare. Retry these reads in place while the home sections are loading.
+  for (const delay of delays) {
+    const response = await fetch(`${API_BASE}${path}`, { cache: "no-store" }).catch(() => null);
+    if (response && response.status < 500) return response;
+    await new Promise((resolve) => window.setTimeout(resolve, delay));
+  }
+  return fetch(`${API_BASE}${path}`, { cache: "no-store" });
+}
+
 async function loadHomeFeature() {
   const featureCard = document.querySelector("[data-home-feature]");
   if (!featureCard) return;
@@ -1096,7 +1111,7 @@ async function loadHomeFeature() {
   };
 
   try {
-    const response = await fetch(`${API_BASE}/api/home-feature`);
+    const response = await fetchHomeData("/api/home-feature");
     const feature = await response.json().catch(() => null);
     if (!response.ok || !feature?.novel) {
       showUnavailable("There is no featured recommendation to show yet.");
@@ -1148,7 +1163,7 @@ async function loadFeaturedNovels(refresh = false) {
       params.set("refresh", "true");
       params.set("exclude", featuredNovelIds.join(","));
     }
-    const response = await fetch(`${API_BASE}/api/novels/featured${params.size ? `?${params}` : ""}`, { cache: "no-store" });
+    const response = await fetchHomeData(`/api/novels/featured${params.size ? `?${params}` : ""}`, !refresh);
     if (!response.ok) {
       throw new Error("Failed to load featured novels");
     }
@@ -1174,8 +1189,10 @@ document.querySelector("[data-featured-refresh]")?.addEventListener("click", (ev
   event.preventDefault();
   if (!event.currentTarget.disabled) loadFeaturedNovels(true);
 });
-loadFeaturedNovels();
-loadHomeFeature();
+if (!restoringBackendWakePage) {
+  loadFeaturedNovels();
+  loadHomeFeature();
+}
 
 // Load shared preferences and tracking after authentication helpers are available.
 const analyticsScript = document.createElement("script");
