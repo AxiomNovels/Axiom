@@ -4,7 +4,7 @@ A novel discovery app designed to connect readers to Webnovels.
 
 ## Features
 
-* Content-based filtering
+* Filtering based on title, description, tags, genre, and protagonist profile
 * Protagonist profiling powered by Gemini API and trait voting
 * Reader reviews and reading lists
 * Notifications and a personalized inbox, including an email delivery system
