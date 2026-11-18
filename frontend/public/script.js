@@ -165,20 +165,6 @@ async function monitorBackendWake() {
 
   const deadline = Date.now() + BACKEND_WAKE_WINDOW_MS;
   while (Date.now() < deadline) {
-    if (backendWakeUrl) {
-      // Experiment: wake Render from the visitor's browser rather than only
-      // through the shared Cloudflare proxy. Use a simple, credential-free
-      // health request, not the root route that redirects back to Axiom.
-      // A startup response can omit CORS headers; only the proxied health
-      // check below determines when the application's API is ready.
-      fetch(new URL("api/health", backendWakeUrl).href, {
-        mode: "no-cors",
-        credentials: "omit",
-        cache: "no-store",
-        redirect: "error",
-        signal: AbortSignal.timeout(10_000),
-      }).catch(() => {});
-    }
     try {
       const response = await fetch(`${API_BASE}/api/health`, { cache: "no-store", signal: AbortSignal.timeout(10_000) });
       if (response.ok && (await response.json())?.status === "ok") {
@@ -197,12 +183,22 @@ async function monitorBackendWake() {
       // instance. Keep the loading screen visible and try again shortly.
     }
 
+    if (hadFailure && canRecover && backendWakeUrl && !document.querySelector("[data-password-form]")) {
+      // Keep the original URL in this tab, so private query and fragment
+      // values are never passed to Render as part of the handoff.
+      const startupUrl = new URL(backendWakeUrl);
+      startupUrl.searchParams.set("return_origin", window.location.origin);
+      sessionStorage.setItem(BACKEND_WAKE_RETURN_KEY, window.location.href);
+      sessionStorage.setItem(BACKEND_WAKE_RELOAD_KEY, String(Date.now()));
+      window.clearTimeout(overlayTimer);
+      window.location.replace(startupUrl.href);
+      return;
+    }
     hadFailure = true;
     await new Promise((resolve) => window.setTimeout(resolve, BACKEND_WAKE_POLL_MS));
   }
   window.clearTimeout(overlayTimer);
   removeBackendWakeOverlay();
-  console.warn("Axiom startup timed out: the API did not become ready within 90 seconds.");
 }
 
 const restoringBackendWakePage = restoreBackendWakePage();
