@@ -4,7 +4,7 @@
   "compatibility_date": "2026-10-02",
   "main": "./frontend/worker.js",
   "vars": {
-    "API_BASE": "https://axiom-s4bp.onrender.com",
+    "API_BASE": "https://site--axiom-backend--g5grrnk6vkbp.code.run",
     "ANALYTICS_ENABLED": "true"
   },
   "assets": {

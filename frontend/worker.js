@@ -87,7 +87,9 @@ const worker = {
       const enabled = analyticsOn(env);
       const backendBase = (env.API_BASE || "").replace(/\/+$/, "");
       const apiBase = enabled ? `${url.origin}/__axiom/backend` : backendBase;
-      const backendWakeUrl = enabled && backendBase ? `${backendBase}/` : null;
+      // Only Render needs the browser handoff to wake a sleeping instance.
+      const backendWakeUrl = enabled && backendBase && new URL(backendBase).hostname.endsWith(".onrender.com")
+        ? `${backendBase}/` : null;
       const body = `window.AXIOM_RUNTIME_CONFIG = Object.freeze({ apiBase: ${JSON.stringify(apiBase)}, backendWakeUrl: ${JSON.stringify(backendWakeUrl)}, analyticsEnabled: ${enabled}, analyticsEndpoint: "/__axiom/events" });`;
 
       return new Response(body, {
